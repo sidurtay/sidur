@@ -1,26 +1,52 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --navy: #16140F;
+  --blue: #E2691A;
+  --blue-light: #FCE9D8;
+  --blue-border: #F0C49B;
+  --green: #3B6D11;
+  --green-light: #EAF3E0;
+  --amber: #854F0B;
+  --amber-light: #FDF3E3;
+  --red: #A32D2D;
+  --red-light: #FDEAEA;
+  --gray-bg: #F5F5F5;
+  --border: #E5E2DC;
+  --text-main: #1A1816;
+  --text-secondary: #6B655C;
+  --surface: #FFFFFF;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root[data-theme="dark"] {
+  --navy: #0D0C0A;
+  --gray-bg: #121212;
+  --surface: #1C1B19;
+  --border: #322F2A;
+  --text-main: #F2F0EC;
+  --text-secondary: #A39C90;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  direction: rtl;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--gray-bg);
+  color: var(--text-main);
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* Card/sheet surfaces throughout the app are built with Tailwind's bg-white
+   utility — this blanket override keeps them in sync with the theme without
+   touching every component. */
+[data-theme="dark"] .bg-white {
+  background-color: var(--surface) !important;
+  color: var(--text-main);
 }

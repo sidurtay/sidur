@@ -1,65 +1,110 @@
-import Image from "next/image";
+"use client";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { CalendarDays, Users, Coins, BarChart3 } from "lucide-react";
 
-export default function Home() {
+export default function Splash() {
+  const router = useRouter();
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    const session = localStorage.getItem("shiftpro_session");
+    if (session) {
+      router.replace("/dashboard");
+    } else {
+      setChecked(true);
+    }
+  }, [router]);
+
+  if (!checked) return null;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex flex-col min-h-screen" style={{ background: "var(--gray-bg)" }}>
+
+      {/* Hero */}
+      <div className="flex flex-col items-center pt-16 pb-10 px-6 text-center"
+        style={{ background: "var(--navy)" }}>
+
+        {/* Logo mark */}
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
+          style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)" }}>
+          <CalendarDays size={30} color="white" />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <p className="text-white text-2xl font-bold tracking-tight mb-1">Sidur</p>
+        <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>ניהול עובדים חכם למסעדות</p>
+
+        <h1 className="text-white text-xl font-bold leading-relaxed mb-2">
+          סידור עבודה, טיפים ונוכחות<br />במקום אחד
+        </h1>
+        <p className="text-sm leading-relaxed mb-8" style={{ color: "rgba(255,255,255,0.55)", maxWidth: 280 }}>
+          התוכנה שבנויה במיוחד עבור מסעדות ובתי קפה בישראל
+        </p>
+
+        {/* Feature pills */}
+        <div className="flex flex-row flex-wrap justify-center gap-2 mb-8">
+          {[
+            { icon: <CalendarDays size={11} />, label: "סידור עבודה" },
+            { icon: <Coins size={11} />,        label: "חישוב טיפים" },
+            { icon: <Users size={11} />,        label: "ניהול עובדים" },
+            { icon: <BarChart3 size={11} />,    label: "דוחות שעות" },
+          ].map(f => (
+            <span key={f.label} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium"
+              style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
+              {f.icon} {f.label}
+            </span>
+          ))}
         </div>
-      </main>
+
+        {/* CTAs */}
+        <div className="flex flex-col gap-3 w-full" style={{ maxWidth: 320 }}>
+          <button onClick={() => router.push("/register")}
+            className="w-full py-4 rounded-2xl text-base font-bold"
+            style={{ background: "#fff", color: "var(--navy)" }}>
+            צור עסק חדש — חינם
+          </button>
+          <button onClick={() => router.push("/login")}
+            className="w-full py-3.5 rounded-2xl text-sm font-semibold"
+            style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)" }}>
+            כבר יש לי חשבון — כניסה
+          </button>
+        </div>
+      </div>
+
+      {/* Social proof */}
+      <div className="flex flex-col items-center py-5 px-6">
+        <p className="text-xs mb-3" style={{ color: "var(--text-secondary)" }}>✦ מנוהלים כבר איתנו</p>
+        <div className="flex flex-row gap-2 flex-wrap justify-center">
+          {["קפה קפה נהריה", "ביסטרו תל-אביב", "פיצה הגינה", "בר 54"].map(b => (
+            <span key={b} className="px-3 py-1.5 rounded-full text-xs font-medium bg-white"
+              style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
+              {b}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Feature list */}
+      <div className="mx-4 mb-4 rounded-2xl bg-white px-5 py-4 flex flex-col gap-4"
+        style={{ border: "1px solid var(--border)" }}>
+        {[
+          { emoji: "📅", title: "סידור עבודה + AI",     sub: "AI שבונה את הסידור לפי אילוצי העובדים" },
+          { emoji: "💸", title: "חלוקת טיפים הוגנת",   sub: "חישוב אוטומטי לפי שעות — בוקר וערב בנפרד" },
+          { emoji: "⏱️", title: "נוכחות בזמן אמת",     sub: "קריאת QR, אצבע, או עדכון ידני" },
+          { emoji: "📊", title: "דוחות חודשיים",        sub: "ייצוא ל-Excel בלחיצה אחת" },
+        ].map(f => (
+          <div key={f.title} className="flex items-center gap-3 flex-row">
+            <div className="text-right flex-1">
+              <p className="text-sm font-semibold">{f.title}</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{f.sub}</p>
+            </div>
+            <span className="text-2xl w-9 text-center flex-shrink-0">{f.emoji}</span>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-[10px] text-center pb-8 pt-2" style={{ color: "var(--text-secondary)" }}>
+        © 2026 Sidur · כל הזכויות שמורות
+      </p>
     </div>
   );
 }
