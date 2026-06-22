@@ -27,6 +27,8 @@ export default function Employees() {
   const [bizName,    setBizName]    = useState("Sidur");
   const [businessId, setBusinessId] = useState("");
   const [isManager,  setIsManager]  = useState(true);
+  const [resetting,  setResetting]  = useState(false);
+  const [resetResult, setResetResult] = useState<{ tempPassword: string } | { error: string } | null>(null);
 
   const cats = ["הכל", ...jobRoles];
 
@@ -71,6 +73,24 @@ export default function Employees() {
   const [expandedWeek,  setExpandedWeek]  = useState<number | null>(0); // which week accordion is open
 
   const filtered = activeCat === "הכל" ? employees : employees.filter(e => e.cat === activeCat);
+
+  async function resetPassword(emp: Employee) {
+    if (!emp.id || !businessId) return;
+    setResetting(true);
+    setResetResult(null);
+    try {
+      const res = await fetch("/api/employees", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: emp.id, businessId, action: "reset_password" }),
+      }).then(r => r.json());
+      if (res.success) setResetResult({ tempPassword: res.tempPassword });
+      else setResetResult({ error: res.error || "איפוס הסיסמה נכשל" });
+    } catch {
+      setResetResult({ error: "שגיאת רשת — נסה שוב" });
+    } finally {
+      setResetting(false);
+    }
+  }
 
   function openAttendance(emp: Employee) {
     setAttendanceEmp(emp);
@@ -185,7 +205,7 @@ export default function Employees() {
         {filtered.map(emp => (
           <div key={emp.id || emp.name} className="bg-white rounded-xl px-3 py-3 flex items-center gap-2 flex-row cursor-pointer"
             style={{ border: "1px solid var(--border)" }}
-            onClick={() => setSelected(emp)}>
+            onClick={() => { setSelected(emp); setResetResult(null); }}>
             <span className="text-xs px-2 py-0.5 rounded-md flex-shrink-0"
               style={{ background: "var(--gray-bg)", color: "var(--text-secondary)" }}>{emp.role}</span>
             <span className="flex-1 text-center text-sm font-medium">{emp.name}</span>
@@ -236,6 +256,26 @@ export default function Employees() {
                   style={{ background: "var(--navy)", color: "#fff" }}>
                   <Clock size={14} /> דוח שעות נוכחות
                 </button>
+
+                {resetResult && "tempPassword" in resetResult ? (
+                  <div className="rounded-xl px-3 py-3 mb-3 text-center" style={{ background: "var(--green-light)", border: "1px solid #A8D9BB" }}>
+                    <p className="text-sm font-semibold" style={{ color: "var(--green)" }}>הסיסמה אופסה בהצלחה ✓</p>
+                    <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
+                      סיסמה זמנית: <span className="font-bold" style={{ direction: "ltr", display: "inline-block" }}>{resetResult.tempPassword}</span>
+                    </p>
+                    <p className="text-[10px] mt-1" style={{ color: "var(--text-secondary)" }}>שלח/י את הסיסמה הזו ל{selected.name} ידנית — בכניסה הראשונה תתבקש להחליף אותה.</p>
+                  </div>
+                ) : (
+                  <button onClick={() => resetPassword(selected)} disabled={resetting}
+                    className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 mb-3"
+                    style={{ background: resetting ? "#9CA3AF" : "var(--amber-light)", color: resetting ? "#fff" : "var(--amber)", border: resetting ? "none" : "1px solid #EBC395" }}>
+                    <Lock size={14} /> {resetting ? "מאפס..." : "אפס סיסמה לעובד/ת"}
+                  </button>
+                )}
+                {resetResult && "error" in resetResult && (
+                  <p className="text-xs text-center mb-3" style={{ color: "var(--red)" }}>{resetResult.error}</p>
+                )}
+
                 <p className="text-xs flex items-center gap-1 justify-end" style={{ color: "#9A9890" }}>
                   <Lock size={11} /> שעות עבודה ונתונים נוספים גלויים למנהל בלבד
                 </p>

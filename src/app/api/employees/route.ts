@@ -95,3 +95,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "שגיאת שרת" }, { status: 500 });
   }
 }
+
+// Manager-initiated password reset — there's no self-service "forgot password"
+// flow yet, so this is the only way an employee gets back into their account
+// once they're locked out. Issues a new temp password (same shape a brand new
+// employee gets) and clears the old hashed password so it stops working.
+export async function PATCH(req: NextRequest) {
+  try {
+    const { id, businessId, action } = await req.json();
+    if (!id || !businessId || action !== "reset_password") {
+      return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
+    }
+
+    const supabase = createServiceRoleClient();
+    const tempPassword = generateTempPassword();
+
+    const { data, error } = await supabase
+      .from("people")
+      .update({ temp_password: tempPassword, password_hash: null, must_change_password: true })
+      .eq("id", id)
+      .eq("business_id", businessId)
+      .select("id, name, phone")
+      .single();
+
+    if (error || !data) {
+      return NextResponse.json({ error: error?.message || "איפוס הסיסמה נכשל" }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, tempPassword, employee: data });
+  } catch (err) {
+    console.error("reset employee password error:", err);
+    return NextResponse.json({ error: "שגיאת שרת" }, { status: 500 });
+  }
+}
