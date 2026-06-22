@@ -61,7 +61,7 @@ export async function getUpcomingShifts(ctx: ToolCtx) {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("schedule_assignments")
-    .select("day_of_week, week_start, role_key, time_in, time_out")
+    .select("id, day_of_week, week_start, role_key, time_in, time_out")
     .eq("business_id", ctx.businessId)
     .eq("person_id", ctx.personId)
     .in("week_start", [CURRENT_WEEK_START, NEXT_WEEK_START])
@@ -72,6 +72,7 @@ export async function getUpcomingShifts(ctx: ToolCtx) {
   const shifts = (data || [])
     .filter(a => a.week_start !== CURRENT_WEEK_START || a.day_of_week >= TODAY_DAY_OF_WEEK)
     .map(a => ({
+      id: a.id,
       week: a.week_start === CURRENT_WEEK_START ? "השבוע" : "שבוע הבא",
       day: dayNames[a.day_of_week], role: a.role_key,
       timeIn: a.time_in?.slice(0, 5), timeOut: a.time_out?.slice(0, 5),
@@ -228,4 +229,27 @@ export async function getPendingManagerNotifications(ctx: ToolCtx) {
     .limit(20);
   if (error) return { error: error.message };
   return { notifications: data || [] };
+}
+
+// The single most recent not-yet-actioned notification — used by the free-tier
+// "approve the last request" / "deny the last request" intents.
+export async function getMostRecentPendingNotification(ctx: ToolCtx) {
+  if (!ctx.isManager) return { error: "רק מנהל יכול לראות את זה" };
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("manager_notifications")
+    .select("id, type, title, body, ref_id")
+    .eq("business_id", ctx.businessId)
+    .eq("read", false)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) return { error: error.message };
+  if (!data) return { notification: null };
+  return { notification: data };
+}
+
+export async function markNotificationRead(notificationId: string) {
+  const supabase = createServiceRoleClient();
+  await supabase.from("manager_notifications").update({ read: true }).eq("id", notificationId);
 }

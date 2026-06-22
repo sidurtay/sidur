@@ -1,115 +1,109 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { AI_TOOLS } from "@/lib/ai/toolSchemas";
+import { matchIntent, EXAMPLE_PROMPTS } from "@/lib/ai/intentMatcher";
 import * as tools from "@/lib/ai/tools";
 
-const MODEL = "claude-sonnet-4-6";
-const MAX_TOOL_ROUNDS = 4;
 const HISTORY_LIMIT = 16;
 
-type ToolName = "get_employee_hours" | "get_upcoming_shifts" | "get_today_schedule" | "get_shift_swap_requests"
-  | "create_shift_swap_request" | "create_absence_request" | "send_notification_to_manager"
-  | "get_pending_manager_notifications" | "respond_to_request";
+type Ctx = { businessId: string; personId: string; isManager: boolean };
 
-async function runTool(name: ToolName, args: Record<string, unknown>, ctx: { businessId: string; personId: string; isManager: boolean }) {
-  switch (name) {
-    case "get_employee_hours": return tools.getEmployeeHours(ctx, args as { month?: string });
-    case "get_upcoming_shifts": return tools.getUpcomingShifts(ctx);
-    case "get_today_schedule": return tools.getTodaySchedule(ctx);
-    case "get_shift_swap_requests": return tools.getShiftSwapRequests(ctx);
-    case "create_shift_swap_request": return tools.createShiftSwapRequest(ctx, args as { assignmentId: string; proposedPersonName?: string });
-    case "create_absence_request": return tools.createAbsenceRequest(ctx, args as { date: string; reason?: string });
-    case "send_notification_to_manager": return tools.sendNotificationToManager(ctx, args as { type: string; title: string; body: string });
-    case "get_pending_manager_notifications": return tools.getPendingManagerNotifications(ctx);
-    case "respond_to_request": return tools.respondToRequest(ctx, args as { requestId: string; requestType: "absence" | "swap"; approve: boolean });
-    default: return { error: `כלי לא מוכר: ${name}` };
+async function buildReply(message: string, ctx: Ctx, employeeName: string): Promise<string> {
+  const match = matchIntent(message, ctx.isManager);
+
+  switch (match.intent) {
+    case "greeting":
+      return `שלום ${employeeName.split(" ")[0]}! איך אפשר לעזור? אפשר לשאול אותי על שעות עבודה, משמרות קרובות, או לבקש החלפה/היעדרות.`;
+
+    case "hours": {
+      const res = await tools.getEmployeeHours(ctx, { month: match.month });
+      if ("error" in res) return `לא הצלחתי למשוך את השעות: ${res.error}`;
+      if (res.shiftsCount === 0) return "לא מצאתי משמרות מתועדות בתקופה הזו.";
+      return `עבדת ${res.totalHours} שעות ב-${res.shiftsCount} משמרות${match.month ? "" : " (כל ההיסטוריה)"}.`;
+    }
+
+    case "upcoming_shifts": {
+      const res = await tools.getUpcomingShifts(ctx);
+      if ("error" in res) return `לא הצלחתי למשוך את המשמרות: ${res.error}`;
+      if (res.shifts.length === 0) return "אין לך משמרות קרובות מתוכננות כרגע.";
+      return "המשמרות הקרובות שלך:\n" + res.shifts.map(s => `• ${s.week} — יום ${s.day}, ${s.role} (${s.timeIn}–${s.timeOut})`).join("\n");
+    }
+
+    case "today_schedule": {
+      const res = await tools.getTodaySchedule(ctx);
+      if ("error" in res) return `לא הצלחתי למשוך את הסידור: ${res.error}`;
+      if (res.working.length === 0) return "אין משמרות מתוכננות היום.";
+      return "מי עובד היום:\n" + res.working.map(w => `• ${w.name} — ${w.role} (${w.timeIn}–${w.timeOut})`).join("\n");
+    }
+
+    case "swap_requests_list": {
+      const res = await tools.getShiftSwapRequests(ctx);
+      if ("error" in res) return `לא הצלחתי למשוך בקשות: ${res.error}`;
+      if (res.requests.length === 0) return "אין בקשות החלפה פתוחות כרגע.";
+      return "בקשות החלפה פתוחות:\n" + res.requests.map(r =>
+        `• ${r.requesterName} — ${r.role} (${r.timeIn}–${r.timeOut})${r.proposedToTakeOver ? ` · ${r.proposedToTakeOver} מבקש/ת לקחת` : ""}`
+      ).join("\n");
+    }
+
+    case "create_swap": {
+      const upcoming = await tools.getUpcomingShifts(ctx);
+      if ("error" in upcoming || upcoming.shifts.length === 0) return "לא מצאתי משמרת קרובה שלך להחליף.";
+      const target = upcoming.shifts[0];
+      const res = await tools.createShiftSwapRequest(ctx, { assignmentId: target.id, proposedPersonName: match.proposedPersonName });
+      if ("error" in res) return `הבקשה לא נשלחה: ${res.error}`;
+      return `שלחתי בקשת החלפה למשמרת ${target.day} (${target.timeIn}–${target.timeOut})${match.proposedPersonName ? ` עם ${match.proposedPersonName}` : ""}. המנהל יראה אותה ויאשר.`;
+    }
+
+    case "create_absence": {
+      if (!match.date) return "באיזה תאריך תרצה/י לבקש להיעדר? אפשר לכתוב למשל \"חופש ב-1.7\".";
+      const res = await tools.createAbsenceRequest(ctx, { date: match.date, reason: match.reason });
+      if ("error" in res) return `הבקשה לא נשלחה: ${res.error}`;
+      return `שלחתי למנהל בקשת היעדרות לתאריך ${match.date}${match.reason ? ` (${match.reason})` : ""}. תקבל/י עדכון כשהיא תיענה.`;
+    }
+
+    case "manager_pending": {
+      const res = await tools.getPendingManagerNotifications(ctx);
+      if ("error" in res) return `לא הצלחתי למשוך התראות: ${res.error}`;
+      const pending = res.notifications.filter(n => !n.read);
+      if (pending.length === 0) return "אין בקשות ממתינות כרגע. 🎉";
+      return "בקשות ממתינות:\n" + pending.map(n => `• ${n.title} — ${n.body}`).join("\n") + "\n\nאפשר לכתוב \"אשר את הבקשה האחרונה\" או \"דחה את הבקשה האחרונה\".";
+    }
+
+    case "approve_last":
+    case "deny_last": {
+      const approve = match.intent === "approve_last";
+      const pendingRes = await tools.getMostRecentPendingNotification(ctx);
+      if ("error" in pendingRes) return `שגיאה: ${pendingRes.error}`;
+      if (!pendingRes.notification) return "אין בקשה ממתינה לאשר/לדחות.";
+      const n = pendingRes.notification;
+      const requestType = n.type === "absence_request" ? "absence" : "swap";
+      const res = await tools.respondToRequest(ctx, { requestId: n.ref_id, requestType, approve });
+      if ("error" in res) return `הפעולה נכשלה: ${res.error}`;
+      await tools.markNotificationRead(n.id);
+      return approve ? `אישרתי: "${n.title}".` : `דחיתי: "${n.title}".`;
+    }
+
+    default:
+      return `לא הבנתי בדיוק 🙂 אפשר לנסות לשאול:\n` + EXAMPLE_PROMPTS.map(p => `• ${p}`).join("\n");
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, personId, message, isManager, employeeName, businessName } = await req.json();
+    const { businessId, personId, message, isManager, employeeName } = await req.json();
     if (!businessId || !personId || !message?.trim()) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "ה-AI Assistant לא מוגדר עדיין (חסר ANTHROPIC_API_KEY בסביבת השרת)" }, { status: 500 });
-    }
+    const ctx: Ctx = { businessId, personId, isManager: !!isManager };
+    const reply = await buildReply(message.trim(), ctx, employeeName || "");
 
     const supabase = createServiceRoleClient();
-    const ctx = { businessId, personId, isManager: !!isManager };
-
-    // Pull recent history for conversational context
-    const { data: historyRows } = await supabase
-      .from("ai_conversations")
-      .select("role, content")
-      .eq("business_id", businessId)
-      .eq("person_id", personId)
-      .order("created_at", { ascending: false })
-      .limit(HISTORY_LIMIT);
-    const history = (historyRows || []).reverse();
-
-    const anthropic = new Anthropic({ apiKey });
-    const today = new Date("2026-06-23"); // app-wide frozen "today", matches the rest of Sidur
-
-    const systemPrompt = `את/ה העוזר/ת האישי/ת בתוך אפליקציית Sidur — אפליקציה לניהול עובדים, סידור עבודה, ונוכחות במסעדות ובתי קפה בישראל.
-את/ה מדבר/ת עם ${employeeName || "משתמש"} מהעסק "${businessName || ""}", שהוא/היא ${ctx.isManager ? "מנהל/ת" : "עובד/ת"} בעסק.
-היום בתוך האפליקציה הוא ${today.toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" })}.
-דבר/י בעברית בקצרה וברורה (אלא אם המשתמש כתב באנגלית — אז תענה/י באנגלית), בטון חברי ומקצועי.
-תמיד תשתמש/י בכלים (tools) כדי לקבל מידע אמיתי או לבצע פעולות — אל תמציא/י נתונים.
-אם פעולה נכשלת, הסבר/י בקצרה למה ומה אפשר לעשות.
-${ctx.isManager ? "בתור מנהל/ת, את/ה יכול/ה גם לראות ולאשר/לדחות בקשות ממתינות." : "כעובד/ת, את/ה יכול/ה לבקש החלפת משמרת או היעדרות — הבקשה תישלח למנהל לאישור."}`;
-
-    const messages: Anthropic.MessageParam[] = [
-      ...history.map(h => ({ role: h.role as "user" | "assistant", content: h.content })),
-      { role: "user", content: message.trim() },
-    ];
-
-    let finalText = "";
-    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const response = await anthropic.messages.create({
-        model: MODEL,
-        max_tokens: 1024,
-        system: systemPrompt,
-        tools: AI_TOOLS,
-        messages,
-      });
-
-      const toolUseBlocks = response.content.filter(b => b.type === "tool_use");
-      const textBlocks = response.content.filter(b => b.type === "text");
-      finalText = textBlocks.map(b => (b as Anthropic.TextBlock).text).join("\n");
-
-      if (toolUseBlocks.length === 0) break;
-
-      messages.push({ role: "assistant", content: response.content });
-
-      const toolResults: Anthropic.ToolResultBlockParam[] = [];
-      for (const block of toolUseBlocks) {
-        const tu = block as Anthropic.ToolUseBlock;
-        let result: unknown;
-        try {
-          result = await runTool(tu.name as ToolName, tu.input as Record<string, unknown>, ctx);
-        } catch (err) {
-          result = { error: err instanceof Error ? err.message : "שגיאה לא צפויה" };
-        }
-        toolResults.push({ type: "tool_result", tool_use_id: tu.id, content: JSON.stringify(result) });
-      }
-      messages.push({ role: "user", content: toolResults });
-
-      if (response.stop_reason !== "tool_use") break;
-    }
-
-    if (!finalText) finalText = "סליחה, לא הצלחתי להבין את הבקשה. אפשר לנסות לנסח אחרת?";
-
     await supabase.from("ai_conversations").insert([
       { business_id: businessId, person_id: personId, role: "user", content: message.trim() },
-      { business_id: businessId, person_id: personId, role: "assistant", content: finalText },
+      { business_id: businessId, person_id: personId, role: "assistant", content: reply },
     ]);
 
-    return NextResponse.json({ success: true, reply: finalText });
+    return NextResponse.json({ success: true, reply });
   } catch (err) {
     console.error("ai chat error:", err);
     return NextResponse.json({ error: "שגיאת שרת — נסה שוב" }, { status: 500 });
