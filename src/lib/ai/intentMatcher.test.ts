@@ -50,8 +50,18 @@ describe("matchIntent — upcoming_shifts / today_schedule / swap_requests_list"
   });
 
   it("matches today's schedule", () => {
-    expect(matchIntent("מי עובד היום?", false).intent).toBe("today_schedule");
-    expect(matchIntent("who is working today", false).intent).toBe("today_schedule");
+    expect(matchIntent("מי עובד היום?", false).intent).toBe("schedule_for_date");
+    expect(matchIntent("who is working today", false).intent).toBe("schedule_for_date");
+  });
+
+  it("matches schedule lookups for other days too (regression: only 'today' used to work)", () => {
+    const tomorrow = matchIntent("מי עובד מחר?", false);
+    expect(tomorrow.intent).toBe("schedule_for_date");
+    expect(tomorrow.date).toBe("2026-06-24");
+
+    const weekday = matchIntent("מי עובד בשבת?", false);
+    expect(weekday.intent).toBe("schedule_for_date");
+    expect(weekday.date).toBe("2026-06-27");
   });
 
   it("matches swap requests list", () => {

@@ -8,6 +8,19 @@ export const TODAY_DAY_OF_WEEK = 2; // Tuesday, 23.6
 
 type ToolCtx = { businessId: string; personId: string; isManager: boolean };
 
+// Any date's week_start (the Sunday of its calendar week, matching the DB
+// convention) and day_of_week — computed directly so this works for arbitrary
+// dates ("who works tomorrow / next Saturday / on 1.7"), not just the two
+// frozen weeks the rest of the app hardcodes.
+function weekInfoForDate(dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  const dayOfWeek = date.getUTCDay();
+  const sunday = new Date(date);
+  sunday.setUTCDate(date.getUTCDate() - dayOfWeek);
+  return { weekStart: sunday.toISOString().slice(0, 10), dayOfWeek };
+}
+
 async function notifyManager(
   businessId: string,
   personId: string | null,
@@ -80,14 +93,17 @@ export async function getUpcomingShifts(ctx: ToolCtx) {
   return { shifts };
 }
 
-export async function getTodaySchedule(ctx: ToolCtx) {
+// dateStr is an explicit YYYY-MM-DD — used for "who works today/tomorrow/on 1.7"
+// alike, not just "today", since employees and managers ask about any day.
+export async function getScheduleForDate(ctx: ToolCtx, dateStr: string) {
+  const { weekStart, dayOfWeek } = weekInfoForDate(dateStr);
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("schedule_assignments")
     .select("role_key, time_in, time_out, people(name)")
     .eq("business_id", ctx.businessId)
-    .eq("week_start", CURRENT_WEEK_START)
-    .eq("day_of_week", TODAY_DAY_OF_WEEK);
+    .eq("week_start", weekStart)
+    .eq("day_of_week", dayOfWeek);
   if (error) return { error: error.message };
 
   type Row = { role_key: string; time_in: string; time_out: string; people: { name: string } | null };

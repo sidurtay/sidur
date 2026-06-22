@@ -74,15 +74,13 @@ export default function Dashboard() {
   const [upcomingShifts, setUpcomingShifts] = useState<ReturnType<typeof buildUpcomingShifts>>([]);
   const [jobRoleKeys, setJobRoleKeys] = useState<string[]>([]);
   const [myPersonId, setMyPersonId] = useState("");
-  const [myShiftToday, setMyShiftToday] = useState<{ id: string; role: string; timeIn: string; timeOut: string } | null>(null);
 
   useEffect(() => {
-    let biz = "", me = "";
+    let biz = "";
     try {
       const session = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
       setRole(session.role === "employee" ? "employee" : "manager");
       biz = session.businessId || "";
-      me = session.personId || "";
       if (session.name) setManagerName(session.name);
       if (session.businessName) setBusinessName(session.businessName);
       if (session.personId) setMyPersonId(session.personId);
@@ -121,8 +119,6 @@ export default function Dashboard() {
         if (schedRes.success) {
           setTodayWorkers(buildTodayWorkers(schedRes.assignments.filter((a: { dayOfWeek: number }) => a.dayOfWeek === TODAY_DAY_OF_WEEK)));
           setUpcomingShifts(buildUpcomingShifts(schedRes.assignments));
-          const mine = schedRes.assignments.find((a: { dayOfWeek: number; personId: string }) => a.dayOfWeek === TODAY_DAY_OF_WEEK && a.personId === me);
-          if (mine) setMyShiftToday({ id: mine.id, role: mine.role, timeIn: mine.timeIn, timeOut: mine.timeOut });
         }
         if (annRes.success) setAnnouncements(annRes.announcements);
         if (swapRes.success) setSwapRequests(swapRes.requests);
@@ -247,8 +243,10 @@ export default function Dashboard() {
 
       <div className="px-4 py-3 flex flex-col gap-4">
 
-        {/* Manager / אחמ"ש also work shifts — same self clock-in flow as anyone else */}
-        {myShiftToday && businessId && myPersonId && (
+        {/* Manager / אחמ"ש also work shifts — same self clock-in flow as anyone else.
+            Unlike employees, managers often aren't formally scheduled via schedule_assignments,
+            so this isn't gated on having a shift today. */}
+        {businessId && myPersonId && (
           <ClockInOutCard businessId={businessId} personId={myPersonId} />
         )}
 

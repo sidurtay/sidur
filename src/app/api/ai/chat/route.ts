@@ -9,36 +9,45 @@ type Ctx = { businessId: string; personId: string; isManager: boolean };
 
 async function buildReply(message: string, ctx: Ctx, employeeName: string): Promise<string> {
   const match = matchIntent(message, ctx.isManager);
+  const firstName = employeeName.split(" ")[0];
 
   switch (match.intent) {
     case "greeting":
-      return `שלום ${employeeName.split(" ")[0]}! איך אפשר לעזור? אפשר לשאול אותי על שעות עבודה, משמרות קרובות, או לבקש החלפה/היעדרות.`;
+      return `היי ${firstName}! 👋 איך אפשר לעזור? אני יכול לספר לך כמה שעות עבדת, מה המשמרות הקרובות שלך, מי עובד היום או מחר, ולטפל בבקשות חופש או החלפה.`;
+
+    case "thanks":
+      return "בשמחה! 🙌 אם תצטרך/י עוד משהו, אני כאן.";
+
+    case "faq":
+      return match.faqAnswer || "";
 
     case "hours": {
       const res = await tools.getEmployeeHours(ctx, { month: match.month });
-      if ("error" in res) return `לא הצלחתי למשוך את השעות: ${res.error}`;
+      if ("error" in res) return `הופ, לא הצלחתי למשוך את השעות 😕 (${res.error})`;
       if (res.shiftsCount === 0) return "לא מצאתי משמרות מתועדות בתקופה הזו.";
-      return `עבדת ${res.totalHours} שעות ב-${res.shiftsCount} משמרות${match.month ? "" : " (כל ההיסטוריה)"}.`;
+      return `עבדת ${res.totalHours} שעות ב-${res.shiftsCount} משמרות${match.month ? "" : " (כל ההיסטוריה)"} 💪`;
     }
 
     case "upcoming_shifts": {
       const res = await tools.getUpcomingShifts(ctx);
-      if ("error" in res) return `לא הצלחתי למשוך את המשמרות: ${res.error}`;
-      if (res.shifts.length === 0) return "אין לך משמרות קרובות מתוכננות כרגע.";
+      if ("error" in res) return `הופ, לא הצלחתי למשוך את המשמרות 😕 (${res.error})`;
+      if (res.shifts.length === 0) return "אין לך משמרות קרובות מתוכננות כרגע — תהנה/י מהזמן הפנוי 😎";
       return "המשמרות הקרובות שלך:\n" + res.shifts.map(s => `• ${s.week} — יום ${s.day}, ${s.role} (${s.timeIn}–${s.timeOut})`).join("\n");
     }
 
-    case "today_schedule": {
-      const res = await tools.getTodaySchedule(ctx);
-      if ("error" in res) return `לא הצלחתי למשוך את הסידור: ${res.error}`;
-      if (res.working.length === 0) return "אין משמרות מתוכננות היום.";
-      return "מי עובד היום:\n" + res.working.map(w => `• ${w.name} — ${w.role} (${w.timeIn}–${w.timeOut})`).join("\n");
+    case "schedule_for_date": {
+      const date = match.date!;
+      const res = await tools.getScheduleForDate(ctx, date);
+      if ("error" in res) return `הופ, לא הצלחתי למשוך את הסידור 😕 (${res.error})`;
+      const label = match.dateLabel || "אז";
+      if (res.working.length === 0) return `אין משמרות מתוכננות ל${label === "היום" ? "היום" : label} 🤷`;
+      return `מי עובד ${label}:\n` + res.working.map(w => `• ${w.name} — ${w.role} (${w.timeIn}–${w.timeOut})`).join("\n");
     }
 
     case "swap_requests_list": {
       const res = await tools.getShiftSwapRequests(ctx);
-      if ("error" in res) return `לא הצלחתי למשוך בקשות: ${res.error}`;
-      if (res.requests.length === 0) return "אין בקשות החלפה פתוחות כרגע.";
+      if ("error" in res) return `הופ, לא הצלחתי למשוך בקשות 😕 (${res.error})`;
+      if (res.requests.length === 0) return "אין בקשות החלפה פתוחות כרגע ✨";
       return "בקשות החלפה פתוחות:\n" + res.requests.map(r =>
         `• ${r.requesterName} — ${r.role} (${r.timeIn}–${r.timeOut})${r.proposedToTakeOver ? ` · ${r.proposedToTakeOver} מבקש/ת לקחת` : ""}`
       ).join("\n");
@@ -46,25 +55,25 @@ async function buildReply(message: string, ctx: Ctx, employeeName: string): Prom
 
     case "create_swap": {
       const upcoming = await tools.getUpcomingShifts(ctx);
-      if ("error" in upcoming || upcoming.shifts.length === 0) return "לא מצאתי משמרת קרובה שלך להחליף.";
+      if ("error" in upcoming || upcoming.shifts.length === 0) return "לא מצאתי משמרת קרובה שלך להחליף 🤔";
       const target = upcoming.shifts[0];
       const res = await tools.createShiftSwapRequest(ctx, { assignmentId: target.id, proposedPersonName: match.proposedPersonName });
-      if ("error" in res) return `הבקשה לא נשלחה: ${res.error}`;
-      return `שלחתי בקשת החלפה למשמרת ${target.day} (${target.timeIn}–${target.timeOut})${match.proposedPersonName ? ` עם ${match.proposedPersonName}` : ""}. המנהל יראה אותה ויאשר.`;
+      if ("error" in res) return `הבקשה לא נשלחה 😕 (${res.error})`;
+      return `שלחתי בקשת החלפה למשמרת ${target.day} (${target.timeIn}–${target.timeOut})${match.proposedPersonName ? ` עם ${match.proposedPersonName}` : ""} 📨 המנהל יראה אותה ויאשר.`;
     }
 
     case "create_absence": {
-      if (!match.date) return "באיזה תאריך תרצה/י לבקש להיעדר? אפשר לכתוב למשל \"חופש ב-1.7\".";
+      if (!match.date) return "באיזה תאריך תרצה/י לבקש להיעדר? אפשר לכתוב למשל \"חופש ב-1.7\" או \"חופש מחר\" 🗓️";
       const res = await tools.createAbsenceRequest(ctx, { date: match.date, reason: match.reason });
-      if ("error" in res) return `הבקשה לא נשלחה: ${res.error}`;
-      return `שלחתי למנהל בקשת היעדרות לתאריך ${match.date}${match.reason ? ` (${match.reason})` : ""}. תקבל/י עדכון כשהיא תיענה.`;
+      if ("error" in res) return `הבקשה לא נשלחה 😕 (${res.error})`;
+      return `שלחתי למנהל בקשת היעדרות לתאריך ${match.date}${match.reason ? ` (${match.reason})` : ""} 📨 תקבל/י עדכון כשהיא תיענה.`;
     }
 
     case "manager_pending": {
       const res = await tools.getPendingManagerNotifications(ctx);
-      if ("error" in res) return `לא הצלחתי למשוך התראות: ${res.error}`;
+      if ("error" in res) return `הופ, לא הצלחתי למשוך התראות 😕 (${res.error})`;
       const pending = res.notifications.filter(n => !n.read);
-      if (pending.length === 0) return "אין בקשות ממתינות כרגע. 🎉";
+      if (pending.length === 0) return "אין בקשות ממתינות כרגע. הכל נקי! 🎉";
       return "בקשות ממתינות:\n" + pending.map(n => `• ${n.title} — ${n.body}`).join("\n") + "\n\nאפשר לכתוב \"אשר את הבקשה האחרונה\" או \"דחה את הבקשה האחרונה\".";
     }
 
@@ -72,18 +81,18 @@ async function buildReply(message: string, ctx: Ctx, employeeName: string): Prom
     case "deny_last": {
       const approve = match.intent === "approve_last";
       const pendingRes = await tools.getMostRecentPendingNotification(ctx);
-      if ("error" in pendingRes) return `שגיאה: ${pendingRes.error}`;
-      if (!pendingRes.notification) return "אין בקשה ממתינה לאשר/לדחות.";
+      if ("error" in pendingRes) return `שגיאה 😕 (${pendingRes.error})`;
+      if (!pendingRes.notification) return "אין בקשה ממתינה לאשר/לדחות כרגע 🤷";
       const n = pendingRes.notification;
       const requestType = n.type === "absence_request" ? "absence" : "swap";
       const res = await tools.respondToRequest(ctx, { requestId: n.ref_id, requestType, approve });
-      if ("error" in res) return `הפעולה נכשלה: ${res.error}`;
+      if ("error" in res) return `הפעולה נכשלה 😕 (${res.error})`;
       await tools.markNotificationRead(n.id);
-      return approve ? `אישרתי: "${n.title}".` : `דחיתי: "${n.title}".`;
+      return approve ? `✅ אישרתי: "${n.title}".` : `🚫 דחיתי: "${n.title}".`;
     }
 
     default:
-      return `לא הבנתי בדיוק 🙂 אפשר לנסות לשאול:\n` + EXAMPLE_PROMPTS.map(p => `• ${p}`).join("\n");
+      return "לא הבנתי בדיוק 🙂 אפשר לנסות לשאול אותי דברים כמו:\n" + EXAMPLE_PROMPTS.map(p => `• ${p}`).join("\n");
   }
 }
 

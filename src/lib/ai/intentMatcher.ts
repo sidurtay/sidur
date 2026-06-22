@@ -1,27 +1,34 @@
 // Free, rule-based "understanding" layer — no external API, no cost.
 // Matches a free-text message (Hebrew or English) against a wide net of
 // phrasings for each supported intent, with light slot extraction (dates,
-// names). Falls back to a helpful "didn't understand" with examples.
+// names), plus a knowledge fallback over the in-app FAQ. Falls back to a
+// friendly "didn't understand" with examples only when nothing else matches.
+
+import { FAQ_ITEMS } from "@/lib/faq";
 
 export type Intent =
   | "greeting"
+  | "thanks"
   | "hours"
   | "upcoming_shifts"
-  | "today_schedule"
+  | "schedule_for_date"
   | "swap_requests_list"
   | "create_swap"
   | "create_absence"
   | "manager_pending"
   | "approve_last"
   | "deny_last"
+  | "faq"
   | "unknown";
 
 export type MatchResult = {
   intent: Intent;
   month?: string;          // YYYY-MM, for "hours"
-  date?: string;            // YYYY-MM-DD, for "create_absence"
+  date?: string;            // YYYY-MM-DD, for "create_absence" / "schedule_for_date"
+  dateLabel?: string;       // human-friendly label for the resolved date, e.g. "מחר", "יום שישי"
   reason?: string;          // free text after the date, for "create_absence"
   proposedPersonName?: string; // for "create_swap"
+  faqAnswer?: string;       // for "faq"
 };
 
 const HEBREW_MONTHS: Record<string, number> = {
@@ -29,10 +36,23 @@ const HEBREW_MONTHS: Record<string, number> = {
   "יולי": 7, "אוגוסט": 8, "ספטמבר": 9, "אוקטובר": 10, "נובמבר": 11, "דצמבר": 12,
 };
 
-const TODAY = new Date("2026-06-23"); // matches the app-wide frozen "today"
+const TODAY = new Date("2026-06-23"); // matches the app-wide frozen "today" (Tuesday)
+const TODAY_DOW = TODAY.getDay();
+
+const WEEKDAY_NAMES = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 
 function norm(s: string) {
   return s.trim().toLowerCase();
+}
+
+function isoFromOffset(daysFromToday: number): string {
+  const d = new Date(TODAY);
+  d.setDate(d.getDate() + daysFromToday);
+  return d.toISOString().slice(0, 10);
+}
+
+function nextWeekdayOffset(targetDow: number): number {
+  return (targetDow - TODAY_DOW + 7) % 7;
 }
 
 function extractMonth(text: string): string | undefined {
@@ -45,21 +65,47 @@ function extractMonth(text: string): string | undefined {
   return undefined;
 }
 
-function extractDate(text: string): string | undefined {
+// Returns both the resolved ISO date and a human-friendly label for it —
+// covers "today/tomorrow/day after tomorrow", any weekday name ("בשבת",
+// "ביום שישי"), explicit DD.MM, and defaults to "today" when nothing else
+// matches (so "מי עובד?" alone still resolves to something useful).
+function extractDateAndLabel(text: string): { date: string; label: string } {
+  if (/מחרתיים|day after tomorrow/.test(text)) {
+    return { date: isoFromOffset(2), label: "מחרתיים" };
+  }
   if (/מחר|\btomorrow\b/.test(text)) {
-    const d = new Date(TODAY); d.setDate(d.getDate() + 1);
-    return d.toISOString().slice(0, 10);
+    return { date: isoFromOffset(1), label: "מחר" };
   }
   if (/היום|\btoday\b/.test(text)) {
-    return TODAY.toISOString().slice(0, 10);
+    return { date: isoFromOffset(0), label: "היום" };
   }
-  // DD.MM or DD/MM (assume current app year)
+  for (let i = 0; i < WEEKDAY_NAMES.length; i++) {
+    if (text.includes(WEEKDAY_NAMES[i])) {
+      const offset = nextWeekdayOffset(i);
+      return { date: isoFromOffset(offset), label: offset === 0 ? "היום" : `יום ${WEEKDAY_NAMES[i]}` };
+    }
+  }
   const m = text.match(/(\d{1,2})[./](\d{1,2})/);
   if (m) {
     const day = m[1].padStart(2, "0");
     const month = m[2].padStart(2, "0");
-    return `2026-${month}-${day}`;
+    return { date: `2026-${month}-${day}`, label: `${m[1]}.${m[2]}` };
   }
+  return { date: isoFromOffset(0), label: "היום" };
+}
+
+// Same resolution, but returns undefined when no explicit date marker is
+// present at all — used for create_absence, where "no date" should prompt
+// the user instead of silently defaulting to today.
+function extractExplicitDate(text: string): string | undefined {
+  if (/מחרתיים|day after tomorrow/.test(text)) return isoFromOffset(2);
+  if (/מחר|\btomorrow\b/.test(text)) return isoFromOffset(1);
+  if (/היום|\btoday\b/.test(text)) return isoFromOffset(0);
+  for (let i = 0; i < WEEKDAY_NAMES.length; i++) {
+    if (text.includes(WEEKDAY_NAMES[i])) return isoFromOffset(nextWeekdayOffset(i));
+  }
+  const m = text.match(/(\d{1,2})[./](\d{1,2})/);
+  if (m) return `2026-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
   return undefined;
 }
 
@@ -68,26 +114,51 @@ function extractName(text: string): string | undefined {
   return m ? m[1].trim() : undefined;
 }
 
-function extractReason(text: string, dateMatch: string): string | undefined {
-  // Best-effort: text after the date token, trimmed of connector words
-  const idx = text.search(/\d{1,2}[./]\d{1,2}|מחר|tomorrow|היום|today/);
+function extractReason(text: string): string | undefined {
+  const idx = text.search(/\d{1,2}[./]\d{1,2}|מחרתיים|מחר|tomorrow|היום|today|ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת/);
   if (idx === -1) return undefined;
   const after = text.slice(idx).replace(/^\S+\s*/, "").replace(/^(כי|בגלל|because|due to)\s*/i, "").trim();
   return after.length > 1 ? after : undefined;
 }
 
 const PATTERNS: { intent: Intent; test: RegExp }[] = [
-  { intent: "greeting", test: /^(שלום|היי|הי|hi|hello|hey)(\s|$|[!?.,])/ },
-  { intent: "manager_pending", test: /בקשות\s+(ש)?ממתינות|בקשות\s+(ש)?פתוחות|pending\s*requests|ממתין\s+לי|בקשות\s+חדשות/ },
-  { intent: "approve_last", test: /אשר|approve/ },
-  { intent: "deny_last", test: /דחה|deny|reject/ },
-  { intent: "create_absence", test: /חופש|היעדרות|לא\s*אגיע|לא\s*יכול\s*לבוא|לא\s*אוכל\s*להגיע|absence|day\s*off|take.*off/ },
-  { intent: "create_swap", test: /(להחליף|מחליף|להחלפה).*משמרת|משמרת.*(להחליף|מחליף|להחלפה)|swap.*shift|shift.*swap/ },
-  { intent: "swap_requests_list", test: /בקשות?\s*ה?חלפה|swap\s*requests/ },
-  { intent: "today_schedule", test: /מי\s+עובד\s+היום|מי\s+(ב)?משמרת\s+היום|who.*work.*today|today.*schedule/ },
-  { intent: "upcoming_shifts", test: /משמרות?\s*(ה)?קרוב|מתי\s+(ה)?משמרת|מתי\s+אני\s+עובד|upcoming\s*shifts|when.*i\s*work|my\s*shifts/ },
-  { intent: "hours", test: /כמה\s*שעות|שעות\s*עבדתי|דוח\s*שעות|hours.*work|how\s*many\s*hours/ },
+  { intent: "greeting", test: /^(שלום|היי+|הי|הלו|אהלן|בוקר טוב|ערב טוב|מה קורה|מה המצב|מה נשמע|hi|hello|hey|yo)(\s|$|[!?.,])/ },
+  { intent: "thanks", test: /^(תודה|תודה רבה|מעולה תודה|סבבה תודה|יאללה תודה|thanks|thank you|thx)(\s|$|[!?.,])/ },
+  { intent: "manager_pending", test: /בקשות\s*(ש)?ממתינות|בקשות\s*(ש)?פתוחות|pending\s*requests|ממתין\s*לי|בקשות\s*חדשות|מה\s*מחכה\s*לי|יש\s*משהו\s*לאשר|מה\s*צריך\s*אישור/ },
+  // Deliberately not a bare substring match on "אשר"/"דחה" — that would also
+  // fire on unrelated words like "כאשר" ("when"), which contains "אשר".
+  { intent: "approve_last", test: /^(אשר|תאשר|מאשר)$|אשר\s*(את\s*)?(ה)?בקשה|אשר\s*(את\s*)?האחרונה|\bapprove\b/ },
+  { intent: "deny_last", test: /^(דחה|תדחה|דוחה)$|דחה\s*(את\s*)?(ה)?בקשה|דחה\s*(את\s*)?האחרונה|\bdeny\b|\breject\b/ },
+  {
+    intent: "create_absence",
+    test: /חופש|היעדרות|לא\s*אגיע|לא\s*יכול\s*לבוא|לא\s*אוכל\s*להגיע|לא\s*מגיע|אני\s*חולה|מחלה|absence|day\s*off|sick\s*day|time\s*off|vacation|take.*off/,
+  },
+  {
+    intent: "create_swap",
+    test: /(להחליף|מחליף|להחלפה|יחליף|תחליף).*משמרת|משמרת.*(להחליף|מחליף|להחלפה)|צריך\s*מחליף|מישהו\s*יכול\s*לקחת\s*לי|swap.*shift|shift.*swap|cover\s*my\s*shift|can\s*someone\s*cover/,
+  },
+  { intent: "swap_requests_list", test: /בקשות?\s*(ה)?חלפה|רשימת\s*החלפות|swap\s*requests|list\s*swaps/ },
+  {
+    intent: "schedule_for_date",
+    test: /מי\s*(ה)?עובד|מי\s*(ב)?משמרת|מי\s*בסידור|מי\s*מגיע|מי\s*יהיה\s*במשמרת|who.*work|who.*shift|who.*schedule/,
+  },
+  {
+    intent: "upcoming_shifts",
+    test: /משמרות?\s*(ה)?קרוב|מתי\s*(ה)?משמרת|מתי\s*אני\s*עובד|מתי\s*אני\s*במשמרת|איזה\s*משמרות\s*יש\s*לי|מה\s*המשמרות\s*שלי|upcoming\s*shifts|when.*i\s*work|my\s*shifts|next\s*shift/,
+  },
+  {
+    intent: "hours",
+    test: /כמה\s*שעות|שעות\s*עבדתי|דוח\s*שעות|כמה\s*עבדתי|סיכום\s*שעות|hours.*work|how\s*many\s*hours|total\s*hours|my\s*hours/,
+  },
 ];
+
+function matchFaq(text: string, isManager: boolean): string | undefined {
+  for (const item of FAQ_ITEMS) {
+    if (item.audience === "manager" && !isManager) continue;
+    if (item.keywords.some(k => text.includes(k))) return item.a;
+  }
+  return undefined;
+}
 
 export function matchIntent(rawText: string, isManager: boolean): MatchResult {
   const text = norm(rawText);
@@ -97,13 +168,20 @@ export function matchIntent(rawText: string, isManager: boolean): MatchResult {
     if ((intent === "manager_pending" || intent === "approve_last" || intent === "deny_last") && !isManager) continue;
 
     if (intent === "hours") return { intent, month: extractMonth(text) };
+    if (intent === "schedule_for_date") {
+      const { date, label } = extractDateAndLabel(text);
+      return { intent, date, dateLabel: label };
+    }
     if (intent === "create_absence") {
-      const date = extractDate(text);
-      return { intent, date, reason: date ? extractReason(text, date) : undefined };
+      const date = extractExplicitDate(text);
+      return { intent, date, reason: date ? extractReason(text) : undefined };
     }
     if (intent === "create_swap") return { intent, proposedPersonName: extractName(text) };
     return { intent };
   }
+
+  const faqAnswer = matchFaq(text, isManager);
+  if (faqAnswer) return { intent: "faq", faqAnswer };
 
   return { intent: "unknown" };
 }
@@ -112,6 +190,7 @@ export const EXAMPLE_PROMPTS = [
   "כמה שעות עבדתי החודש?",
   "מתי המשמרות הקרובות שלי?",
   "מי עובד היום?",
+  "מי עובד מחר?",
   "אני רוצה לבקש חופש ב-1.7",
   "אני רוצה להחליף משמרת",
 ];

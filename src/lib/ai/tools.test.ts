@@ -87,27 +87,36 @@ describe("getUpcomingShifts", () => {
   });
 });
 
-describe("getTodaySchedule", () => {
+describe("getScheduleForDate", () => {
   it("maps assignment rows with embedded person name", async () => {
-    const { getTodaySchedule } = await import("./tools");
+    const { getScheduleForDate } = await import("./tools");
     fromMock.mockReturnValueOnce(makeChainable({
       data: [{ role_key: "מלצרים", time_in: "08:00:00", time_out: "16:00:00", people: { name: "שירה כהן" } }],
       error: null,
     }));
-    const res = await getTodaySchedule(ctx);
+    const res = await getScheduleForDate(ctx, "2026-06-23");
     if ("error" in res) throw new Error("unexpected error");
     expect(res.working).toEqual([{ name: "שירה כהן", role: "מלצרים", timeIn: "08:00", timeOut: "16:00" }]);
   });
 
   it("falls back to empty name when person relation is missing", async () => {
-    const { getTodaySchedule } = await import("./tools");
+    const { getScheduleForDate } = await import("./tools");
     fromMock.mockReturnValueOnce(makeChainable({
       data: [{ role_key: "בר", time_in: "18:00:00", time_out: "02:00:00", people: null }],
       error: null,
     }));
-    const res = await getTodaySchedule(ctx);
+    const res = await getScheduleForDate(ctx, "2026-06-23");
     if ("error" in res) throw new Error("unexpected error");
     expect(res.working[0].name).toBe("");
+  });
+
+  it("resolves the correct week_start/day_of_week for an arbitrary future date (regression: was hardcoded to 'today')", async () => {
+    const { getScheduleForDate } = await import("./tools");
+    fromMock.mockReturnValueOnce(makeChainable({ data: [], error: null }));
+    await getScheduleForDate(ctx, "2026-06-24"); // Wednesday, the day after the frozen "today"
+    const calls = fromMock.mock.results[0].value;
+    expect(calls.eq).toHaveBeenCalledWith("week_start", "2026-06-21");
+    expect(calls.eq).toHaveBeenCalledWith("day_of_week", 3);
   });
 });
 

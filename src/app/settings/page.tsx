@@ -5,6 +5,8 @@ import { Store, Clock, Users, Plus, X, AlertTriangle, Check, Receipt, ShieldChec
 import InstagramIcon from "@/components/InstagramIcon";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
+import PasskeyCard from "@/components/PasskeyCard";
+import FaqAccordion from "@/components/FaqAccordion";
 import EmployeeSettings from "./EmployeeSettings";
 import {
   getStoredConfig, savePermanent, saveWeekOverride,
@@ -64,10 +66,6 @@ export default function Settings() {
   const [clockOutApproval, setClockOutApproval] = useState(true);
   const [businessId, setBusinessId] = useState("");
   const [personId, setPersonId] = useState("");
-  const [passkeySupported, setPasskeySupported] = useState(false);
-  const [passkeyRegistered, setPasskeyRegistered] = useState(false);
-  const [passkeyBusy, setPasskeyBusy] = useState(false);
-  const [passkeyError, setPasskeyError] = useState("");
 
   useEffect(() => {
     const stored = getStoredConfig();
@@ -90,15 +88,10 @@ export default function Settings() {
       setCanContactSupport(s.role === "manager" || s.role === "אחמ\"ש");
       setRole(s.role === "employee" ? "employee" : "manager");
       setPersonId(s.personId || "");
-      if (s.phone && localStorage.getItem("shiftpro_webauthn_phone") === s.phone) setPasskeyRegistered(true);
     } catch { setRole("manager"); }
 
     setBusinessId(biz);
     if (!biz) { router.replace("/login"); return; }
-
-    import("@simplewebauthn/browser").then(({ browserSupportsWebAuthn }) => {
-      setPasskeySupported(browserSupportsWebAuthn());
-    });
 
     (async () => {
       try {
@@ -119,35 +112,6 @@ export default function Settings() {
       } catch {}
     })();
   }, []);
-
-  async function registerPasskey() {
-    setPasskeyBusy(true);
-    setPasskeyError("");
-    try {
-      const { startRegistration } = await import("@simplewebauthn/browser");
-      const optionsRes = await fetch("/api/auth/webauthn/register-options", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, personId }),
-      }).then(r => r.json());
-      if (!optionsRes.success) throw new Error(optionsRes.error || "שגיאה בהפעלת טביעת אצבע");
-
-      const attestation = await startRegistration({ optionsJSON: optionsRes.options });
-
-      const verifyRes = await fetch("/api/auth/webauthn/register-verify", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, personId, response: attestation }),
-      }).then(r => r.json());
-      if (!verifyRes.success) throw new Error(verifyRes.error || "האימות נכשל");
-
-      const session = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
-      if (session.phone) localStorage.setItem("shiftpro_webauthn_phone", session.phone);
-      setPasskeyRegistered(true);
-    } catch (err) {
-      setPasskeyError(err instanceof Error ? err.message : "משהו נכשל, נסה שוב");
-    } finally {
-      setPasskeyBusy(false);
-    }
-  }
 
   function toggleClockOutApproval() {
     const next = !clockOutApproval;
@@ -429,36 +393,7 @@ export default function Settings() {
         </div>
 
         {/* Fingerprint / Face ID login for this device */}
-        {passkeySupported && (
-          <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-            <div className="flex items-center gap-2 px-3 py-2.5 flex-row" style={{ borderBottom: "1px solid var(--border)" }}>
-              <Fingerprint size={13} style={{ color: "var(--blue)" }} />
-              <p className="text-sm font-semibold">כניסה בטביעת אצבע</p>
-            </div>
-            <p className="text-xs px-3 pt-2.5 pb-2 text-right leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-              {passkeyRegistered
-                ? "כניסה בטביעת אצבע / Face ID מופעלת במכשיר הזה."
-                : "הפעל כניסה מהירה במכשיר הזה עם טביעת אצבע או Face ID, בלי להקליד סיסמה."}
-            </p>
-            {passkeyError && (
-              <p className="text-xs px-3 pb-1 text-right" style={{ color: "var(--red)" }}>{passkeyError}</p>
-            )}
-            <div className="px-3 pb-3">
-              {passkeyRegistered ? (
-                <div className="flex items-center gap-1.5 flex-row justify-end">
-                  <Check size={13} style={{ color: "var(--green)" }} />
-                  <p className="text-xs font-semibold" style={{ color: "var(--green)" }}>מופעל</p>
-                </div>
-              ) : (
-                <button onClick={registerPasskey} disabled={passkeyBusy}
-                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-white"
-                  style={{ background: passkeyBusy ? "#9CA3AF" : "var(--navy)" }}>
-                  {passkeyBusy ? "מפעיל..." : "הפעל כניסה בטביעת אצבע"}
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+        {businessId && personId && <PasskeyCard businessId={businessId} personId={personId} />}
 
         {/* Clock in/out via app */}
         <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
@@ -496,6 +431,9 @@ export default function Settings() {
             <Fingerprint size={18} style={{ color: "var(--blue)" }} />
           </a>
         </div>
+
+        {/* FAQ — visible to everyone; manager-only questions filtered by role */}
+        <FaqAccordion isManager={role === "manager"} />
 
         {/* Customer support — manager / אחמ"ש only */}
         {canContactSupport && (
