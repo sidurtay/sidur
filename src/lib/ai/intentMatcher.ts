@@ -46,15 +46,15 @@ function extractMonth(text: string): string | undefined {
 }
 
 function extractDate(text: string): string | undefined {
-  if (/\bמחר\b|\btomorrow\b/.test(text)) {
+  if (/מחר|\btomorrow\b/.test(text)) {
     const d = new Date(TODAY); d.setDate(d.getDate() + 1);
     return d.toISOString().slice(0, 10);
   }
-  if (/\bהיום\b|\btoday\b/.test(text)) {
+  if (/היום|\btoday\b/.test(text)) {
     return TODAY.toISOString().slice(0, 10);
   }
   // DD.MM or DD/MM (assume current app year)
-  const m = text.match(/\b(\d{1,2})[./](\d{1,2})\b/);
+  const m = text.match(/(\d{1,2})[./](\d{1,2})/);
   if (m) {
     const day = m[1].padStart(2, "0");
     const month = m[2].padStart(2, "0");
@@ -77,7 +77,7 @@ function extractReason(text: string, dateMatch: string): string | undefined {
 }
 
 const PATTERNS: { intent: Intent; test: RegExp }[] = [
-  { intent: "greeting", test: /^(שלום|היי|הי|hi|hello|hey)\b/ },
+  { intent: "greeting", test: /^(שלום|היי|הי|hi|hello|hey)(\s|$|[!?.,])/ },
   { intent: "manager_pending", test: /בקשות\s+(ש)?ממתינות|בקשות\s+(ש)?פתוחות|pending\s*requests|ממתין\s+לי|בקשות\s+חדשות/ },
   { intent: "approve_last", test: /אשר|approve/ },
   { intent: "deny_last", test: /דחה|deny|reject/ },

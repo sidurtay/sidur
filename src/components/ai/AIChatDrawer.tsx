@@ -13,11 +13,16 @@ export default function AIChatDrawer({ session, onClose }: { session: Session; o
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [error, setError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const sentRef = useRef(false);
 
   useEffect(() => {
+    // Guards against a race where the user sends a message (optimistically appended
+    // to `messages`) before this history fetch resolves — without this check, the
+    // late `.then` would clobber that in-flight message with the stale fetched history.
     fetch(`/api/ai/chat?businessId=${session.businessId}&personId=${session.personId}`)
       .then(r => r.json())
       .then(res => {
+        if (sentRef.current) return;
         if (res.success && res.history.length > 0) {
           setMessages(res.history.map((h: { role: "user" | "assistant"; content: string }) => ({ role: h.role, content: h.content })));
         } else {
@@ -25,7 +30,7 @@ export default function AIChatDrawer({ session, onClose }: { session: Session; o
         }
       })
       .catch(() => {
-        setMessages([{ role: "assistant", content: "שלום! איך אפשר לעזור?" }]);
+        if (!sentRef.current) setMessages([{ role: "assistant", content: "שלום! איך אפשר לעזור?" }]);
       })
       .finally(() => setLoadingHistory(false));
   }, [session.businessId, session.personId, session.name]);
@@ -37,6 +42,7 @@ export default function AIChatDrawer({ session, onClose }: { session: Session; o
   async function send() {
     const text = input.trim();
     if (!text || loading) return;
+    sentRef.current = true;
     setInput("");
     setError("");
     setMessages(prev => [...prev, { role: "user", content: text }]);

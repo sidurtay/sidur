@@ -14,6 +14,8 @@ export type ClockState = {
   out: "none" | "pending" | "approved";
   inTime?: string;
   outTime?: string;
+  inRequestedAt?: string;
+  outRequestedAt?: string;
 };
 
 const REQUIRE_OUT_KEY = "shiftpro_clockout_requires_approval";

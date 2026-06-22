@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
-import { X, Plus, Coins, AlertTriangle, Sparkles, ArrowLeftRight, ClipboardList, Pencil } from "lucide-react";
+import { X, Plus, Coins, AlertTriangle, Sparkles, ArrowLeftRight, ClipboardList, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
@@ -29,39 +29,33 @@ function outBg(src?: ClockSource)    { return src === "manual" ? "var(--amber-li
 function inBorder(src?: ClockSource) { return src === "manual" ? "#EBC395" : "#A8D9BB"; }
 function outBorder(src?: ClockSource){ return src === "manual" ? "#EBC395" : "#EFB3B3"; }
 
-const weeks = {
-  current: {
-    label: "שבוע נוכחי", range: "א׳ 21.6 — שבת 27.6",
-    days: [
-      { label: "א׳", date: "21.6", d: 0 },
-      { label: "ב׳", date: "22.6", d: 1 },
-      { label: "ג׳", date: "23.6", d: 2 }, // TODAY
-      { label: "ד׳", date: "24.6", d: 3 },
-      { label: "ה׳", date: "25.6", d: 4 },
-      { label: "ו׳", date: "26.6", d: 5 },
-      { label: "ש׳", date: "27.6", d: 6 },
-    ],
-    today: 2,
-  },
-  next: {
-    label: "שבוע הבא", range: "א׳ 28.6 — שבת 4.7",
-    days: [
-      { label: "א׳", date: "28.6", d: 0 },
-      { label: "ב׳", date: "29.6", d: 1 },
-      { label: "ג׳", date: "30.6", d: 2 },
-      { label: "ד׳", date: "1.7",  d: 3 },
-      { label: "ה׳", date: "2.7",  d: 4 },
-      { label: "ו׳", date: "3.7",  d: 5 },
-      { label: "ש׳", date: "4.7",  d: 6 },
-    ],
-    today: -1,
-  },
-};
+// The app-wide frozen "today" — Tuesday 2026-06-23, in the week starting Sunday 2026-06-21.
+const BASE_WEEK_START = new Date(2026, 5, 21); // month is 0-indexed: June
+const TODAY_DAY_OF_WEEK = 2;
+const DAY_LETTERS = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
 
-const WEEK_START: Record<"current" | "next", string> = {
-  current: "2026-06-21",
-  next: "2026-06-28",
-};
+function pad(n: number) { return String(n).padStart(2, "0"); }
+
+// weekOffset 0 = the frozen "today"'s week, negative = past weeks, positive = future —
+// lets the manager navigate arbitrarily far back to fix old records, not just one week each way.
+function getWeekInfo(weekOffset: number) {
+  const start = new Date(BASE_WEEK_START);
+  start.setDate(start.getDate() + weekOffset * 7);
+
+  const days = DAY_LETTERS.map((label, d) => {
+    const date = new Date(start);
+    date.setDate(date.getDate() + d);
+    return { label, date: `${date.getDate()}.${date.getMonth() + 1}`, d };
+  });
+
+  const weekStart = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`;
+  const range = `${days[0].label} ${days[0].date} — ${days[6].label} ${days[6].date}`;
+  const today = weekOffset === 0 ? TODAY_DAY_OF_WEEK : -1;
+  const label = weekOffset === 0 ? "השבוע" : weekOffset === 1 ? "שבוע הבא" : weekOffset === -1 ? "השבוע שעבר"
+    : weekOffset > 1 ? `בעוד ${weekOffset} שבועות` : `לפני ${Math.abs(weekOffset)} שבועות`;
+
+  return { weekOffset, weekStart, days, range, today, label };
+}
 
 export default function SchedulePage() { return <Suspense><Schedule /></Suspense>; }
 
@@ -73,8 +67,9 @@ function Schedule() {
   const [employees,  setEmployees]  = useState<EmployeeRow[]>([]);
   const [jobRoles,   setJobRoles]   = useState<RoleRow[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [activeWeek, setActiveWeek] = useState<"current"|"next">("current");
-  const [activeDay,  setActiveDay]  = useState(2);
+  const [pendingSwaps, setPendingSwaps] = useState<{ assignmentId: string; weekStart?: string; dayOfWeek?: number }[]>([]);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [activeDay,  setActiveDay]  = useState(TODAY_DAY_OF_WEEK);
   const [addRole,    setAddRole]    = useState<string|null>(null);
   const [swapTarget, setSwapTarget] = useState<Assignment|null>(null);
   const [editTarget, setEditTarget] = useState<Assignment|null>(null);
@@ -85,11 +80,14 @@ function Schedule() {
   const [newRoleName, setNewRoleName] = useState("");
   const [recurrencePrompt, setRecurrencePrompt] = useState<string | null>(null);
 
-  async function loadWeek(biz: string, weekKey: "current" | "next") {
+  async function loadWeek(biz: string, weekStart: string) {
     try {
-      const res = await fetch(`/api/schedule?businessId=${biz}&weekStart=${WEEK_START[weekKey]}`);
-      const data = await res.json();
-      if (data.success) setAssignments(data.assignments);
+      const [schedRes, swapRes] = await Promise.all([
+        fetch(`/api/schedule?businessId=${biz}&weekStart=${weekStart}`).then(r => r.json()),
+        fetch(`/api/swap-requests?businessId=${biz}`).then(r => r.json()),
+      ]);
+      if (schedRes.success) setAssignments(schedRes.assignments);
+      if (swapRes.success) setPendingSwaps(swapRes.requests.filter((r: { status: string }) => r.status === "pending"));
     } catch {}
   }
 
@@ -111,12 +109,10 @@ function Schedule() {
         ]);
         if (rolesRes.success) setJobRoles(rolesRes.roles);
         if (empRes.success) setEmployees(empRes.employees);
-        if (searchParams.get("week") === "next") {
-          setActiveWeek("next"); setActiveDay(0);
-          await loadWeek(biz, "next");
-        } else {
-          await loadWeek(biz, "current");
-        }
+        const initialOffset = searchParams.get("week") === "next" ? 1 : 0;
+        setWeekOffset(initialOffset);
+        setActiveDay(initialOffset === 0 ? TODAY_DAY_OF_WEEK : 0);
+        await loadWeek(biz, getWeekInfo(initialOffset).weekStart);
       } catch {
       } finally {
         setLoading(false);
@@ -125,13 +121,13 @@ function Schedule() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const week = weeks[activeWeek];
+  const week = getWeekInfo(weekOffset);
   const dayAssignments: Assignment[] = assignments.filter(a => a.dayOfWeek === activeDay);
 
-  function switchWeek(w: "current"|"next") {
-    setActiveWeek(w);
-    setActiveDay(w === "current" ? 2 : 0);
-    loadWeek(businessId, w);
+  function goToWeek(offset: number) {
+    setWeekOffset(offset);
+    setActiveDay(offset === 0 ? TODAY_DAY_OF_WEEK : 0);
+    loadWeek(businessId, getWeekInfo(offset).weekStart);
   }
 
   function getByRole(role: string) { return dayAssignments.filter(a => a.role === role); }
@@ -147,7 +143,7 @@ function Schedule() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          businessId, weekStart: WEEK_START[activeWeek], dayOfWeek: activeDay,
+          businessId, weekStart: week.weekStart, dayOfWeek: activeDay,
           personId: emp.id, roleKey: targetRole, homeRoleKey: homeRole || null,
           timeIn: "09:00", timeOut: "17:00",
         }),
@@ -257,18 +253,27 @@ function Schedule() {
           </div>
           <p className="text-base font-semibold">סידור עבודה</p>
         </div>
-        <div className="flex flex-row gap-2">
-          {(["current","next"] as const).map(w => (
-            <button key={w} onClick={() => switchWeek(w)}
-              className="flex-1 py-2 rounded-xl text-sm font-medium"
-              style={activeWeek === w
-                ? { background: "var(--navy)", color: "#fff" }
-                : { background: "var(--gray-bg)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
-              {weeks[w].label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 flex-row">
+          <button onClick={() => goToWeek(weekOffset + 1)}
+            className="p-2 rounded-xl flex-shrink-0" style={{ background: "var(--gray-bg)", border: "1px solid var(--border)" }}>
+            <ChevronLeft size={16} style={{ color: "var(--text-secondary)" }} />
+          </button>
+          <div className="flex-1 text-center">
+            <p className="text-sm font-semibold">{week.label}</p>
+            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{week.range}</p>
+          </div>
+          <button onClick={() => goToWeek(weekOffset - 1)}
+            className="p-2 rounded-xl flex-shrink-0" style={{ background: "var(--gray-bg)", border: "1px solid var(--border)" }}>
+            <ChevronRight size={16} style={{ color: "var(--text-secondary)" }} />
+          </button>
         </div>
-        <p className="text-xs mt-1.5 text-right" style={{ color: "var(--text-secondary)" }}>{week.range}</p>
+        {weekOffset !== 0 && (
+          <button onClick={() => goToWeek(0)}
+            className="w-full mt-2 py-1.5 rounded-lg text-xs font-semibold"
+            style={{ background: "var(--blue-light)", color: "var(--blue)" }}>
+            חזרה להיום
+          </button>
+        )}
       </div>
 
       <div className="px-3 py-3 flex flex-col gap-4">
@@ -281,12 +286,16 @@ function Schedule() {
           {week.days.map(d => {
             const count   = assignments.filter(a => a.dayOfWeek === d.d).length;
             const isToday = d.d === week.today;
+            const hasPendingSwap = pendingSwaps.some(r => r.weekStart === week.weekStart && r.dayOfWeek === d.d);
             return (
               <button key={d.d} onClick={() => setActiveDay(d.d)}
-                className="flex flex-col items-center px-3 py-1.5 rounded-2xl flex-shrink-0 text-xs font-medium"
+                className="relative flex flex-col items-center px-3 py-1.5 rounded-2xl flex-shrink-0 text-xs font-medium"
                 style={activeDay === d.d
                   ? { background: "var(--navy)", color: "#fff" }
                   : { background: "var(--surface)", color: "var(--text-secondary)", border: `1px solid ${isToday ? "var(--navy)" : "var(--border)"}` }}>
+                {hasPendingSwap && (
+                  <span className="absolute top-0.5 left-0.5 w-2 h-2 rounded-full" style={{ background: "var(--blue)" }} title="בקשת החלפה ממתינה" />
+                )}
                 {d.label}
                 <span className="text-[9px] mt-0.5 opacity-80">{d.date}</span>
                 {isToday && activeDay !== d.d && (
@@ -350,6 +359,7 @@ function Schedule() {
                   const outSrc   = emp.actualOut?.source;
                   const inTime   = emp.actualIn?.time  || emp.timeIn;
                   const outTime  = emp.actualOut?.time || emp.timeOut;
+                  const hasPendingSwap = pendingSwaps.some(r => r.assignmentId === emp.id);
 
                   return (
                     <div key={emp.id} className="grid items-center px-3 py-2.5"
@@ -411,8 +421,11 @@ function Schedule() {
 
                       <div className="flex items-center justify-center gap-1 flex-row">
                         <button onClick={() => setSwapTarget(emp)}
-                          className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                          className="relative w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
                           style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)" }}>
+                          {hasPendingSwap && (
+                            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ background: "var(--amber)", border: "1px solid #fff" }} title="בקשת החלפה ממתינה לאישור" />
+                          )}
                           <ArrowLeftRight size={10} style={{ color: "var(--blue)" }} />
                         </button>
                         <button onClick={() => removeEmployee(emp.id)}

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Bell, AlertTriangle, Clock, ArrowLeftRight, X, CheckCheck, Plus, Pencil, Trash2, ChevronLeft, Users, Fingerprint, LogIn, LogOut } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
+import ClockInOutCard from "@/components/ClockInOutCard";
 import { buildUpcomingShifts, type Employee } from "@/lib/shiftData";
 import EmployeeDashboard from "./EmployeeDashboard";
 import { type ClockRequest } from "@/lib/clockRequests";
@@ -73,13 +74,15 @@ export default function Dashboard() {
   const [upcomingShifts, setUpcomingShifts] = useState<ReturnType<typeof buildUpcomingShifts>>([]);
   const [jobRoleKeys, setJobRoleKeys] = useState<string[]>([]);
   const [myPersonId, setMyPersonId] = useState("");
+  const [myShiftToday, setMyShiftToday] = useState<{ id: string; role: string; timeIn: string; timeOut: string } | null>(null);
 
   useEffect(() => {
-    let biz = "";
+    let biz = "", me = "";
     try {
       const session = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
       setRole(session.role === "employee" ? "employee" : "manager");
       biz = session.businessId || "";
+      me = session.personId || "";
       if (session.name) setManagerName(session.name);
       if (session.businessName) setBusinessName(session.businessName);
       if (session.personId) setMyPersonId(session.personId);
@@ -118,6 +121,8 @@ export default function Dashboard() {
         if (schedRes.success) {
           setTodayWorkers(buildTodayWorkers(schedRes.assignments.filter((a: { dayOfWeek: number }) => a.dayOfWeek === TODAY_DAY_OF_WEEK)));
           setUpcomingShifts(buildUpcomingShifts(schedRes.assignments));
+          const mine = schedRes.assignments.find((a: { dayOfWeek: number; personId: string }) => a.dayOfWeek === TODAY_DAY_OF_WEEK && a.personId === me);
+          if (mine) setMyShiftToday({ id: mine.id, role: mine.role, timeIn: mine.timeIn, timeOut: mine.timeOut });
         }
         if (annRes.success) setAnnouncements(annRes.announcements);
         if (swapRes.success) setSwapRequests(swapRes.requests);
@@ -204,17 +209,15 @@ export default function Dashboard() {
       {/* ── Header ────────────────────────────────────────── */}
       <div style={{ background: "var(--navy)" }} className="px-4 pt-12 pb-4">
         <div className="flex items-center justify-between flex-row">
-          <div className="flex items-center gap-2 flex-row">
+          <div className="text-right">
+            <p className="text-white text-base font-semibold">שלום, {managerName} 👋</p>
+            <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>{businessName}</p>
+          </div>
+          <div className="flex items-center gap-3 flex-row">
             <span className="text-xs px-2.5 py-1 rounded-full font-medium"
               style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>
               {TODAY_LABEL}
             </span>
-          </div>
-          <div className="flex items-center gap-3 flex-row">
-            <div className="text-right">
-              <p className="text-white text-base font-semibold">שלום, {managerName} 👋</p>
-              <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>{businessName}</p>
-            </div>
             <button className="relative p-2 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}
               onClick={() => { setNotifsOpen(true); setNotifRead(true); }}>
               <Bell size={20} color="white" />
@@ -243,6 +246,11 @@ export default function Dashboard() {
       </div>
 
       <div className="px-4 py-3 flex flex-col gap-4">
+
+        {/* Manager / אחמ"ש also work shifts — same self clock-in flow as anyone else */}
+        {myShiftToday && businessId && myPersonId && (
+          <ClockInOutCard businessId={businessId} personId={myPersonId} />
+        )}
 
         {/* ── Clock-in/out approval requests ──────────────────── */}
         {pendingClockRequests.length > 0 && (

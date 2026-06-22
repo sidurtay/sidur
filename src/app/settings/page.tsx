@@ -63,6 +63,11 @@ export default function Settings() {
   const [role, setRole] = useState<"manager" | "employee" | null>(null);
   const [clockOutApproval, setClockOutApproval] = useState(true);
   const [businessId, setBusinessId] = useState("");
+  const [personId, setPersonId] = useState("");
+  const [passkeySupported, setPasskeySupported] = useState(false);
+  const [passkeyRegistered, setPasskeyRegistered] = useState(false);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const [passkeyError, setPasskeyError] = useState("");
 
   useEffect(() => {
     const stored = getStoredConfig();
@@ -84,10 +89,16 @@ export default function Settings() {
       setBizNameForSupport(s.businessName || cfg.bizName);
       setCanContactSupport(s.role === "manager" || s.role === "אחמ\"ש");
       setRole(s.role === "employee" ? "employee" : "manager");
+      setPersonId(s.personId || "");
+      if (s.phone && localStorage.getItem("shiftpro_webauthn_phone") === s.phone) setPasskeyRegistered(true);
     } catch { setRole("manager"); }
 
     setBusinessId(biz);
     if (!biz) { router.replace("/login"); return; }
+
+    import("@simplewebauthn/browser").then(({ browserSupportsWebAuthn }) => {
+      setPasskeySupported(browserSupportsWebAuthn());
+    });
 
     (async () => {
       try {
@@ -108,6 +119,35 @@ export default function Settings() {
       } catch {}
     })();
   }, []);
+
+  async function registerPasskey() {
+    setPasskeyBusy(true);
+    setPasskeyError("");
+    try {
+      const { startRegistration } = await import("@simplewebauthn/browser");
+      const optionsRes = await fetch("/api/auth/webauthn/register-options", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId, personId }),
+      }).then(r => r.json());
+      if (!optionsRes.success) throw new Error(optionsRes.error || "שגיאה בהפעלת טביעת אצבע");
+
+      const attestation = await startRegistration({ optionsJSON: optionsRes.options });
+
+      const verifyRes = await fetch("/api/auth/webauthn/register-verify", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId, personId, response: attestation }),
+      }).then(r => r.json());
+      if (!verifyRes.success) throw new Error(verifyRes.error || "האימות נכשל");
+
+      const session = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
+      if (session.phone) localStorage.setItem("shiftpro_webauthn_phone", session.phone);
+      setPasskeyRegistered(true);
+    } catch (err) {
+      setPasskeyError(err instanceof Error ? err.message : "משהו נכשל, נסה שוב");
+    } finally {
+      setPasskeyBusy(false);
+    }
+  }
 
   function toggleClockOutApproval() {
     const next = !clockOutApproval;
@@ -388,6 +428,38 @@ export default function Settings() {
           </p>
         </div>
 
+        {/* Fingerprint / Face ID login for this device */}
+        {passkeySupported && (
+          <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 px-3 py-2.5 flex-row" style={{ borderBottom: "1px solid var(--border)" }}>
+              <Fingerprint size={13} style={{ color: "var(--blue)" }} />
+              <p className="text-sm font-semibold">כניסה בטביעת אצבע</p>
+            </div>
+            <p className="text-xs px-3 pt-2.5 pb-2 text-right leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+              {passkeyRegistered
+                ? "כניסה בטביעת אצבע / Face ID מופעלת במכשיר הזה."
+                : "הפעל כניסה מהירה במכשיר הזה עם טביעת אצבע או Face ID, בלי להקליד סיסמה."}
+            </p>
+            {passkeyError && (
+              <p className="text-xs px-3 pb-1 text-right" style={{ color: "var(--red)" }}>{passkeyError}</p>
+            )}
+            <div className="px-3 pb-3">
+              {passkeyRegistered ? (
+                <div className="flex items-center gap-1.5 flex-row justify-end">
+                  <Check size={13} style={{ color: "var(--green)" }} />
+                  <p className="text-xs font-semibold" style={{ color: "var(--green)" }}>מופעל</p>
+                </div>
+              ) : (
+                <button onClick={registerPasskey} disabled={passkeyBusy}
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-white"
+                  style={{ background: passkeyBusy ? "#9CA3AF" : "var(--navy)" }}>
+                  {passkeyBusy ? "מפעיל..." : "הפעל כניסה בטביעת אצבע"}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Clock in/out via app */}
         <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
           <div className="flex items-center gap-2 px-3 py-2.5 flex-row" style={{ borderBottom: "1px solid var(--border)" }}>
@@ -472,7 +544,7 @@ export default function Settings() {
 
       {/* ── Permissions popup ───────────────────────────────── */}
       {permPopupRole && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-50 flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setPermPopupRole(null)}>
           <div className="w-full max-w-lg rounded-t-2xl bg-white pb-8" onClick={e => e.stopPropagation()}>
             <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-3" style={{ background: "#C4C2B8" }} />
@@ -522,7 +594,7 @@ export default function Settings() {
 
       {/* ── Save scope modal ─────────────────────────────────── */}
       {saveModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center"
+        <div className="fixed inset-0 z-50 flex items-end justify-center pb-[60px]"
           style={{ background: "rgba(0,0,0,0.55)" }}
           onClick={() => setSaveModal(false)}>
           <div className="w-full max-w-lg rounded-t-2xl pb-8 bg-white" onClick={e => e.stopPropagation()}>

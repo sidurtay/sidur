@@ -80,6 +80,9 @@ export function buildRealAttendance(requests: { type: "in" | "out"; status: stri
 }
 
 export function calcHours(timeIn: string, timeOut: string): number {
+  // "--:--" marks a shift still in progress (clocked in, not yet out) — its
+  // duration isn't known yet, so contribute 0 rather than NaN to any sum.
+  if (timeOut === "--:--") return 0;
   const [hi, mi] = timeIn.split(":").map(Number);
   const [ho, mo] = timeOut.split(":").map(Number);
   const inM  = hi * 60 + mi;

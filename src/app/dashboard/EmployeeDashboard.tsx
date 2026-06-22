@@ -2,31 +2,17 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Bell, Clock, ChevronLeft, CheckCheck, X, AlertTriangle, ArrowLeftRight, Fingerprint, LogIn, LogOut, Hourglass } from "lucide-react";
+import { Bell, Clock, ChevronLeft, CheckCheck, X, AlertTriangle, ArrowLeftRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
+import ClockInOutCard from "@/components/ClockInOutCard";
 import { calcHours, formatHours, buildRealAttendance, buildUpcomingShifts, type AttendanceMonth } from "@/lib/shiftData";
-import { requiresClockOutApproval, type ClockState } from "@/lib/clockRequests";
 
 const TODAY_LABEL = "שלישי, 23.6";
 const TODAY_WEEK_START = "2026-06-21";
 const TODAY_DAY_OF_WEEK = 2;
 
 type Announcement = { id: number | string; title: string; text: string; createdAt: string; confirmed: boolean };
-
-type ApiClockRequest = { id: string; personId: string; type: "in" | "out"; status: "pending" | "approved" | "denied"; requestedAt: number };
-
-function deriveClockState(requests: ApiClockRequest[]): ClockState {
-  const lastIn = [...requests].reverse().find(r => r.type === "in");
-  const lastOut = [...requests].reverse().find(r => r.type === "out");
-  const label = (ts: number) => new Date(ts).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
-  return {
-    in: lastIn ? (lastIn.status === "denied" ? "none" : lastIn.status) : "none",
-    out: lastOut ? (lastOut.status === "denied" ? "none" : lastOut.status) : "none",
-    inTime: lastIn?.status === "approved" ? label(lastIn.requestedAt) : undefined,
-    outTime: lastOut?.status === "approved" ? label(lastOut.requestedAt) : undefined,
-  };
-}
 
 type Notif = { id: string | number; title: string; text: string; time: string; type: string; unread: boolean };
 const notifStyle: Record<string, { bg: string; color: string }> = {
@@ -43,8 +29,6 @@ export default function EmployeeDashboard() {
   const [notifRead, setNotifRead] = useState(true);
   const [dynamicNotifs, setDynamicNotifs] = useState<Notif[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [clockState, setClockState] = useState<ClockState>({ in: "none", out: "none" });
-  const [outNeedsApproval, setOutNeedsApproval] = useState(true);
   const [businessId, setBusinessId] = useState("");
   const [personId, setPersonId] = useState("");
   const [myShift, setMyShift] = useState<{ id: string; role: string; timeIn: string; timeOut: string } | null>(null);
@@ -53,13 +37,6 @@ export default function EmployeeDashboard() {
   const [mySwapRequest, setMySwapRequest] = useState<{ id: string; status: string; proposerName?: string } | null>(null);
   const [swapPicker, setSwapPicker] = useState(false);
   const [upcomingShifts, setUpcomingShifts] = useState<ReturnType<typeof buildUpcomingShifts>>([]);
-
-  async function refreshClockState(biz: string, person: string) {
-    try {
-      const res = await fetch(`/api/clock-requests?businessId=${biz}&personId=${person}`).then(r => r.json());
-      if (res.success) setClockState(deriveClockState(res.requests));
-    } catch {}
-  }
 
   useEffect(() => {
     let biz = "", person = "";
@@ -71,7 +48,6 @@ export default function EmployeeDashboard() {
       const stored = JSON.parse(localStorage.getItem("shiftpro_tips_notifications") || "[]");
       const mine = stored.filter((n: { workers?: string[] }) => !n.workers || n.workers.includes(s.name));
       if (mine.length > 0) { setDynamicNotifs(mine); setNotifRead(false); }
-      setOutNeedsApproval(requiresClockOutApproval());
     } catch {}
 
     setBusinessId(biz); setPersonId(person);
@@ -101,7 +77,6 @@ export default function EmployeeDashboard() {
           })));
         }
       } catch {}
-      refreshClockState(biz, person);
       fetch(`/api/clock-requests?businessId=${biz}&personId=${person}`)
         .then(r => r.json())
         .then(res => { if (res.success) setRealMonthData(buildRealAttendance(res.requests)); })
@@ -111,28 +86,6 @@ export default function EmployeeDashboard() {
   }, []);
 
   const myShiftToday = myShift ? { ...myShift } : null;
-
-  // Poll while a request is pending so an approval from the manager's side shows up live
-  useEffect(() => {
-    if (clockState.in !== "pending" && clockState.out !== "pending") return;
-    const interval = setInterval(() => refreshClockState(businessId, personId), 2000);
-    return () => clearInterval(interval);
-  }, [clockState.in, clockState.out, businessId, personId]);
-
-  async function handleClockIn() {
-    await fetch("/api/clock-requests", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ businessId, personId, type: "in" }),
-    }).catch(() => {});
-    refreshClockState(businessId, personId);
-  }
-  async function handleClockOut() {
-    await fetch("/api/clock-requests", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ businessId, personId, type: "out", autoApprove: !outNeedsApproval }),
-    }).catch(() => {});
-    refreshClockState(businessId, personId);
-  }
 
   async function requestSwap(proposedPersonId?: string) {
     if (!businessId || !myShift) return;
@@ -166,15 +119,15 @@ export default function EmployeeDashboard() {
       {/* Header */}
       <div style={{ background: "var(--navy)" }} className="px-4 pt-12 pb-4">
         <div className="flex items-center justify-between flex-row">
-          <span className="text-xs px-2.5 py-1 rounded-full font-medium"
-            style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>
-            {TODAY_LABEL}
-          </span>
+          <div className="text-right">
+            <p className="text-white text-base font-semibold">שלום, {name.split(" ")[0]} 👋</p>
+            <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>{bizName}</p>
+          </div>
           <div className="flex items-center gap-3 flex-row">
-            <div className="text-right">
-              <p className="text-white text-base font-semibold">שלום, {name.split(" ")[0]} 👋</p>
-              <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>{bizName}</p>
-            </div>
+            <span className="text-xs px-2.5 py-1 rounded-full font-medium"
+              style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>
+              {TODAY_LABEL}
+            </span>
             <button className="relative p-2 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}
               onClick={() => { setNotifsOpen(true); setNotifRead(true); }}>
               <Bell size={20} color="white" />
@@ -204,48 +157,9 @@ export default function EmployeeDashboard() {
 
       <div className="px-4 py-3 flex flex-col gap-4">
 
-        {/* Clock in/out */}
-        {myShiftToday && (
-          <div className="bg-white rounded-xl p-4 flex flex-col gap-3" style={{ border: "1px solid var(--border)" }}>
-            <div className="flex items-center justify-between flex-row">
-              <Fingerprint size={16} style={{ color: "var(--blue)" }} />
-              <p className="text-sm font-semibold">דיווח נוכחות</p>
-            </div>
-
-            {clockState.out === "approved" ? (
-              <div className="rounded-xl px-4 py-3 text-center" style={{ background: "var(--green-light)" }}>
-                <p className="text-sm font-semibold" style={{ color: "var(--green)" }}>✓ סיימת את המשמרת היום</p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>כניסה {clockState.inTime} · יציאה {clockState.outTime}</p>
-              </div>
-            ) : clockState.in === "none" ? (
-              <button onClick={handleClockIn}
-                className="w-full py-3.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
-                style={{ background: "var(--navy)" }}>
-                <LogIn size={15} /> כניסה למשמרת
-              </button>
-            ) : clockState.in === "pending" ? (
-              <div className="w-full py-3.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
-                style={{ background: "var(--blue-light)", color: "var(--blue)" }}>
-                <Hourglass size={15} /> ממתין לאישור המנהל...
-              </div>
-            ) : clockState.out === "none" ? (
-              <>
-                <div className="rounded-xl px-3 py-2 text-center" style={{ background: "var(--green-light)" }}>
-                  <p className="text-xs font-semibold" style={{ color: "var(--green)" }}>✓ נכנסת למשמרת ב-{clockState.inTime}</p>
-                </div>
-                <button onClick={handleClockOut}
-                  className="w-full py-3.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
-                  style={{ background: "var(--navy)" }}>
-                  <LogOut size={15} /> סיום משמרת
-                </button>
-              </>
-            ) : (
-              <div className="w-full py-3.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
-                style={{ background: "var(--blue-light)", color: "var(--blue)" }}>
-                <Hourglass size={15} /> ממתין לאישור סיום משמרת...
-              </div>
-            )}
-          </div>
+        {/* Clock in/out — central fingerprint tap button */}
+        {myShiftToday && businessId && personId && (
+          <ClockInOutCard businessId={businessId} personId={personId} />
         )}
 
         {/* Swap request */}

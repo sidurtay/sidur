@@ -1,7 +1,13 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, ArrowRight, Phone, Lock } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Phone, Lock, Fingerprint } from "lucide-react";
+
+type LoginSuccessData = {
+  businessId: string; personId: string; phone: string; name: string;
+  businessName: string; role: string; mustChangePassword?: boolean;
+  businessConfig?: unknown;
+};
 
 export default function Login() {
   const router = useRouter();
@@ -10,6 +16,56 @@ export default function Login() {
   const [showPw,   setShowPw]   = useState(false);
   const [error,    setError]    = useState("");
   const [loading,  setLoading]  = useState(false);
+  const [passkeyPhone, setPasskeyPhone] = useState("");
+  const [passkeyBusy,  setPasskeyBusy]  = useState(false);
+
+  useEffect(() => {
+    const savedPhone = localStorage.getItem("shiftpro_webauthn_phone");
+    if (!savedPhone) return;
+    import("@simplewebauthn/browser").then(({ browserSupportsWebAuthn }) => {
+      if (browserSupportsWebAuthn()) setPasskeyPhone(savedPhone);
+    });
+  }, []);
+
+  function storeSessionAndRedirect(data: LoginSuccessData) {
+    const session = {
+      businessId: data.businessId, personId: data.personId,
+      phone: data.phone, name: data.name, businessName: data.businessName,
+      role: data.role, loginAt: Date.now(),
+    };
+    localStorage.setItem("shiftpro_session", JSON.stringify(session));
+    if (data.businessConfig) {
+      localStorage.setItem("shiftpro_business_config", JSON.stringify({ permanent: data.businessConfig }));
+    }
+    router.replace(data.mustChangePassword ? "/change-password" : "/dashboard");
+  }
+
+  async function handleFingerprintLogin() {
+    setError("");
+    setPasskeyBusy(true);
+    try {
+      const { startAuthentication } = await import("@simplewebauthn/browser");
+      const optionsRes = await fetch("/api/auth/webauthn/login-options", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: passkeyPhone }),
+      }).then(r => r.json());
+      if (!optionsRes.success) throw new Error(optionsRes.error || "שגיאה בכניסה בטביעת אצבע");
+
+      const assertion = await startAuthentication({ optionsJSON: optionsRes.options });
+
+      const verifyRes = await fetch("/api/auth/webauthn/login-verify", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ response: assertion }),
+      }).then(r => r.json());
+      if (!verifyRes.success) throw new Error(verifyRes.error || "האימות נכשל");
+
+      storeSessionAndRedirect(verifyRes);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "כניסה בטביעת אצבע נכשלה, נסה עם סיסמה");
+    } finally {
+      setPasskeyBusy(false);
+    }
+  }
 
   async function handleLogin() {
     setError("");
@@ -24,16 +80,7 @@ export default function Login() {
       });
       const data = await res.json();
       if (data.success) {
-        const session = {
-          businessId: data.businessId, personId: data.personId,
-          phone: data.phone, name: data.name, businessName: data.businessName,
-          role: data.role, loginAt: Date.now(),
-        };
-        localStorage.setItem("shiftpro_session", JSON.stringify(session));
-        if (data.businessConfig) {
-          localStorage.setItem("shiftpro_business_config", JSON.stringify({ permanent: data.businessConfig }));
-        }
-        router.replace(data.mustChangePassword ? "/change-password" : "/dashboard");
+        storeSessionAndRedirect(data);
         return;
       }
     } catch {
@@ -104,6 +151,22 @@ export default function Login() {
       <div className="animate-fade-slide-up px-5 flex flex-col gap-4" style={{ marginTop: -20, animationDelay: "0.65s" }}>
         <div className="bg-white rounded-[28px] p-6 flex flex-col gap-4"
           style={{ boxShadow: "0 12px 32px -8px rgba(20,24,31,0.16)", border: "1px solid var(--border)" }}>
+
+          {passkeyPhone && (
+            <button onClick={handleFingerprintLogin} disabled={passkeyBusy}
+              className="w-full py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2"
+              style={{ background: "var(--blue-light)", color: "var(--blue)", border: "1px solid var(--blue-border)" }}>
+              <Fingerprint size={16} />
+              {passkeyBusy ? "מאמת..." : "כניסה בטביעת אצבע"}
+            </button>
+          )}
+          {passkeyPhone && (
+            <div className="flex items-center gap-2 flex-row">
+              <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
+              <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>או עם סיסמה</p>
+              <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
+            </div>
+          )}
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>

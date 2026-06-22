@@ -1,6 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 
+// Matches the app-wide frozen "today" used across schedule/dashboard/AI assistant.
+const CURRENT_WEEK_START = "2026-06-21";
+const TODAY_DAY_OF_WEEK = 2;
+
+// An approved fingerprint clock-request only lives in clock_requests — the
+// manager's "מי עובד היום" attendance view and the schedule page's colored
+// check-in icons both read actual_in_time/actual_out_time off
+// schedule_assignments instead, the same field the manual/QR flows write to.
+// Without this, a fingerprint approval would never surface anywhere except
+// the employee's own card.
+async function syncAssignmentClock(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  businessId: string, personId: string, type: "in" | "out"
+) {
+  // A person can hold more than one role/assignment today (e.g. covering both
+  // מלצרים and אחמ"ש) — one fingerprint tap is a single real-world attendance
+  // event, so it applies to all of today's assignment rows for that person.
+  const time = new Date().toTimeString().slice(0, 8);
+  const update = type === "in"
+    ? { actual_in_time: time, actual_in_source: "fingerprint" }
+    : { actual_out_time: time, actual_out_source: "fingerprint" };
+  await supabase
+    .from("schedule_assignments")
+    .update(update)
+    .eq("business_id", businessId)
+    .eq("person_id", personId)
+    .eq("week_start", CURRENT_WEEK_START)
+    .eq("day_of_week", TODAY_DAY_OF_WEEK);
+}
+
 function mapRow(row: {
   id: string; person_id: string; type: string; status: string; requested_at: string; resolved_at: string | null;
   people: { name: string } | null;
@@ -63,6 +93,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error?.message || "הבקשה נכשלה" }, { status: 500 });
     }
 
+    if (autoApprove) await syncAssignmentClock(supabase, businessId, personId, type);
+
     type Row = Parameters<typeof mapRow>[0];
     return NextResponse.json({ success: true, request: mapRow(data as unknown as Row) });
   } catch (err) {
@@ -83,12 +115,14 @@ export async function PATCH(req: NextRequest) {
       .from("clock_requests")
       .update({ status: approve ? "approved" : "denied", resolved_at: new Date().toISOString() })
       .eq("id", id)
-      .select("id, person_id, type, status, requested_at, resolved_at, people(name)")
+      .select("id, business_id, person_id, type, status, requested_at, resolved_at, people(name)")
       .single();
 
     if (error || !data) {
       return NextResponse.json({ error: error?.message || "העדכון נכשל" }, { status: 500 });
     }
+
+    if (approve) await syncAssignmentClock(supabase, data.business_id, data.person_id, data.type as "in" | "out");
 
     type Row = Parameters<typeof mapRow>[0];
     return NextResponse.json({ success: true, request: mapRow(data as unknown as Row) });
