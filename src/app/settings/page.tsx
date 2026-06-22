@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Store, Clock, Users, Plus, X, AlertTriangle, Check, Receipt, ShieldCheck, Mail, Send, Lock, Fingerprint, ChevronLeft, Sparkles } from "lucide-react";
+import InstagramIcon from "@/components/InstagramIcon";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import EmployeeSettings from "./EmployeeSettings";
@@ -447,11 +448,18 @@ export default function Settings() {
             <p className="text-xs px-3 py-2.5 text-right leading-relaxed" style={{ color: "var(--text-secondary)" }}>
               תקלה או שאלה באפליקציה? שלח הודעה ישירה לצוות Sidur — נקבל התראה ונחזור אליך מהר.
             </p>
-            <div className="flex items-center justify-end gap-1.5 px-3 pb-2.5 flex-row">
-              <a href="mailto:business@sidur.co.il" className="text-xs font-medium" style={{ color: "var(--blue)", direction: "ltr" }}>
-                business@sidur.co.il
+            <div className="flex items-center justify-end gap-1.5 px-3 pb-2 flex-row">
+              <a href="mailto:sidur.support@gmail.com" className="text-xs font-medium" style={{ color: "var(--blue)", direction: "ltr" }}>
+                sidur.support@gmail.com
               </a>
               <p className="text-[10px]" style={{ color: "#9A9890" }}>לפניות עסקיות / שיתופי פעולה:</p>
+            </div>
+            <div className="flex items-center justify-end gap-1.5 px-3 pb-2.5 flex-row">
+              <a href="https://instagram.com/sidur.app" target="_blank" rel="noopener noreferrer"
+                className="text-xs font-medium flex items-center gap-1 flex-row" style={{ color: "var(--blue)", direction: "ltr" }}>
+                <InstagramIcon size={12} /> sidur.app
+              </a>
+              <p className="text-[10px]" style={{ color: "#9A9890" }}>עקבו אחרינו:</p>
             </div>
           </div>
         )}

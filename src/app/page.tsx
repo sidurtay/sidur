@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Users, Coins, BarChart3 } from "lucide-react";
+import InstagramIcon from "@/components/InstagramIcon";
 
 export default function Splash() {
   const router = useRouter();
@@ -102,7 +103,12 @@ export default function Splash() {
         ))}
       </div>
 
-      <p className="text-[10px] text-center pb-8 pt-2" style={{ color: "var(--text-secondary)" }}>
+      <a href="https://instagram.com/sidur.app" target="_blank" rel="noopener noreferrer"
+        className="flex items-center justify-center gap-1.5 flex-row text-xs font-medium pt-2"
+        style={{ color: "var(--blue)" }}>
+        <InstagramIcon size={13} /> sidur.app
+      </a>
+      <p className="text-[10px] text-center pb-8 pt-1" style={{ color: "var(--text-secondary)" }}>
         © 2026 Sidur · כל הזכויות שמורות
       </p>
     </div>
