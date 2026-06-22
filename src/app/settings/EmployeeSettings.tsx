@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import ThemeToggle from "@/components/ThemeToggle";
 
 export default function EmployeeSettings() {
   const router = useRouter();
@@ -36,8 +35,6 @@ export default function EmployeeSettings() {
           <p className="text-xs" style={{ color: "var(--text-secondary)", direction: "ltr" }}>{phone}</p>
           <p className="text-sm font-semibold">{name}</p>
         </div>
-
-        <ThemeToggle />
 
         <button onClick={logout}
           className="w-full py-3.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"

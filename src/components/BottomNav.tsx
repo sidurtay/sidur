@@ -34,8 +34,16 @@ export default function BottomNav() {
 
   return (
     <nav
-      style={{ borderTop: "1px solid var(--border)", background: "var(--surface)" }}
-      className="fixed bottom-0 right-0 left-0 z-50 flex"
+      className="fixed bottom-3 right-3 left-3 z-50 flex"
+      style={{
+        background: "rgba(255,255,255,0.72)",
+        backdropFilter: "blur(20px) saturate(180%)",
+        WebkitBackdropFilter: "blur(20px) saturate(180%)",
+        border: "1px solid rgba(255,255,255,0.6)",
+        borderRadius: 22,
+        boxShadow: "0 8px 28px rgba(31,41,55,0.12), 0 1px 2px rgba(31,41,55,0.06)",
+        padding: 6,
+      }}
     >
       {tabs.map(({ href, label, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(href + "/");
@@ -43,10 +51,18 @@ export default function BottomNav() {
           <Link
             key={href}
             href={href}
-            className="flex flex-col items-center justify-center flex-1 py-2 gap-0.5 text-[11px] transition-colors"
+            className="flex flex-col items-center justify-center flex-1 py-1.5 gap-0.5 text-[10.5px] transition-all"
             style={{ color: active ? "var(--blue)" : "var(--text-secondary)" }}
           >
-            <Icon size={22} strokeWidth={active ? 2.2 : 1.6} />
+            <span
+              className="flex items-center justify-center transition-all"
+              style={{
+                width: 38, height: 26, borderRadius: 13,
+                background: active ? "var(--blue-light)" : "transparent",
+              }}
+            >
+              <Icon size={20} strokeWidth={active ? 2.3 : 1.6} />
+            </span>
             <span style={{ fontWeight: active ? 600 : 400 }}>{label}</span>
           </Link>
         );

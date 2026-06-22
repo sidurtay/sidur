@@ -477,7 +477,7 @@ export default function Chat() {
                 {longPressId === msg.id && (
                   <button onClick={() => deleteMsg(msg.id)}
                     className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: "var(--red-light)", border: "1px solid #F5C5C5" }}>
+                    style={{ background: "var(--red-light)", border: "1px solid #EFB3B3" }}>
                     <Trash2 size={13} style={{ color: "var(--red)" }} />
                   </button>
                 )}
@@ -500,7 +500,7 @@ export default function Chat() {
           <div className="flex items-center gap-2 flex-row">
             <button onClick={sendMsg}
               className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: "var(--blue)" }}>
+              style={{ background: "var(--navy)" }}>
               <Send size={15} color="white" />
             </button>
             <input value={msgInput} onChange={e => setMsgInput(e.target.value)}
@@ -557,7 +557,7 @@ export default function Chat() {
                   <span className="text-xs" style={{ color: "#9A9890" }}>{ch.time}</span>
                   {ch.unread > 0 && (
                     <span className="text-xs font-semibold text-white px-1.5 py-0.5 rounded-full"
-                      style={{ background: "var(--blue)", minWidth: 20, textAlign: "center" }}>
+                      style={{ background: "var(--navy)", minWidth: 20, textAlign: "center" }}>
                       {ch.unread}
                     </span>
                   )}
@@ -689,7 +689,7 @@ export default function Chat() {
                             border: selected ? "1px solid var(--blue-border)" : "1px solid var(--border)",
                           }}>
                           <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{ background: selected ? "var(--blue)" : "var(--gray-bg)", border: selected ? "none" : "1px solid var(--border)" }}>
+                            style={{ background: selected ? "var(--navy)" : "var(--gray-bg)", border: selected ? "none" : "1px solid var(--border)" }}>
                             {selected && <Check size={11} color="white" />}
                           </div>
                           <span className="text-xs flex-shrink-0" style={{ color: "var(--text-secondary)" }}>{emp.role}</span>

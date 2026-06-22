@@ -192,7 +192,7 @@ export default function Employees() {
           <button key={cat} onClick={() => setActiveCat(cat)}
             className="text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 whitespace-nowrap"
             style={activeCat === cat
-              ? { background: "var(--blue)", color: "#fff" }
+              ? { background: "var(--navy)", color: "#fff" }
               : { background: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
             {cat}
           </button>
@@ -323,7 +323,7 @@ export default function Employees() {
                 <p className="text-lg font-bold" style={{ color: "var(--blue)" }}>{totalShifts}</p>
                 <p className="text-[10px] mt-0.5" style={{ color: "var(--text-secondary)" }}>משמרות</p>
               </div>
-              <div className="rounded-xl p-2.5 text-center" style={{ background: "var(--green-light)", border: "1px solid #C5E0A8" }}>
+              <div className="rounded-xl p-2.5 text-center" style={{ background: "var(--green-light)", border: "1px solid #A8D9BB" }}>
                 <p className="text-lg font-bold" style={{ color: "var(--green)" }}>{formatHours(avgPerShift)}</p>
                 <p className="text-[10px] mt-0.5" style={{ color: "var(--text-secondary)" }}>ממוצע משמרת</p>
               </div>
@@ -494,7 +494,7 @@ export default function Employees() {
                     <button key={r} onClick={() => setNewRole(r)}
                       className="text-xs px-3 py-1.5 rounded-full"
                       style={newRole === r
-                        ? { background: "var(--blue)", color: "#fff" }
+                        ? { background: "var(--navy)", color: "#fff" }
                         : { background: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
                       {r}
                     </button>
@@ -505,7 +505,7 @@ export default function Employees() {
                 <div className="rounded-xl p-3 text-right"
                   style={{
                     background: sentResult.success ? "var(--green-light)" : "var(--amber-light)",
-                    border: `1px solid ${sentResult.success ? "#C5E0A8" : "#F0D5A0"}`,
+                    border: `1px solid ${sentResult.success ? "#A8D9BB" : "#EBC395"}`,
                   }}>
                   {sentResult.success ? (
                     <>
@@ -533,7 +533,7 @@ export default function Employees() {
               {!sentResult && (
                 <button onClick={confirmAdd} disabled={sending || !newName.trim() || !newPhone.trim()}
                   className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-1 flex items-center justify-center gap-2"
-                  style={{ background: sending || !newName.trim() || !newPhone.trim() ? "#ADA89D" : "var(--blue)" }}>
+                  style={{ background: sending || !newName.trim() || !newPhone.trim() ? "#ADA89D" : "var(--navy)" }}>
                   {sending ? "שולח WhatsApp..." : "הוסף עובד ושלח WhatsApp"}
                 </button>
               )}

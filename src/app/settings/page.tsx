@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { Store, Clock, Users, Plus, X, AlertTriangle, Check, Receipt, ShieldCheck, Mail, Send, Lock, Fingerprint, ChevronLeft, Sparkles } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import ThemeToggle from "@/components/ThemeToggle";
 import EmployeeSettings from "./EmployeeSettings";
 import {
   getStoredConfig, savePermanent, saveWeekOverride,
@@ -288,7 +287,7 @@ export default function Settings() {
                 {d.name}
               </span>
               <button onClick={() => toggleDay(i)} className="relative flex-shrink-0"
-                style={{ width: 32, height: 18, borderRadius: 9, background: d.open ? "var(--blue)" : "#C4C2B8", transition: "background 0.2s" }}>
+                style={{ width: 32, height: 18, borderRadius: 9, background: d.open ? "var(--navy)" : "#C4C2B8", transition: "background 0.2s" }}>
                 <span className="absolute top-1 rounded-full bg-white transition-all"
                   style={{ width: 12, height: 12, right: d.open ? 3 : 17, transition: "right 0.2s" }} />
               </button>
@@ -365,7 +364,7 @@ export default function Settings() {
                   style={{ background: "var(--gray-bg)", color: "var(--text-main)", border: "1px solid var(--border)" }}>
                   {count > 0 && (
                     <span className="w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center flex-shrink-0"
-                      style={{ background: "var(--blue)", color: "#fff" }}>{count}</span>
+                      style={{ background: "var(--navy)", color: "#fff" }}>{count}</span>
                   )}
                   <ShieldCheck size={10} style={{ color: count > 0 ? "var(--blue)" : "var(--text-secondary)" }} />
                   {r}
@@ -405,7 +404,7 @@ export default function Settings() {
           </p>
           <div className="w-full flex items-center justify-between px-3 py-3 flex-row">
             <button onClick={toggleClockOutApproval} className="relative flex-shrink-0"
-              style={{ width: 36, height: 20, borderRadius: 10, background: clockOutApproval ? "var(--blue)" : "#C4C2B8", transition: "background 0.2s" }}>
+              style={{ width: 36, height: 20, borderRadius: 10, background: clockOutApproval ? "var(--navy)" : "#C4C2B8", transition: "background 0.2s" }}>
               <span className="absolute top-1 rounded-full bg-white transition-all"
                 style={{ width: 14, height: 14, right: clockOutApproval ? 3 : 19, transition: "right 0.2s" }} />
             </button>
@@ -457,8 +456,6 @@ export default function Settings() {
           </div>
         )}
 
-        <ThemeToggle />
-
         {/* Save */}
         <button onClick={handleSaveClick}
           className="w-full py-3.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
@@ -499,7 +496,7 @@ export default function Settings() {
                       background: enabled ? "var(--blue-light)" : "var(--surface)",
                     }}>
                     <div className="w-10 h-5 rounded-full relative flex-shrink-0"
-                      style={{ background: enabled ? "var(--blue)" : "#C4C2B8", transition: "background 0.2s" }}>
+                      style={{ background: enabled ? "var(--navy)" : "#C4C2B8", transition: "background 0.2s" }}>
                       <span className="absolute top-0.5 rounded-full bg-white"
                         style={{ width: 16, height: 16, right: enabled ? 2 : 20, transition: "right 0.2s", position: "absolute" }} />
                     </div>
@@ -581,7 +578,7 @@ export default function Settings() {
             </div>
 
             {ticketResult?.success ? (
-              <div className="rounded-xl px-4 py-4 text-center" style={{ background: "var(--green-light)", border: "1px solid #C5E0A8" }}>
+              <div className="rounded-xl px-4 py-4 text-center" style={{ background: "var(--green-light)", border: "1px solid #A8D9BB" }}>
                 <Check size={20} style={{ color: "var(--green)" }} className="mx-auto mb-1" />
                 <p className="text-sm font-semibold" style={{ color: "var(--green)" }}>הפנייה נשלחה!</p>
                 <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>נחזור אליך בהקדם במייל או בטלפון</p>
@@ -591,7 +588,7 @@ export default function Settings() {
             ) : (
               <div className="flex flex-col gap-3">
                 {ticketResult && !ticketResult.success && (
-                  <div className="rounded-xl px-3 py-2.5 text-xs text-right" style={{ background: "var(--amber-light)", border: "1px solid #F0D5A0", color: "var(--amber)" }}>
+                  <div className="rounded-xl px-3 py-2.5 text-xs text-right" style={{ background: "var(--amber-light)", border: "1px solid #EBC395", color: "var(--amber)" }}>
                     הפנייה נשמרה במכשיר ותישלח אוטומטית כשתתחבר כתובת המייל של התמיכה. בינתיים אפשר גם לפנות ישירות.
                   </div>
                 )}

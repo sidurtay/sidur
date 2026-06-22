@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ArrowRight, Check, ChevronLeft, Store, Coffee, Utensils, Beer } from "lucide-react";
+import { CalendarDays, ArrowRight, Check, ChevronLeft, Store, Coffee, Utensils, Beer, X, Sparkles } from "lucide-react";
 import { DEFAULT_CONFIG } from "@/lib/businessConfig";
 
 const BUSINESS_TYPES = [
@@ -13,13 +13,13 @@ const BUSINESS_TYPES = [
 
 const PLANS = [
   {
-    key: "basic",
-    name: "Sidur Basic",
+    key: "starter",
+    name: "Sidur Starter",
     price: "חינם",
     priceNote: "לתמיד",
-    color: "#6B6966",
-    bg: "#F3F3F2",
-    border: "#DEDCDA",
+    color: "var(--text-secondary)",
+    bg: "var(--gray-bg)",
+    border: "var(--border)",
     features: [
       "עד 10 עובדים",
       "סידור עבודה",
@@ -29,17 +29,16 @@ const PLANS = [
     missing: ["AI לסידור", "חישוב טיפים", "דוחות מתקדמים"],
   },
   {
-    key: "growth",
-    name: "Sidur Growth",
+    key: "plus",
+    name: "Sidur Plus",
     price: "₪99",
     priceNote: "לחודש",
-    color: "var(--blue)",
-    bg: "var(--blue-light)",
-    border: "var(--blue-border)",
-    badge: "הכי פופולרי",
+    color: "var(--text-secondary)",
+    bg: "var(--gray-bg)",
+    border: "var(--border)",
     features: [
       "עד 20 עובדים",
-      "כל יכולות הבסיסי",
+      "כל יכולות ה-Starter",
       "AI לבניית סידור",
       "חישוב טיפים",
       "דוחות חודשיים",
@@ -51,12 +50,13 @@ const PLANS = [
     name: "Sidur Business",
     price: "₪199",
     priceNote: "לחודש",
-    color: "var(--navy)",
-    bg: "#E8ECF4",
-    border: "#C2CCE0",
+    color: "var(--blue)",
+    bg: "var(--blue-light)",
+    border: "var(--blue-border)",
+    badge: "הכי פופולרי",
     features: [
       "עובדים ללא הגבלה",
-      "כל יכולות הצמיחה",
+      "כל יכולות ה-Plus",
       "מולטי-סניף",
       "API גישה",
       "תמיכה עדיפה",
@@ -82,10 +82,11 @@ export default function Register() {
   const [password,    setPassword]    = useState("");
 
   // Step 3 — Plan
-  const [plan, setPlan] = useState("growth");
+  const [plan, setPlan] = useState("business");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPlanInfo, setShowPlanInfo] = useState(false);
 
   function next() { setStep(s => (s < 4 ? (s + 1) as Step : s)); }
   function back() {
@@ -161,12 +162,6 @@ export default function Register() {
         {step < 4 && (
           <div className="flex flex-col items-end gap-2">
             <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>שלב {step} מתוך 3</p>
-            <div className="flex flex-row gap-1.5 w-full">
-              {[1, 2, 3].map(s => (
-                <div key={s} className="flex-1 h-1 rounded-full transition-all"
-                  style={{ background: s <= step ? "#fff" : "rgba(255,255,255,0.2)" }} />
-              ))}
-            </div>
             <p className="text-white font-semibold text-base mt-1">
               {step === 1 && "פרטי העסק"}
               {step === 2 && "פרטי המנהל"}
@@ -175,6 +170,13 @@ export default function Register() {
           </div>
         )}
       </div>
+
+      {/* Slim vertical progress rail, left edge */}
+      {step < 4 && (
+        <div className="fixed top-1/2 left-0 -translate-y-1/2 z-40" style={{ width: 3, height: 120, borderRadius: 2, background: "rgba(0,0,0,0.08)", overflow: "hidden" }}>
+          <div className="transition-all" style={{ width: "100%", height: `${(step / 3) * 100}%`, background: "var(--navy)" }} />
+        </div>
+      )}
 
       {/* ── Step 1: Business details ── */}
       {step === 1 && (
@@ -211,7 +213,7 @@ export default function Register() {
                   className="flex flex-col items-center gap-2 py-4 rounded-2xl transition-all"
                   style={{
                     background: bizType === t.key ? "var(--blue-light)" : "var(--surface)",
-                    border: `1px solid ${bizType === t.key ? "var(--blue)" : "var(--border)"}`,
+                    border: `1px solid ${bizType === t.key ? "var(--navy)" : "var(--border)"}`,
                     color: bizType === t.key ? "var(--blue)" : "var(--text-main)",
                   }}>
                   <span style={{ color: bizType === t.key ? "var(--blue)" : "var(--text-secondary)" }}>
@@ -286,9 +288,14 @@ export default function Register() {
       {/* ── Step 3: Plan selection ── */}
       {step === 3 && (
         <div className="px-5 pt-5 flex flex-col gap-3 pb-8">
-          <p className="text-xs text-right px-1" style={{ color: "var(--text-secondary)" }}>
-            ניתן לשדרג או לשנות תוכנית בכל עת
-          </p>
+          <div className="flex items-center justify-between flex-row px-1">
+            <button onClick={() => setShowPlanInfo(true)} className="text-xs font-semibold" style={{ color: "var(--blue)" }}>
+              איזו תוכנית מתאימה לי?
+            </button>
+            <p className="text-xs text-right" style={{ color: "var(--text-secondary)" }}>
+              ניתן לשדרג או לשנות תוכנית בכל עת
+            </p>
+          </div>
 
           {PLANS.map(p => (
             <button key={p.key} onClick={() => setPlan(p.key)}
@@ -300,7 +307,7 @@ export default function Register() {
 
               {p.badge && (
                 <span className="absolute top-3 left-3 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: "var(--blue)", color: "#fff" }}>
+                  style={{ background: "var(--navy)", color: "#fff" }}>
                   {p.badge}
                 </span>
               )}
@@ -353,7 +360,7 @@ export default function Register() {
       {step === 4 && (
         <div className="flex flex-col items-center justify-center flex-1 px-6 py-12 text-center">
           <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
-            style={{ background: "var(--green-light)", border: "2px solid #C5E0A8" }}>
+            style={{ background: "var(--green-light)", border: "2px solid #A8D9BB" }}>
             <Check size={36} style={{ color: "var(--green)" }} strokeWidth={2.5} />
           </div>
           <h2 className="text-xl font-bold mb-2">ברוכים הבאים!</h2>
@@ -385,6 +392,48 @@ export default function Register() {
             style={{ background: "var(--navy)" }}>
             כניסה לאפליקציה
           </button>
+        </div>
+      )}
+
+      {/* ── Plan comparison popup ── */}
+      {showPlanInfo && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
+          onClick={() => setShowPlanInfo(false)}>
+          <div className="w-full max-w-lg rounded-t-2xl bg-white p-5 pb-8" onClick={e => e.stopPropagation()}>
+            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "#D1D5DB" }} />
+            <div className="flex items-center justify-between flex-row mb-4">
+              <button onClick={() => setShowPlanInfo(false)}><X size={18} style={{ color: "var(--text-secondary)" }} /></button>
+              <div className="flex items-center gap-1.5 flex-row">
+                <p className="text-base font-bold">איזו תוכנית מתאימה לי?</p>
+                <Sparkles size={15} style={{ color: "var(--blue)" }} />
+              </div>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div className="rounded-xl px-4 py-3 text-right" style={{ border: "1px solid var(--border)" }}>
+                <p className="text-sm font-bold mb-0.5">Sidur Starter — צוות קטן שמתחיל</p>
+                <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                  עד 10 עובדים, סידור ונוכחות בסיסיים. מצוין לבדיקה ראשונה בלי שום עלות.
+                </p>
+              </div>
+              <div className="rounded-xl px-4 py-3 text-right" style={{ border: "1px solid var(--border)" }}>
+                <p className="text-sm font-bold mb-0.5">Sidur Plus — כשהסידור מתחיל לתפוס זמן</p>
+                <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                  ה-AI בונה לך סידור תוך דקות לפי אילוצי העובדים, וטיפים מתחשבים אוטומטית.
+                </p>
+              </div>
+              <div className="rounded-xl px-4 py-3 text-right" style={{ border: "2px solid var(--blue-border)", background: "var(--blue-light)" }}>
+                <p className="text-sm font-bold mb-0.5">Sidur Business — לרשתות וסניפים מרובים</p>
+                <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                  עובדים ללא הגבלה, ניהול מולטי-סניף וגישת API — הבחירה הפופולרית ביותר שלנו.
+                </p>
+              </div>
+            </div>
+            <button onClick={() => setShowPlanInfo(false)}
+              className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-4"
+              style={{ background: "var(--navy)" }}>
+              הבנתי, בחזרה לבחירה
+            </button>
+          </div>
         </div>
       )}
     </div>

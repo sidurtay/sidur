@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { THEME_INIT_SCRIPT } from "@/lib/theme";
-import ThemeListener from "@/components/ThemeListener";
 
 export const metadata: Metadata = {
   title: "Sidur",
@@ -14,12 +12,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="he" dir="rtl" className="h-full" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-      </head>
+    <html lang="he" dir="rtl" className="h-full">
       <body className="min-h-full flex flex-col">
-        <ThemeListener />
         {children}
       </body>
     </html>

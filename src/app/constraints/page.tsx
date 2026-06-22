@@ -26,10 +26,10 @@ const statusLabels: Record<DayStatus, string> = {
 };
 
 const statusColors: Record<DayStatus, { bg: string; border: string; text: string }> = {
-  all: { bg: "var(--green-light)", border: "#C5E0A8", text: "var(--green)" },
+  all: { bg: "var(--green-light)", border: "#A8D9BB", text: "var(--green)" },
   morning: { bg: "var(--blue-light)", border: "var(--blue-border)", text: "var(--blue)" },
   evening: { bg: "var(--gray-bg)", border: "var(--text-secondary)", text: "var(--text-main)" },
-  off: { bg: "var(--red-light)", border: "#F5C5C5", text: "var(--red)" },
+  off: { bg: "var(--red-light)", border: "#EFB3B3", text: "var(--red)" },
 };
 
 const shortLabels: Record<DayStatus, string> = { all: "כל היום", morning: "בוקר", evening: "ערב", off: "לא זמין" };

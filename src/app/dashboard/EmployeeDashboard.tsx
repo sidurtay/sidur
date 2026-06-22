@@ -34,9 +34,9 @@ function deriveClockState(requests: ApiClockRequest[]): ClockState {
 
 type Notif = { id: string | number; title: string; text: string; time: string; type: string; unread: boolean };
 const notifStyle: Record<string, { bg: string; color: string }> = {
-  warn:    { bg: "#FDF3E3", color: "#854F0B" },
+  warn:    { bg: "var(--amber-light)", color: "var(--amber)" },
   info:    { bg: "var(--blue-light)", color: "var(--blue)" },
-  success: { bg: "#EAF3E0", color: "#3B6D11" },
+  success: { bg: "var(--green-light)", color: "var(--green)" },
 };
 
 export default function EmployeeDashboard() {
@@ -398,7 +398,7 @@ export default function EmployeeDashboard() {
                 return (
                   <div key={n.id} className="flex items-start gap-3 py-3 flex-row"
                     style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : "none" }}>
-                    {n.unread && <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: "var(--blue)" }} />}
+                    {n.unread && <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: "var(--navy)" }} />}
                     {!n.unread && <div className="w-2 flex-shrink-0" />}
                     <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{ background: ns.bg, color: ns.color }}>

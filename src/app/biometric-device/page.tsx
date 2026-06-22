@@ -51,20 +51,20 @@ export default function BiometricDevicePage() {
       <div className="flex flex-col items-center pt-10 pb-8 px-6 relative overflow-hidden"
         style={{ background: "var(--navy)" }}>
         <span className="text-[10px] font-bold px-3 py-1 rounded-full mb-6"
-          style={{ background: "var(--blue)", color: "#fff" }}>
+          style={{ background: "var(--navy)", color: "#fff" }}>
           בקרוב — השקה 2026
         </span>
 
         {/* Device mockup */}
         <div className="relative" style={{ width: 168 }}>
           <div className="absolute inset-0 rounded-[28px] blur-2xl opacity-40"
-            style={{ background: "var(--blue)", transform: "scale(0.85)" }} />
+            style={{ background: "var(--navy)", transform: "scale(0.85)" }} />
           <div className="relative rounded-[26px] p-2.5 flex flex-col gap-2.5"
             style={{ background: "linear-gradient(160deg, #2A2722, #100F0D)", border: "1px solid rgba(255,255,255,0.08)" }}>
             <div className="rounded-[16px] flex flex-col items-center justify-center gap-3 py-9"
               style={{ background: "#000" }}>
               <div className="rounded-full flex items-center justify-center"
-                style={{ width: 64, height: 64, background: "rgba(226,105,26,0.12)", border: "2px solid var(--blue)" }}>
+                style={{ width: 64, height: 64, background: "var(--gray-bg)", border: "2px solid var(--blue)" }}>
                 <Fingerprint size={32} style={{ color: "var(--blue)" }} />
               </div>
               <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.55)" }}>הנח אצבע לאישור</p>

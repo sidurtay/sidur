@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, ArrowRight, Phone, Lock } from "lucide-react";
-import Logo from "@/components/Logo";
 
 export default function Login() {
   const router = useRouter();
@@ -66,12 +65,8 @@ export default function Login() {
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "var(--gray-bg)" }}>
 
-      {/* Top brand stripe */}
-      <div className="h-[3px] w-full flex-shrink-0"
-        style={{ background: "linear-gradient(90deg, transparent, #FFB020 20%, #E2510A 50%, #FFB020 80%, transparent)" }} />
-
       {/* Hero */}
-      <div className="flex flex-col items-center pt-12 pb-16 px-6 text-center relative overflow-hidden"
+      <div className="flex flex-col items-center pt-12 pb-12 px-6 text-center relative overflow-hidden"
         style={{ background: "var(--navy)" }}>
         <button onClick={() => router.back()}
           className="absolute top-12 right-4 w-9 h-9 rounded-full flex items-center justify-center z-10"
@@ -79,24 +74,36 @@ export default function Login() {
           <ArrowRight size={18} color="white" />
         </button>
 
-        <div className="relative flex items-center justify-center mb-5" style={{ width: 80, height: 80 }}>
-          <div className="absolute inset-0 rounded-full blur-2xl opacity-50"
-            style={{ background: "radial-gradient(circle, #E2691A, transparent 70%)" }} />
-          <div className="relative rounded-2xl flex items-center justify-center"
-            style={{ width: 72, height: 72, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-            <Logo size={38} />
-          </div>
-        </div>
+        <p className="animate-fade-slide-up text-white text-3xl font-extrabold tracking-tight" style={{ animationDelay: "0.05s" }}>
+          Sidur
+        </p>
+        <p className="animate-fade-slide-up text-[10px] mt-1.5" style={{ color: "rgba(255,255,255,0.35)", animationDelay: "0.2s" }}>
+          © 2026 Sidur · כל הזכויות שמורות
+        </p>
 
-        <p className="text-white text-2xl font-bold tracking-tight">Sidur</p>
-        <div className="mt-3 mb-1" style={{ width: 36, height: 2, background: "linear-gradient(90deg, #FFB020, #E2510A)", borderRadius: 2 }} />
-        <p className="text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>כניסה לחשבון העסק שלך</p>
+        <p className="animate-fade-slide-up text-sm mt-5" style={{ color: "rgba(255,255,255,0.55)", animationDelay: "0.35s" }}>
+          כניסה לחשבון העסק שלך
+        </p>
+
+        {/* Trust row — businesses using the product */}
+        <div className="animate-fade-slide-up flex flex-row flex-wrap items-center justify-center gap-1.5 mt-5"
+          style={{ animationDelay: "0.5s" }}>
+          {["קפה לוסיל", "מטבח האחים", "בר רוסו", "פיצה דה רוקו"].map(name => (
+            <span key={name} className="text-[10px] px-2.5 py-1 rounded-full"
+              style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.1)" }}>
+              {name}
+            </span>
+          ))}
+        </div>
+        <p className="animate-fade-slide-up text-[10px] mt-2" style={{ color: "rgba(255,255,255,0.3)", animationDelay: "0.55s" }}>
+          מצטרפים לעשרות עסקים שמנהלים את הסידור שלהם עם Sidur
+        </p>
       </div>
 
       {/* Form — floating card */}
-      <div className="px-5 flex flex-col gap-4" style={{ marginTop: -28 }}>
+      <div className="animate-fade-slide-up px-5 flex flex-col gap-4" style={{ marginTop: -20, animationDelay: "0.65s" }}>
         <div className="bg-white rounded-[28px] p-6 flex flex-col gap-4"
-          style={{ boxShadow: "0 12px 32px -8px rgba(20,18,15,0.18)", border: "1px solid var(--border)" }}>
+          style={{ boxShadow: "0 12px 32px -8px rgba(20,24,31,0.16)", border: "1px solid var(--border)" }}>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>
@@ -146,8 +153,8 @@ export default function Login() {
           <button onClick={handleLogin} disabled={loading}
             className="w-full py-3.5 rounded-2xl text-sm font-bold text-white mt-1 transition-opacity"
             style={{
-              background: loading ? "#ADA89D" : "linear-gradient(135deg, #FFB020, #E2510A)",
-              boxShadow: loading ? "none" : "0 8px 20px -6px rgba(226,81,10,0.45)",
+              background: loading ? "#9CA3AF" : "var(--navy)",
+              boxShadow: loading ? "none" : "0 8px 20px -6px rgba(20,24,31,0.4)",
             }}>
             {loading ? "מתחבר..." : "כניסה"}
           </button>

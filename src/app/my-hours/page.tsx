@@ -102,7 +102,7 @@ export default function MyHours() {
           <p className="text-lg font-bold" style={{ color: "var(--blue)" }}>{totalShifts}</p>
           <p className="text-[10px] mt-0.5" style={{ color: "var(--text-secondary)" }}>משמרות</p>
         </div>
-        <div className="rounded-xl p-2.5 text-center" style={{ background: "var(--green-light)", border: "1px solid #C5E0A8" }}>
+        <div className="rounded-xl p-2.5 text-center" style={{ background: "var(--green-light)", border: "1px solid #A8D9BB" }}>
           <p className="text-lg font-bold" style={{ color: "var(--green)" }}>{formatHours(avgPerShift)}</p>
           <p className="text-[10px] mt-0.5" style={{ color: "var(--text-secondary)" }}>ממוצע משמרת</p>
         </div>

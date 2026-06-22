@@ -40,14 +40,14 @@ const notifications = [
 ];
 
 const notifStyle: Record<string, { bg: string; color: string }> = {
-  warn:    { bg: "#FDF3E3", color: "#854F0B" },
+  warn:    { bg: "var(--amber-light)", color: "var(--amber)" },
   info:    { bg: "var(--blue-light)", color: "var(--blue)" },
-  success: { bg: "#EAF3E0", color: "#3B6D11" },
+  success: { bg: "var(--green-light)", color: "var(--green)" },
 };
 const statusLabel: Record<string, { label: string; bg: string; color: string }> = {
-  active:  { label: "נוכח",       bg: "#EAF3DE", color: "#3B6D11" },
-  late:    { label: "איחור",      bg: "#FCEBEB", color: "#A32D2D" },
-  pending: { label: "טרם הגיע",   bg: "#FDF3E3", color: "#854F0B" },
+  active:  { label: "נוכח",       bg: "var(--green-light)", color: "var(--green)" },
+  late:    { label: "איחור",      bg: "var(--red-light)", color: "var(--red)" },
+  pending: { label: "טרם הגיע",   bg: "var(--amber-light)", color: "var(--amber)" },
 };
 
 const TODAY_LABEL = "שלישי, 23.6";
@@ -313,7 +313,7 @@ export default function Dashboard() {
                       </button>
                       <button onClick={() => respond(r.id, true)}
                         className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
-                        style={{ background: "var(--blue)" }}>
+                        style={{ background: "var(--navy)" }}>
                         אשר
                       </button>
                     </div>
@@ -478,7 +478,7 @@ export default function Dashboard() {
                         </button>
                         <button onClick={() => respondSwap(sr.id, true)} disabled={!sr.proposerName}
                           className="flex-1 py-2 rounded-lg text-sm font-semibold text-white"
-                          style={{ background: sr.proposerName ? "var(--blue)" : "var(--border)" }}>
+                          style={{ background: sr.proposerName ? "var(--navy)" : "var(--border)" }}>
                           אשר החלפה
                         </button>
                       </div>
@@ -522,7 +522,7 @@ export default function Dashboard() {
                   </button>
                   <button onClick={() => setSwapApproved("approved")}
                     className="flex-1 py-2 rounded-lg text-sm font-semibold text-white"
-                    style={{ background: "var(--blue)" }}>
+                    style={{ background: "var(--navy)" }}>
                     אשר החלפה
                   </button>
                 </div>
@@ -531,7 +531,7 @@ export default function Dashboard() {
               <div className="rounded-xl px-4 py-3 text-right"
                 style={{
                   background: swapApproved === "approved" ? "var(--green-light)" : "var(--gray-bg)",
-                  border: `1px solid ${swapApproved === "approved" ? "#C5E0A8" : "var(--border)"}`,
+                  border: `1px solid ${swapApproved === "approved" ? "#A8D9BB" : "var(--border)"}`,
                 }}>
                 <p className="text-sm font-semibold" style={{ color: swapApproved === "approved" ? "var(--green)" : "var(--text-secondary)" }}>
                   {swapApproved === "approved" ? "✓ ההחלפה אושרה — הסידור עודכן" : "✗ הבקשה נדחתה"}
@@ -706,7 +706,7 @@ export default function Dashboard() {
               )}
               {employees.filter(e => editingAnn.confirmedBy.includes(e.name)).map(emp => (
                 <div key={emp.name} className="flex items-center gap-3 px-3 py-2.5 rounded-xl flex-row"
-                  style={{ background: "var(--green-light)", border: "1px solid #C5E0A8" }}>
+                  style={{ background: "var(--green-light)", border: "1px solid #A8D9BB" }}>
                   <CheckCheck size={14} style={{ color: "var(--green)", flexShrink: 0 }} />
                   <span className="text-xs flex-shrink-0" style={{ color: "var(--text-secondary)" }}>{emp.role}</span>
                   <p className="flex-1 text-right text-sm font-medium">{emp.name}</p>
@@ -721,7 +721,7 @@ export default function Dashboard() {
               )}
               {employees.filter(e => !editingAnn.confirmedBy.includes(e.name)).map(emp => (
                 <div key={emp.name} className="flex items-center gap-3 px-3 py-2.5 rounded-xl flex-row"
-                  style={{ background: "var(--amber-light)", border: "1px solid #F0D5A0" }}>
+                  style={{ background: "var(--amber-light)", border: "1px solid #EBC395" }}>
                   <button
                     onClick={() => {
                       if (businessId && emp.id) {
@@ -794,7 +794,7 @@ export default function Dashboard() {
                 return (
                   <div key={n.id} className="flex items-start gap-3 py-3 flex-row"
                     style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : "none" }}>
-                    {n.unread && <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: "var(--blue)" }} />}
+                    {n.unread && <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: "var(--navy)" }} />}
                     {!n.unread && <div className="w-2 flex-shrink-0" />}
                     <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{ background: ns.bg, color: ns.color }}>

@@ -1,30 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --navy: #16140F;
-  --blue: #E2691A;
-  --blue-light: #FCE9D8;
-  --blue-border: #F0C49B;
-  --green: #3B6D11;
-  --green-light: #EAF3E0;
-  --amber: #854F0B;
-  --amber-light: #FDF3E3;
-  --red: #A32D2D;
-  --red-light: #FDEAEA;
-  --gray-bg: #F5F5F5;
-  --border: #E5E2DC;
-  --text-main: #1A1816;
-  --text-secondary: #6B655C;
+  /* Two near-black neutrals carry the app; orange is a sparing accent — text, icons, thin borders only, never a fill */
+  --navy: #14181F;
+  --navy-soft: #2B313C;
+  --blue: #F97316;
+  --blue-light: #F3F4F6;
+  --blue-border: #F2D2B0;
+  --green: #15803D;
+  --green-light: #EAF7EE;
+  --amber: #B45309;
+  --amber-light: #FDF1E2;
+  --red: #B91C1C;
+  --red-light: #FCEAEA;
+  --gray-bg: #F7F8F9;
+  --border: #E5E7EB;
+  --text-main: #1F2937;
+  --text-secondary: #6B7280;
   --surface: #FFFFFF;
-}
-
-:root[data-theme="dark"] {
-  --navy: #0D0C0A;
-  --gray-bg: #121212;
-  --surface: #1C1B19;
-  --border: #322F2A;
-  --text-main: #F2F0EC;
-  --text-secondary: #A39C90;
 }
 
 * {
@@ -43,10 +36,10 @@ body {
   min-height: 100vh;
 }
 
-/* Card/sheet surfaces throughout the app are built with Tailwind's bg-white
-   utility — this blanket override keeps them in sync with the theme without
-   touching every component. */
-[data-theme="dark"] .bg-white {
-  background-color: var(--surface) !important;
-  color: var(--text-main);
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-slide-up {
+  animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

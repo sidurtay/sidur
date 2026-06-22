@@ -577,8 +577,8 @@ export default function AISchedule() {
                     background: msg.status === "warn" ? "var(--amber-light)" :
                                 msg.status === "success" ? "var(--green-light)" :
                                 msg.status === "info" ? "var(--blue-light)" : "var(--surface)",
-                    border: msg.status === "warn" ? "1px solid #F0D5A0" :
-                            msg.status === "success" ? "1px solid #C5E0A8" :
+                    border: msg.status === "warn" ? "1px solid #EBC395" :
+                            msg.status === "success" ? "1px solid #A8D9BB" :
                             msg.status === "info" ? "1px solid var(--blue-border)" : "1px solid var(--border)",
                     color: "var(--text-main)", borderBottomRightRadius: 6,
                   }
@@ -594,7 +594,7 @@ export default function AISchedule() {
                     className="px-3 py-1.5 rounded-full text-xs font-semibold"
                     style={chip === "5+" || chip === "הצג בסידור"
                       ? { background: "var(--navy)", color: "#fff" }
-                      : { background: "var(--blue)", color: "#fff" }}>
+                      : { background: "var(--navy)", color: "#fff" }}>
                     {chip}
                   </button>
                 ))}
@@ -619,7 +619,7 @@ export default function AISchedule() {
               style={{ border: "1px solid var(--blue)", background: "var(--surface)", width: 120 }} />
             <button onClick={() => { if (customNumVal) { handleNumber(customNumVal, customNumStep!); setCustomNumStep(null); }}}
               className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: "var(--blue)" }}>
+              style={{ background: "var(--navy)" }}>
               <Send size={13} color="white" />
             </button>
           </div>
@@ -634,7 +634,7 @@ export default function AISchedule() {
         <div className="flex items-center gap-2 flex-row">
           <button onClick={handleFreeText}
             className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ background: step === "done" ? "var(--gray-bg)" : "var(--blue)", opacity: step === "generating" ? 0.5 : 1 }}>
+            style={{ background: step === "done" ? "var(--gray-bg)" : "var(--navy)", opacity: step === "generating" ? 0.5 : 1 }}>
             <Send size={15} color={step === "done" ? "var(--text-secondary)" : "white"} />
           </button>
           <input

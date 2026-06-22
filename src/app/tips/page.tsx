@@ -320,7 +320,7 @@ export default function Tips() {
         {/* Past day without data warning */}
         {!isToday && !tips.published && !tips.morningTotal && !tips.eveningTotal && !tips.dailyTotal && (
           <div className="rounded-xl px-3 py-2.5 flex items-center gap-2.5 flex-row"
-            style={{ background: "var(--amber-light)", border: "1px solid #F0D5A0" }}>
+            style={{ background: "var(--amber-light)", border: "1px solid #EBC395" }}>
             <AlertCircle size={16} style={{ color: "var(--amber)", flexShrink: 0 }} />
             <div className="flex-1 text-right">
               <p className="text-xs font-semibold" style={{ color: "var(--amber)" }}>טיפים לא פורסמו ביום זה</p>
@@ -373,7 +373,7 @@ export default function Tips() {
             </div>
             {dailyNum > 0 && (
               <div className="rounded-xl px-4 py-2.5 text-center"
-                style={{ background: "var(--green-light)", border: "1px solid #C5E0A8" }}>
+                style={{ background: "var(--green-light)", border: "1px solid #A8D9BB" }}>
                 <p className="text-xl font-bold" style={{ color: "var(--green)" }}>₪{dailyNum.toLocaleString()}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{totalCount} עובדים</p>
               </div>
@@ -387,7 +387,7 @@ export default function Tips() {
         {!tips.published && !locked && (
           <button onClick={publish}
             className="w-full py-3.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
-            style={{ background: "var(--blue)" }}>
+            style={{ background: "var(--navy)" }}>
             <Send size={14} /> פרסם טיפים לעובדים
           </button>
         )}
@@ -395,7 +395,7 @@ export default function Tips() {
         {tips.published && !locked && (
           <div className="flex flex-col gap-2">
             <div className="rounded-xl py-3 px-4 flex flex-col gap-1"
-              style={{ background: "var(--green-light)", border: "1px solid #C5E0A8" }}>
+              style={{ background: "var(--green-light)", border: "1px solid #A8D9BB" }}>
               <div className="flex items-center justify-between flex-row">
                 <span className="text-xs font-semibold" style={{ color: "var(--green)" }}>
                   {[...day.morning, ...day.evening].filter((w, i, arr) => arr.findIndex(x => x.name === w.name) === i).length} עובדים קיבלו התראה

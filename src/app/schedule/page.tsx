@@ -22,12 +22,12 @@ type Assignment = {
   actualOut?: ClockEvent;                 // actual clock-out
 };
 
-function inColor(src?: ClockSource)  { return src === "manual" ? "#E2691A" : "#3B6D11"; }
-function outColor(src?: ClockSource) { return src === "manual" ? "#E2691A" : "#A32D2D"; }
-function inBg(src?: ClockSource)     { return src === "manual" ? "#FCE9D8" : "#EAF3DE"; }
-function outBg(src?: ClockSource)    { return src === "manual" ? "#FCE9D8" : "#FCEBEB"; }
-function inBorder(src?: ClockSource) { return src === "manual" ? "var(--blue-border)" : "#C5E0A8"; }
-function outBorder(src?: ClockSource){ return src === "manual" ? "var(--blue-border)" : "#F7C1C1"; }
+function inColor(src?: ClockSource)  { return src === "manual" ? "var(--amber)" : "var(--green)"; }
+function outColor(src?: ClockSource) { return src === "manual" ? "var(--amber)" : "var(--red)"; }
+function inBg(src?: ClockSource)     { return src === "manual" ? "var(--amber-light)" : "var(--green-light)"; }
+function outBg(src?: ClockSource)    { return src === "manual" ? "var(--amber-light)" : "var(--red-light)"; }
+function inBorder(src?: ClockSource) { return src === "manual" ? "#EBC395" : "#A8D9BB"; }
+function outBorder(src?: ClockSource){ return src === "manual" ? "#EBC395" : "#EFB3B3"; }
 
 const weeks = {
   current: {
@@ -378,7 +378,7 @@ function Schedule() {
             </Link>
             <Link href="/constraints"
               className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0"
-              style={{ background: "var(--green-light)", color: "var(--green)", border: "1px solid #C5E0A8" }}>
+              style={{ background: "var(--green-light)", color: "var(--green)", border: "1px solid #A8D9BB" }}>
               <ClipboardList size={13} /> אילוצים
             </Link>
             <Link href="/schedule/ai"
@@ -417,8 +417,8 @@ function Schedule() {
               <button key={d.d} onClick={() => setActiveDay(d.d)}
                 className="flex flex-col items-center px-3 py-1.5 rounded-2xl flex-shrink-0 text-xs font-medium"
                 style={activeDay === d.d
-                  ? { background: "var(--blue)", color: "#fff" }
-                  : { background: "var(--surface)", color: "var(--text-secondary)", border: `1px solid ${isToday ? "var(--blue)" : "var(--border)"}` }}>
+                  ? { background: "var(--navy)", color: "#fff" }
+                  : { background: "var(--surface)", color: "var(--text-secondary)", border: `1px solid ${isToday ? "var(--navy)" : "var(--border)"}` }}>
                 {d.label}
                 <span className="text-[9px] mt-0.5 opacity-80">{d.date}</span>
                 {isToday && activeDay !== d.d && (
@@ -434,9 +434,9 @@ function Schedule() {
         <div className="flex flex-row gap-1.5 flex-wrap">
           {[
             { dot: "#6B6966", label: "מתוכנן"   },
-            { dot: "#3B6D11", label: "כניסה QR/אצבע" },
-            { dot: "#A32D2D", label: "יציאה QR/אצבע" },
-            { dot: "#E2691A", label: "עדכון ידני"     },
+            { dot: "var(--green)", label: "כניסה QR/אצבע" },
+            { dot: "var(--red)", label: "יציאה QR/אצבע" },
+            { dot: "var(--amber)", label: "עדכון ידני"     },
           ].map(l => (
             <div key={l.label} className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px]"
               style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
@@ -580,7 +580,7 @@ function Schedule() {
                   </p>
                   <div className="flex gap-2 flex-row">
                     <button onClick={() => setRoleRecurring(key, true)}
-                      className="flex-1 py-2 rounded-lg text-xs font-semibold text-white" style={{ background: "var(--blue)" }}>
+                      className="flex-1 py-2 rounded-lg text-xs font-semibold text-white" style={{ background: "var(--navy)" }}>
                       כן, השאר קבוע
                     </button>
                     <button onClick={() => setRoleRecurring(key, false)}
@@ -661,7 +661,7 @@ function Schedule() {
                     <div className="flex items-center gap-2 mt-2 mb-1 flex-row">
                       <div className="flex-1" style={{ height: 1, background: "var(--border)" }} />
                       <div className="flex items-center gap-1.5 px-2 py-1 rounded-full"
-                        style={{ background: "var(--amber-light)", border: "1px solid #F0D5A0" }}>
+                        style={{ background: "var(--amber-light)", border: "1px solid #EBC395" }}>
                         <AlertTriangle size={11} style={{ color: "var(--amber)" }} />
                         <span className="text-xs font-medium" style={{ color: "var(--amber)" }}>מקרה חירום</span>
                       </div>
@@ -671,7 +671,7 @@ function Schedule() {
                       {emergency.map(emp => (
                         <button key={emp.id} onClick={() => addEmployee(emp, addRole!)}
                           className="flex flex-col items-center rounded-xl py-2 px-2 gap-1"
-                          style={{ background: "var(--amber-light)", border: "1px solid #F0D5A0", flex: "1 1 calc(33% - 8px)", minWidth: 90 }}>
+                          style={{ background: "var(--amber-light)", border: "1px solid #EBC395", flex: "1 1 calc(33% - 8px)", minWidth: 90 }}>
                           <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold"
                             style={{ background: emp.color, color: emp.textColor }}>{emp.initials}</div>
                           <p className="text-[11px] font-medium text-center leading-tight">{emp.name}</p>
@@ -724,7 +724,7 @@ function Schedule() {
                     <div className="flex items-center gap-2 mt-2 mb-1 flex-row">
                       <div className="flex-1" style={{ height: 1, background: "var(--border)" }} />
                       <div className="flex items-center gap-1.5 px-2 py-1 rounded-full"
-                        style={{ background: "var(--amber-light)", border: "1px solid #F0D5A0" }}>
+                        style={{ background: "var(--amber-light)", border: "1px solid #EBC395" }}>
                         <AlertTriangle size={11} style={{ color: "var(--amber)" }} />
                         <span className="text-xs font-medium" style={{ color: "var(--amber)" }}>מקרה חירום</span>
                       </div>
@@ -734,7 +734,7 @@ function Schedule() {
                       {emergency.map(emp => (
                         <button key={emp.id} onClick={() => swapEmployee(emp)}
                           className="flex flex-col items-center rounded-xl py-2 px-2 gap-1"
-                          style={{ background: "var(--amber-light)", border: "1px solid #F0D5A0", flex: "1 1 calc(33% - 8px)", minWidth: 90 }}>
+                          style={{ background: "var(--amber-light)", border: "1px solid #EBC395", flex: "1 1 calc(33% - 8px)", minWidth: 90 }}>
                           <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold"
                             style={{ background: emp.color, color: emp.textColor }}>{emp.initials}</div>
                           <p className="text-[11px] font-medium text-center leading-tight">{emp.name}</p>
@@ -781,7 +781,7 @@ function Schedule() {
               </div>
               <button onClick={saveTime}
                 className="w-full py-3 rounded-xl text-sm font-semibold text-white"
-                style={{ background: "var(--blue)" }}>
+                style={{ background: "var(--navy)" }}>
                 שמור — עדכון ידני
               </button>
             </div>
