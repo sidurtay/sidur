@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import AIAssistant from "@/components/ai/AIAssistant";
 
 export const metadata: Metadata = {
   title: "Sidur",
@@ -15,6 +16,7 @@ export default function RootLayout({
     <html lang="he" dir="rtl" className="h-full">
       <body className="min-h-full flex flex-col">
         {children}
+        <AIAssistant />
       </body>
     </html>
   );
