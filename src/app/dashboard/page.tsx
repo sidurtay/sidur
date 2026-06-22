@@ -1,11 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Bell, AlertTriangle, Clock, ArrowLeftRight, X, CheckCheck, Plus, Pencil, Trash2, ChevronLeft, Users, Fingerprint, LogIn, LogOut } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import { ALL_EMPLOYEES, TODAYS_ASSIGNMENTS, UPCOMING_SHIFTS, buildUpcomingShifts, type Employee } from "@/lib/shiftData";
+import { buildUpcomingShifts, type Employee } from "@/lib/shiftData";
 import EmployeeDashboard from "./EmployeeDashboard";
-import { getClockRequests, respondToRequest, type ClockRequest } from "@/lib/clockRequests";
+import { type ClockRequest } from "@/lib/clockRequests";
 
 type Announcement = {
   id: number | string;
@@ -14,30 +15,6 @@ type Announcement = {
   createdAt: string;
   confirmedBy: string[];
 };
-
-const initialAnnouncements: Announcement[] = [
-  {
-    id: 1,
-    title: "מנת סלמון חדשה בתפריט",
-    text: "החל מ-1.7 מוסיפים פילה סלמון צרוב — חשוב לדעת לתאר ללקוחות את המנה ואת הרטבים",
-    createdAt: "לפני 3 שעות",
-    confirmedBy: ["שירה כהן", "דניאל לוי", "נועה ברק", "רותם אביב", "מיכל שרון", "עידו בן דוד"],
-  },
-  {
-    id: 2,
-    title: "אסור להיכנס עם נעליים פתוחות למטבח",
-    text: "תזכורת — נוהל בטיחות. נעלי עבודה בלבד בכל שטח המטבח ואזור הכנת המזון",
-    createdAt: "אתמול",
-    confirmedBy: ["שירה כהן", "דניאל לוי"],
-  },
-];
-
-const notifications = [
-  { id: 1, title: "עידו בן דוד איחר למשמרת", text: "אמור להגיע ב-16:00, נכנס ב-16:45 — איחור של 45 דקות", time: "לפני 12 דקות", type: "warn",    unread: true },
-  { id: 2, title: "בקשת החלפת משמרת",         text: "שירה מבקשת להחליף את משמרת שישי בוקר. רותם מציע לקחת.",        time: "לפני 35 דקות", type: "info",    unread: true },
-  { id: 3, title: "חוסר עובד בסידור",          text: "לא משובץ אף עובד למשמרת בר ביום שלישי",                       time: "לפני שעה",    type: "warn",    unread: false },
-  { id: 4, title: "הודעת מנה חדשה אושרה",      text: "6 מתוך 6 עובדים אישרו קריאה על מנת הסלמון החדשה",           time: "לפני 3 שעות", type: "success", unread: false },
-];
 
 const notifStyle: Record<string, { bg: string; color: string }> = {
   warn:    { bg: "var(--amber-light)", color: "var(--amber)" },
@@ -80,21 +57,21 @@ function buildTodayWorkers(assignments: { id: string; name: string; initials: st
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const [showAll,     setShowAll]     = useState(false);
   const [notifsOpen,  setNotifsOpen]  = useState(false);
   const [notifRead,   setNotifRead]   = useState(false);
-  const [swapApproved, setSwapApproved] = useState<"approved"|"rejected"|null>(null);
   const [dynamicNotifs, setDynamicNotifs] = useState<Notif[]>([]);
   const [role, setRole] = useState<"manager" | "employee" | null>(null);
   const [clockRequests, setClockRequests] = useState<ClockRequest[]>([]);
   const [businessId, setBusinessId] = useState("");
   const [swapRequests, setSwapRequests] = useState<SwapRequest[] | null>(null);
-  const [managerName, setManagerName] = useState("איתי");
-  const [businessName, setBusinessName] = useState("קפה קפה נהריה");
-  const [employees, setEmployees] = useState<(Employee & { id?: string })[]>(ALL_EMPLOYEES);
-  const [todayWorkers, setTodayWorkers] = useState<TodayWorker[]>(TODAYS_ASSIGNMENTS);
-  const [upcomingShifts, setUpcomingShifts] = useState(UPCOMING_SHIFTS);
-  const [jobRoleKeys, setJobRoleKeys] = useState<string[]>(["מלצר", "מטבח", "בר", "שטיפה"]);
+  const [managerName, setManagerName] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [employees, setEmployees] = useState<(Employee & { id?: string })[]>([]);
+  const [todayWorkers, setTodayWorkers] = useState<TodayWorker[]>([]);
+  const [upcomingShifts, setUpcomingShifts] = useState<ReturnType<typeof buildUpcomingShifts>>([]);
+  const [jobRoleKeys, setJobRoleKeys] = useState<string[]>([]);
   const [myPersonId, setMyPersonId] = useState("");
 
   useEffect(() => {
@@ -117,11 +94,7 @@ export default function Dashboard() {
 
     setBusinessId(biz);
 
-    if (!biz) {
-      setClockRequests(getClockRequests());
-      const interval = setInterval(() => setClockRequests(getClockRequests()), 2000);
-      return () => clearInterval(interval);
-    }
+    if (!biz) { router.replace("/login"); return; }
 
     function refreshClockRequests() {
       fetch(`/api/clock-requests?businessId=${biz}`).then(r => r.json()).then(res => {
@@ -155,17 +128,12 @@ export default function Dashboard() {
   }, []);
 
   function respond(id: string, approve: boolean) {
-    if (businessId) {
-      fetch("/api/clock-requests", {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, approve }),
-      }).then(r => r.json()).then(res => {
-        if (res.success) setClockRequests(prev => prev.map(r => r.id === id ? res.request : r));
-      }).catch(() => {});
-      return;
-    }
-    respondToRequest(id, approve);
-    setClockRequests(getClockRequests());
+    fetch("/api/clock-requests", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, approve }),
+    }).then(r => r.json()).then(res => {
+      if (res.success) setClockRequests(prev => prev.map(r => r.id === id ? res.request : r));
+    }).catch(() => {});
   }
 
   function respondSwap(id: string, approve: boolean) {
@@ -178,7 +146,7 @@ export default function Dashboard() {
   }
 
   // Announcements CRUD
-  const [announcements, setAnnouncements] = useState<Announcement[]>(initialAnnouncements);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [announcementSheet, setAnnouncementSheet] = useState<"add" | "edit" | "viewers" | null>(null);
   const [editingAnn, setEditingAnn]   = useState<Announcement | null>(null);
   const [annTitle,   setAnnTitle]     = useState("");
@@ -206,27 +174,18 @@ export default function Dashboard() {
   async function saveAnnouncement() {
     if (!annTitle.trim()) return;
     if (announcementSheet === "add") {
-      if (businessId) {
-        try {
-          const res = await fetch("/api/announcements", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ businessId, title: annTitle.trim(), body: annText.trim(), createdBy: myPersonId || null }),
-          }).then(r => r.json());
-          if (res.success) setAnnouncements(prev => [res.announcement, ...prev]);
-        } catch {}
-      } else {
-        setAnnouncements(prev => [{
-          id: Date.now(), title: annTitle.trim(), text: annText.trim(),
-          createdAt: "עכשיו", confirmedBy: [],
-        }, ...prev]);
-      }
+      try {
+        const res = await fetch("/api/announcements", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ businessId, title: annTitle.trim(), body: annText.trim(), createdBy: myPersonId || null }),
+        }).then(r => r.json());
+        if (res.success) setAnnouncements(prev => [res.announcement, ...prev]);
+      } catch {}
     } else if (editingAnn) {
-      if (businessId) {
-        fetch("/api/announcements", {
-          method: "PATCH", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: editingAnn.id, title: annTitle.trim(), body: annText.trim() }),
-        }).catch(() => {});
-      }
+      fetch("/api/announcements", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingAnn.id, title: annTitle.trim(), body: annText.trim() }),
+      }).catch(() => {});
       setAnnouncements(prev => prev.map(a =>
         a.id === editingAnn.id ? { ...a, title: annTitle.trim(), text: annText.trim() } : a
       ));
@@ -234,9 +193,7 @@ export default function Dashboard() {
     setAnnouncementSheet(null);
   }
   function deleteAnnouncement(id: number | string) {
-    if (businessId) {
-      fetch(`/api/announcements?id=${id}`, { method: "DELETE" }).catch(() => {});
-    }
+    fetch(`/api/announcements?id=${id}`, { method: "DELETE" }).catch(() => {});
     setAnnouncements(prev => prev.filter(a => a.id !== id));
     setDeleteConfirm(null);
   }
@@ -426,118 +383,65 @@ export default function Dashboard() {
         </div>
 
         {/* ── Swap requests ──────────────────────────────────── */}
-        {businessId ? (
-          (swapRequests || []).length > 0 && (
-            <div>
-              <p className="text-xs font-semibold mb-2 text-right" style={{ color: "var(--text-main)" }}>בקשות החלפת משמרת</p>
-              <div className="flex flex-col gap-2">
-                {(swapRequests || []).map(sr => (
-                  <div key={sr.id} className="bg-white rounded-xl p-3" style={{ border: "1px solid var(--border)" }}>
-                    <div className="flex items-center justify-between flex-row mb-2">
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                        style={sr.status === "pending"
-                          ? { background: "var(--blue-light)", color: "var(--blue)" }
-                          : sr.status === "approved"
-                          ? { background: "var(--green-light)", color: "var(--green)" }
-                          : { background: "var(--gray-bg)", color: "var(--text-secondary)" }}>
-                        {sr.status === "pending" ? "ממתין" : sr.status === "approved" ? "✓ אושר" : "✗ נדחה"}
-                      </span>
-                      <p className="text-sm font-semibold">
-                        {sr.dayOfWeek !== undefined ? `יום ${SWAP_DAY_LABELS[sr.dayOfWeek]} · ${sr.roleKey}` : "בקשת החלפה"}
-                      </p>
+        {(swapRequests || []).length > 0 && (
+          <div>
+            <p className="text-xs font-semibold mb-2 text-right" style={{ color: "var(--text-main)" }}>בקשות החלפת משמרת</p>
+            <div className="flex flex-col gap-2">
+              {(swapRequests || []).map(sr => (
+                <div key={sr.id} className="bg-white rounded-xl p-3" style={{ border: "1px solid var(--border)" }}>
+                  <div className="flex items-center justify-between flex-row mb-2">
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                      style={sr.status === "pending"
+                        ? { background: "var(--blue-light)", color: "var(--blue)" }
+                        : sr.status === "approved"
+                        ? { background: "var(--green-light)", color: "var(--green)" }
+                        : { background: "var(--gray-bg)", color: "var(--text-secondary)" }}>
+                      {sr.status === "pending" ? "ממתין" : sr.status === "approved" ? "✓ אושר" : "✗ נדחה"}
+                    </span>
+                    <p className="text-sm font-semibold">
+                      {sr.dayOfWeek !== undefined ? `יום ${SWAP_DAY_LABELS[sr.dayOfWeek]} · ${sr.roleKey}` : "בקשת החלפה"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 mb-3 flex-row">
+                    <div className="flex items-center gap-1.5 flex-row-reverse flex-1">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                        style={{ background: sr.requesterColor, color: sr.requesterTextColor }}>{sr.requesterInitials}</div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{sr.requesterName}</p>
+                        <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{sr.timeIn}–{sr.timeOut}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 mb-3 flex-row">
+                    <ArrowLeftRight size={14} style={{ color: "var(--blue)", flexShrink: 0 }} />
+                    {sr.proposerName ? (
                       <div className="flex items-center gap-1.5 flex-row-reverse flex-1">
                         <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-                          style={{ background: sr.requesterColor, color: sr.requesterTextColor }}>{sr.requesterInitials}</div>
+                          style={{ background: sr.proposerColor, color: sr.proposerTextColor }}>{sr.proposerInitials}</div>
                         <div className="text-right">
-                          <p className="text-sm font-medium">{sr.requesterName}</p>
-                          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{sr.timeIn}–{sr.timeOut}</p>
+                          <p className="text-sm font-medium">{sr.proposerName}</p>
+                          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>מבקש לקחת</p>
                         </div>
                       </div>
-                      <ArrowLeftRight size={14} style={{ color: "var(--blue)", flexShrink: 0 }} />
-                      {sr.proposerName ? (
-                        <div className="flex items-center gap-1.5 flex-row-reverse flex-1">
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-                            style={{ background: sr.proposerColor, color: sr.proposerTextColor }}>{sr.proposerInitials}</div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium">{sr.proposerName}</p>
-                            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>מבקש לקחת</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-xs flex-1 text-right" style={{ color: "var(--text-secondary)" }}>לא הוצע מחליף</p>
-                      )}
-                    </div>
-                    {sr.status === "pending" && (
-                      <div className="flex gap-2 flex-row">
-                        <button onClick={() => respondSwap(sr.id, false)}
-                          className="flex-1 py-2 rounded-lg text-sm font-medium"
-                          style={{ background: "var(--gray-bg)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
-                          דחה
-                        </button>
-                        <button onClick={() => respondSwap(sr.id, true)} disabled={!sr.proposerName}
-                          className="flex-1 py-2 rounded-lg text-sm font-semibold text-white"
-                          style={{ background: sr.proposerName ? "var(--navy)" : "var(--border)" }}>
-                          אשר החלפה
-                        </button>
-                      </div>
+                    ) : (
+                      <p className="text-xs flex-1 text-right" style={{ color: "var(--text-secondary)" }}>לא הוצע מחליף</p>
                     )}
                   </div>
-                ))}
-              </div>
+                  {sr.status === "pending" && (
+                    <div className="flex gap-2 flex-row">
+                      <button onClick={() => respondSwap(sr.id, false)}
+                        className="flex-1 py-2 rounded-lg text-sm font-medium"
+                        style={{ background: "var(--gray-bg)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+                        דחה
+                      </button>
+                      <button onClick={() => respondSwap(sr.id, true)} disabled={!sr.proposerName}
+                        className="flex-1 py-2 rounded-lg text-sm font-semibold text-white"
+                        style={{ background: sr.proposerName ? "var(--navy)" : "var(--border)" }}>
+                        אשר החלפה
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-          )
-        ) : (
-          <div>
-            <p className="text-xs font-semibold mb-2 text-right" style={{ color: "var(--text-main)" }}>בקשת החלפת משמרת</p>
-            {swapApproved === null ? (
-              <div className="bg-white rounded-xl p-3" style={{ border: "1px solid var(--border)" }}>
-                <div className="flex items-center justify-between flex-row mb-2">
-                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>לפני 35 דק׳</p>
-                  <p className="text-sm font-semibold">בקשה ממתינה לאישור</p>
-                </div>
-                <div className="flex items-center gap-2 mb-3 flex-row">
-                  <div className="flex items-center gap-1.5 flex-row-reverse flex-1">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "#E6F1FB", color: "#0C447C" }}>שי</div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">שירה כהן</p>
-                      <p className="text-xs" style={{ color: "var(--text-secondary)" }}>שישי 26.6 · בוקר</p>
-                    </div>
-                  </div>
-                  <ArrowLeftRight size={14} style={{ color: "var(--blue)", flexShrink: 0 }} />
-                  <div className="flex items-center gap-1.5 flex-row-reverse flex-1">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "#EEEDFE", color: "#3C3489" }}>רו</div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">רותם אביב</p>
-                      <p className="text-xs" style={{ color: "var(--text-secondary)" }}>מבקש לקחת</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2 flex-row">
-                  <button onClick={() => setSwapApproved("rejected")}
-                    className="flex-1 py-2 rounded-lg text-sm font-medium"
-                    style={{ background: "var(--gray-bg)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
-                    דחה
-                  </button>
-                  <button onClick={() => setSwapApproved("approved")}
-                    className="flex-1 py-2 rounded-lg text-sm font-semibold text-white"
-                    style={{ background: "var(--navy)" }}>
-                    אשר החלפה
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-xl px-4 py-3 text-right"
-                style={{
-                  background: swapApproved === "approved" ? "var(--green-light)" : "var(--gray-bg)",
-                  border: `1px solid ${swapApproved === "approved" ? "#A8D9BB" : "var(--border)"}`,
-                }}>
-                <p className="text-sm font-semibold" style={{ color: swapApproved === "approved" ? "var(--green)" : "var(--text-secondary)" }}>
-                  {swapApproved === "approved" ? "✓ ההחלפה אושרה — הסידור עודכן" : "✗ הבקשה נדחתה"}
-                </p>
-              </div>
-            )}
           </div>
         )}
 
@@ -789,7 +693,9 @@ export default function Dashboard() {
               <p className="text-base font-semibold">התראות</p>
             </div>
             <div className="px-4 pb-4 flex flex-col gap-0">
-              {[...dynamicNotifs, ...notifications].map((n, i, arr) => {
+              {dynamicNotifs.length === 0 ? (
+                <p className="text-sm text-center py-6" style={{ color: "var(--text-secondary)" }}>אין התראות חדשות</p>
+              ) : dynamicNotifs.map((n, i, arr) => {
                 const ns = notifStyle[n.type] || notifStyle["info"];
                 return (
                   <div key={n.id} className="flex items-start gap-3 py-3 flex-row"

@@ -1,24 +1,17 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, X, Phone, Calendar, Lock, Download, ChevronRight, ChevronLeft, Clock, TrendingUp, FileSpreadsheet } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import { mockAttendance, calcHours, formatHours, exportMonthToCSV } from "@/lib/shiftData";
+import { calcHours, formatHours, exportMonthToCSV, buildRealAttendance, type AttendanceMonth } from "@/lib/shiftData";
 
 type Employee = { id?: string; name: string; initials: string; role: string; phone: string; since: string; cat: string; color: string; textColor: string };
-
-const initialEmployees: Employee[] = [
-  { name: "שירה כהן",    initials: "שי", role: "מלצרית", phone: "052-1234567", since: "מרץ 2026",    cat: "מלצר",  color: "#E6F1FB", textColor: "#0C447C" },
-  { name: "עידו בן דוד", initials: "עי", role: "מלצר",   phone: "052-9876543", since: "ינואר 2026",  cat: "מלצר",  color: "#FAECE7", textColor: "#712B13" },
-  { name: "דניאל לוי",   initials: "דנ", role: "מטבח",   phone: "054-3334455", since: "אוגוסט 2025", cat: "מטבח",  color: "#E1F5EE", textColor: "#085041" },
-  { name: "נועה ברק",    initials: "נו", role: "מטבח",   phone: "050-7778899", since: "פברואר 2026", cat: "מטבח",  color: "#E1F5EE", textColor: "#085041" },
-  { name: "רותם אביב",   initials: "רו", role: "בר",     phone: "053-1112233", since: "מאי 2025",    cat: "בר",    color: "#EEEDFE", textColor: "#3C3489" },
-  { name: "מיכל שרון",   initials: "מי", role: "שטיפה",  phone: "052-4445566", since: "נובמבר 2025", cat: "שטיפה", color: "#F1EFE8", textColor: "#444441" },
-];
 
 const DEFAULT_JOB_ROLES = ["מלצרים", "מטבח", "בר", "שטיפה"];
 
 export default function Employees() {
+  const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [jobRoles, setJobRoles] = useState<string[]>(DEFAULT_JOB_ROLES);
@@ -50,13 +43,7 @@ export default function Employees() {
       }
     } catch {}
 
-    if (!bizId) {
-      // Legacy/demo session with no real business yet — keep the old mock list working
-      setEmployees(initialEmployees);
-      setLoadingList(false);
-      setNewRole(DEFAULT_JOB_ROLES[0]);
-      return;
-    }
+    if (!bizId) { router.replace("/login"); return; }
 
     (async () => {
       try {
@@ -71,7 +58,6 @@ export default function Employees() {
         }
         if (empRes.success) setEmployees(empRes.employees);
       } catch {
-        setEmployees(initialEmployees);
       } finally {
         setLoadingList(false);
       }
@@ -80,6 +66,7 @@ export default function Employees() {
 
   // Attendance — now monthly
   const [attendanceEmp, setAttendanceEmp] = useState<Employee | null>(null);
+  const [attendanceData, setAttendanceData] = useState<AttendanceMonth[]>([]);
   const [monthIdx,      setMonthIdx]      = useState(0);
   const [expandedWeek,  setExpandedWeek]  = useState<number | null>(0); // which week accordion is open
 
@@ -87,19 +74,22 @@ export default function Employees() {
 
   function openAttendance(emp: Employee) {
     setAttendanceEmp(emp);
+    setAttendanceData([]);
     setMonthIdx(0);
     setExpandedWeek(0);
     setSelected(null);
+    if (businessId && emp.id) {
+      fetch(`/api/clock-requests?businessId=${businessId}&personId=${emp.id}`)
+        .then(r => r.json())
+        .then(res => { if (res.success) setAttendanceData(buildRealAttendance(res.requests)); })
+        .catch(() => {});
+    }
   }
 
   function formatPhone(raw: string) {
     const digits = raw.replace(/\D/g, "").slice(0, 10);
     if (digits.length <= 3) return digits;
     return digits.slice(0, 3) + "-" + digits.slice(3);
-  }
-
-  function generateTempPassword() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
   async function confirmAdd() {
@@ -109,39 +99,24 @@ export default function Employees() {
 
     let tempPassword: string;
 
-    if (businessId) {
-      try {
-        const res = await fetch("/api/employees", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ businessId, name: newName.trim(), phone: newPhone, roleKey: newRole }),
-        });
-        const data = await res.json();
-        if (!data.success) {
-          setSentResult({ tempPassword: "", success: false, error: data.error || "הוספת העובד נכשלה" });
-          setSending(false);
-          return;
-        }
-        tempPassword = data.tempPassword;
-        setEmployees(prev => [...prev, data.employee]);
-      } catch {
-        setSentResult({ tempPassword: "", success: false, error: "שגיאת רשת — נסה שוב" });
+    try {
+      const res = await fetch("/api/employees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId, name: newName.trim(), phone: newPhone, roleKey: newRole }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setSentResult({ tempPassword: "", success: false, error: data.error || "הוספת העובד נכשלה" });
         setSending(false);
         return;
       }
-    } else {
-      // Legacy/demo session with no real business — keep the old local-only behavior
-      tempPassword = generateTempPassword();
-      const initials = newName.trim().split(" ").map((w: string) => w[0]).join("").slice(0, 2);
-      setEmployees(prev => [...prev, {
-        name: newName.trim(), initials, role: newRole, phone: newPhone,
-        since: "יוני 2026", cat: newRole, color: "#E6F1FB", textColor: "#0C447C",
-      }]);
-      try {
-        const creds = JSON.parse(localStorage.getItem("shiftpro_employee_creds") || "{}");
-        creds[newPhone] = { tempPassword, name: newName.trim(), mustChangePassword: true };
-        localStorage.setItem("shiftpro_employee_creds", JSON.stringify(creds));
-      } catch {}
+      tempPassword = data.tempPassword;
+      setEmployees(prev => [...prev, data.employee]);
+    } catch {
+      setSentResult({ tempPassword: "", success: false, error: "שגיאת רשת — נסה שוב" });
+      setSending(false);
+      return;
     }
 
     // Send WhatsApp
@@ -161,7 +136,7 @@ export default function Employees() {
     }
   }
 
-  const monthData    = attendanceEmp ? (mockAttendance[attendanceEmp.name] || []) : [];
+  const monthData    = attendanceData;
   const currentMonth = monthData[monthIdx];
 
   const allShiftsInMonth = currentMonth ? currentMonth.weeks.flatMap(w => w.shifts) : [];
@@ -448,6 +423,22 @@ export default function Employees() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {attendanceEmp && !currentMonth && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
+          onClick={() => setAttendanceEmp(null)}>
+          <div className="w-full max-w-lg rounded-t-2xl bg-white p-6 text-center" onClick={e => e.stopPropagation()}>
+            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "#C4C2B8" }} />
+            <p className="text-sm font-semibold mb-1">{attendanceEmp.name}</p>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>אין עדיין נתוני נוכחות</p>
+            <button onClick={() => setAttendanceEmp(null)}
+              className="w-full mt-4 py-3 rounded-xl text-sm font-semibold text-white"
+              style={{ background: "var(--navy)" }}>
+              סגור
+            </button>
           </div>
         </div>
       )}

@@ -8,21 +8,8 @@ import { getEffectiveConfig } from "@/lib/businessConfig";
 
 type EmployeeRow = { personId: string; name: string; initials: string; role: string; color: string; textColor: string };
 
-const LEGACY_EMPLOYEES: EmployeeRow[] = [
-  { personId: "שירה כהן", name: "שירה כהן", initials: "שי", role: "מלצר", color: "#E6F1FB", textColor: "#0C447C" },
-  { personId: "עידו בן דוד", name: "עידו בן דוד", initials: "עי", role: "מלצר", color: "#FAECE7", textColor: "#712B13" },
-  { personId: "דניאל לוי", name: "דניאל לוי", initials: "דנ", role: "מטבח", color: "#E1F5EE", textColor: "#085041" },
-  { personId: "נועה ברק", name: "נועה ברק", initials: "נו", role: "מטבח", color: "#E1F5EE", textColor: "#085041" },
-  { personId: "רותם אביב", name: "רותם אביב", initials: "רו", role: "בר", color: "#EEEDFE", textColor: "#3C3489" },
-  { personId: "מיכל שרון", name: "מיכל שרון", initials: "מי", role: "שטיפה", color: "#F1EFE8", textColor: "#444441" },
-];
-
 type DayAvailability = "morning" | "evening" | "all" | "off";
 type ConstraintsMap = Record<string, { availability: Record<number, DayAvailability> }>;
-
-function getConstraintsMap(): ConstraintsMap {
-  try { return JSON.parse(localStorage.getItem("shiftpro_constraints") || "{}"); } catch { return {}; }
-}
 
 const isWaiterRole = (r: string) => r.startsWith("מלצר");
 const isKitchenRole = (r: string) => r === "מטבח";
@@ -69,7 +56,7 @@ type Config = {
 };
 
 type Step =
-  | "confirm-role" | "use-last" | "morning-waiters" | "morning-kitchen"
+  | "use-last" | "morning-waiters" | "morning-kitchen"
   | "evening-waiters" | "evening-kitchen"
   | "max-hours" | "special-event" | "friday-extra"
   | "free-chat" | "generating" | "done";
@@ -106,7 +93,7 @@ export default function AISchedule() {
   const [weekHolidays, setWeekHolidays] = useState<(typeof ALL_NEXT_WEEK_DAYS[0] & { name: string })[]>([]);
   const [constraintsMap, setConstraintsMap] = useState<ConstraintsMap>({});
   const [businessId, setBusinessId] = useState("");
-  const [employees, setEmployees] = useState<EmployeeRow[]>(LEGACY_EMPLOYEES);
+  const [employees, setEmployees] = useState<EmployeeRow[]>([]);
   const missingConstraints = employees.filter(e => !constraintsMap[e.name]);
 
   useEffect(() => {
@@ -128,11 +115,7 @@ export default function AISchedule() {
     } catch {}
     setBusinessId(biz);
 
-    if (!biz) {
-      setEmployees(LEGACY_EMPLOYEES);
-      setConstraintsMap(getConstraintsMap());
-      return;
-    }
+    if (!biz) { router.replace("/login"); return; }
 
     (async () => {
       try {
@@ -150,10 +133,7 @@ export default function AISchedule() {
           });
           setConstraintsMap(map);
         }
-      } catch {
-        setEmployees(LEGACY_EMPLOYEES);
-        setConstraintsMap(getConstraintsMap());
-      }
+      } catch {}
     })();
   }, []);
 
@@ -301,44 +281,9 @@ export default function AISchedule() {
     return { schedule, warnings };
   }
 
-  function getPendingRoleConfirm(): string | null {
-    try {
-      const recurrence = JSON.parse(localStorage.getItem("shiftpro_role_recurrence") || "{}");
-      const entry = Object.entries(recurrence).find(([, v]) => v === true);
-      return entry ? entry[0] : null;
-    } catch { return null; }
-  }
-
-  function continueAfterRoleConfirm() {
-    const lc = getLastConfig();
-    if (lc) {
-      addMsg({
-        from: "ai",
-        text: `שבוע שעבר: ${lc.morningWaiters} מלצרים בוקר, ${lc.eveningWaiters} מלצרים ערב, ${lc.morningKitchen} מטבח. רוצה אותן הגדרות?`,
-        chips: ["כן, אותן הגדרות", "לא, בנה מחדש"],
-      });
-      setStep("use-last");
-    } else {
-      askStep("morning-waiters");
-    }
-  }
-
   function startConversation() {
     const lc = getLastConfig();
     setTimeout(() => addMsg({ from: "ai", text: "שלום! אני אעזור לך לבנות את סידור שבוע 28.6–4.7 🗓️" }), 300);
-
-    const pendingRole = getPendingRoleConfirm();
-    if (pendingRole) {
-      setTimeout(() => {
-        addMsg({
-          from: "ai",
-          text: `שמתי לב שבשבוע שעבר היה לך גם תפקיד "${pendingRole}" — להשאיר אותו בסידור גם השבוע?`,
-          chips: ["כן, השאר", "לא, הסר"],
-        });
-        setStep("confirm-role");
-      }, 900);
-      return;
-    }
 
     if (lc) {
       setTimeout(() => {
@@ -413,27 +358,6 @@ export default function AISchedule() {
     }
 
     addMsg({ from: "user", text: chip });
-
-    if (step === "confirm-role") {
-      const keep = chip.startsWith("כן");
-      const pendingRole = getPendingRoleConfirm();
-      if (pendingRole) {
-        try {
-          const recurrence = JSON.parse(localStorage.getItem("shiftpro_role_recurrence") || "{}");
-          recurrence[pendingRole] = keep;
-          localStorage.setItem("shiftpro_role_recurrence", JSON.stringify(recurrence));
-          if (!keep) {
-            const customRoles = JSON.parse(localStorage.getItem("shiftpro_custom_roles") || "[]");
-            localStorage.setItem("shiftpro_custom_roles", JSON.stringify(customRoles.filter((r: { key: string }) => r.key !== pendingRole)));
-          }
-        } catch {}
-      }
-      setTimeout(() => {
-        addMsg({ from: "ai", text: keep ? `מעולה, אשאיר את "${pendingRole}" בסידור 👍` : `הבנתי, אוריד אותו לעת עתה`, status: "success" });
-        setTimeout(continueAfterRoleConfirm, 600);
-      }, 300);
-      return;
-    }
 
     if (step === "use-last") {
       if (chip.startsWith("כן")) {
@@ -529,11 +453,7 @@ export default function AISchedule() {
     setTimeout(() => {
       const { schedule, warnings } = generateSchedule(finalConfig);
       saveConfig(finalConfig);
-      if (businessId) {
-        persistScheduleToDb(schedule);
-      } else {
-        localStorage.setItem("shiftpro_ai_schedule", JSON.stringify(schedule));
-      }
+      persistScheduleToDb(schedule);
       const totalShifts = Object.values(schedule).reduce((s, d) => s + d.length, 0);
       if (warnings.length > 0) {
         addMsg({ from: "ai", text: `⚠️ שים לב:\n${warnings.join("\n")}`, status: "warn" });

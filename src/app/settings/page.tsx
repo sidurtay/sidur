@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Store, Clock, Users, Plus, X, AlertTriangle, Check, Receipt, ShieldCheck, Mail, Send, Lock, Fingerprint, ChevronLeft, Sparkles } from "lucide-react";
 import InstagramIcon from "@/components/InstagramIcon";
 import BottomNav from "@/components/BottomNav";
@@ -33,6 +34,7 @@ const DEFAULT_PERMS: Record<string, PermMap> = {
 };
 
 export default function Settings() {
+  const router = useRouter();
   const [bizName, setBizName] = useState(DEFAULT_CONFIG.bizName);
   const [bizId,   setBizId]   = useState(DEFAULT_CONFIG.bizId);
   const [days,    setDays]    = useState<DayConfig[]>(DEFAULT_CONFIG.days);
@@ -85,7 +87,7 @@ export default function Settings() {
     } catch { setRole("manager"); }
 
     setBusinessId(biz);
-    if (!biz) return;
+    if (!biz) { router.replace("/login"); return; }
 
     (async () => {
       try {
@@ -111,12 +113,10 @@ export default function Settings() {
     const next = !clockOutApproval;
     setClockOutApproval(next);
     setRequiresClockOutApproval(next);
-    if (businessId) {
-      fetch("/api/business", {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, clockoutRequiresApproval: next }),
-      }).catch(() => {});
-    }
+    fetch("/api/business", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ businessId, clockoutRequiresApproval: next }),
+    }).catch(() => {});
   }
 
   if (role === "employee") return <EmployeeSettings />;
@@ -172,24 +172,22 @@ export default function Settings() {
     localStorage.setItem("shiftpro_tips_mode", tipsMode);
     localStorage.setItem("shiftpro_role_perms", JSON.stringify(perms));
 
-    if (businessId) {
-      fetch("/api/business", {
+    fetch("/api/business", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ businessId, name: bizName, businessIdNum: bizId, tipsMode, clockoutRequiresApproval: clockOutApproval }),
+    }).catch(() => {});
+    if (scope === "permanent") {
+      fetch("/api/business-hours", {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, name: bizName, businessIdNum: bizId, tipsMode, clockoutRequiresApproval: clockOutApproval }),
+        body: JSON.stringify({ businessId, days }),
       }).catch(() => {});
-      if (scope === "permanent") {
-        fetch("/api/business-hours", {
-          method: "PATCH", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ businessId, days }),
-        }).catch(() => {});
-      }
-      roles.forEach(r => {
-        fetch("/api/role-permissions", {
-          method: "PATCH", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ businessId, roleKey: r, perms: perms[r] || {} }),
-        }).catch(() => {});
-      });
     }
+    roles.forEach(r => {
+      fetch("/api/role-permissions", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId, roleKey: r, perms: perms[r] || {} }),
+      }).catch(() => {});
+    });
 
     setSaveModal(false); setSavedScope(scope); flashSaved();
   }
@@ -209,9 +207,7 @@ export default function Settings() {
   }
   function removeRole(r: string) {
     setRoles(prev => prev.filter(x => x !== r));
-    if (businessId) {
-      fetch(`/api/roles?businessId=${businessId}&key=${encodeURIComponent(r)}`, { method: "DELETE" }).catch(() => {});
-    }
+    fetch(`/api/roles?businessId=${businessId}&key=${encodeURIComponent(r)}`, { method: "DELETE" }).catch(() => {});
   }
   function addRoleFn() {
     if (!newRole.trim()) return;
@@ -219,12 +215,10 @@ export default function Settings() {
     setRoles(prev => [...prev, r]);
     setPerms(prev => ({ ...prev, [r]: { editSchedule: false, approveSwaps: false, publishTips: false, addEmployee: false, manageAnnouncements: false } }));
     setNewRole(""); setAddingRole(false);
-    if (businessId) {
-      fetch("/api/roles", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, name: r }),
-      }).catch(() => {});
-    }
+    fetch("/api/roles", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ businessId, name: r }),
+    }).catch(() => {});
   }
   function togglePerm(role: string, perm: string) {
     setPerms(prev => ({ ...prev, [role]: { ...(prev[role] || {}), [perm]: !(prev[role]?.[perm]) } }));

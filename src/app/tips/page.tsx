@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Lock, Unlock, ChevronLeft, ChevronRight, Send, Clock, AlertCircle } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
@@ -22,46 +23,6 @@ type DayTips = {
   published: boolean; locked: boolean;
   lockedBy?: string; lockedAt?: string;
 };
-
-const DAYS: DayData[] = [
-  {
-    date: "21.6", label: "ראשון 21.6",
-    morning: [
-      { name: "שירה כהן",    initials: "שי", color: "#E6F1FB", textColor: "#0C447C", timeIn: "08:00", timeOut: "16:00" },
-      { name: "דניאל לוי",   initials: "דנ", color: "#E1F5EE", textColor: "#085041", timeIn: "09:00", timeOut: "17:00" },
-      { name: "מיכל שרון",   initials: "מי", color: "#F1EFE8", textColor: "#444441", timeIn: "12:00", timeOut: "16:00" },
-    ],
-    evening: [
-      { name: "עידו בן דוד", initials: "עי", color: "#FAECE7", textColor: "#712B13", timeIn: "16:00", timeOut: "00:00" },
-      { name: "רותם אביב",   initials: "רו", color: "#EEEDFE", textColor: "#3C3489", timeIn: "18:00", timeOut: "02:00" },
-      { name: "נועה ברק",    initials: "נו", color: "#E1F5EE", textColor: "#085041", timeIn: "16:00", timeOut: "20:00" },
-    ],
-  },
-  {
-    date: "22.6", label: "שני 22.6",
-    morning: [
-      { name: "עידו בן דוד", initials: "עי", color: "#FAECE7", textColor: "#712B13", timeIn: "08:00", timeOut: "14:00" },
-      { name: "דניאל לוי",   initials: "דנ", color: "#E1F5EE", textColor: "#085041", timeIn: "09:00", timeOut: "17:00" },
-    ],
-    evening: [
-      { name: "שירה כהן",    initials: "שי", color: "#E6F1FB", textColor: "#0C447C", timeIn: "16:00", timeOut: "00:00" },
-      { name: "רותם אביב",   initials: "רו", color: "#EEEDFE", textColor: "#3C3489", timeIn: "18:00", timeOut: "02:00" },
-    ],
-  },
-  {
-    date: "23.6", label: "שלישי 23.6 (היום)",
-    morning: [
-      { name: "שירה כהן",    initials: "שי", color: "#E6F1FB", textColor: "#0C447C", timeIn: "08:00", timeOut: "16:00" },
-      { name: "דניאל לוי",   initials: "דנ", color: "#E1F5EE", textColor: "#085041", timeIn: "09:00", timeOut: "17:00" },
-      { name: "מיכל שרון",   initials: "מי", color: "#F1EFE8", textColor: "#444441", timeIn: "12:00", timeOut: "20:00" },
-    ],
-    evening: [
-      { name: "נועה ברק",    initials: "נו", color: "#E1F5EE", textColor: "#085041", timeIn: "16:00", timeOut: "22:00" },
-      { name: "רותם אביב",   initials: "רו", color: "#EEEDFE", textColor: "#3C3489", timeIn: "18:00", timeOut: "02:00" },
-      { name: "עידו בן דוד", initials: "עי", color: "#FAECE7", textColor: "#712B13", timeIn: "19:00", timeOut: "00:00" },
-    ],
-  },
-];
 
 const TODAY_IDX = 2;
 
@@ -113,18 +74,14 @@ function calcShares(workers: TipWorker[], total: number) {
   }));
 }
 
-const MANAGER = "איתי (מנהל)";
-
 export default function Tips() {
+  const router = useRouter();
   const [dayIdx,   setDayIdx]   = useState(TODAY_IDX);
   const [tipsMode, setTipsMode] = useState<TipsMode>("per-shift");
   const [businessId, setBusinessId] = useState("");
-  const [days, setDays] = useState<DayData[]>(DAYS);
-  const [tipsData, setTipsData] = useState<Record<string, DayTips>>({
-    "21.6": { morningTotal: "920",  eveningTotal: "1240", dailyTotal: "2160", published: true,  locked: true,  lockedBy: "דנה (אחמ״ש)", lockedAt: "22:05" },
-    "22.6": { morningTotal: "640",  eveningTotal: "880",  dailyTotal: "1520", published: true,  locked: false },
-    "23.6": { morningTotal: "",     eveningTotal: "",     dailyTotal: "",     published: false, locked: false },
-  });
+  const [managerName, setManagerName] = useState("מנהל");
+  const [days, setDays] = useState<DayData[]>([]);
+  const [tipsData, setTipsData] = useState<Record<string, DayTips>>({});
 
   useEffect(() => {
     const stored = localStorage.getItem("shiftpro_tips_mode");
@@ -134,9 +91,10 @@ export default function Tips() {
     try {
       const s = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
       biz = s.businessId || "";
+      if (s.name) setManagerName(s.name);
     } catch {}
     setBusinessId(biz);
-    if (!biz) return;
+    if (!biz) { router.replace("/login"); return; }
 
     (async () => {
       try {
@@ -160,10 +118,19 @@ export default function Tips() {
     })();
   }, []);
 
-  const day     = days[dayIdx];
+  const day = days[dayIdx];
   const isToday = dayIdx === TODAY_IDX;
-  const tips    = tipsData[day.date] ?? { morningTotal: "", eveningTotal: "", dailyTotal: "", published: false, locked: false };
+  const tips = day ? (tipsData[day.date] ?? { morningTotal: "", eveningTotal: "", dailyTotal: "", published: false, locked: false }) : { morningTotal: "", eveningTotal: "", dailyTotal: "", published: false, locked: false };
   const locked  = tips.locked;
+
+  if (!day) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center" style={{ background: "var(--gray-bg)" }}>
+        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>טוען...</p>
+        <BottomNav />
+      </div>
+    );
+  }
 
   async function persist(next: DayTips) {
     if (!businessId) return;
@@ -207,14 +174,12 @@ export default function Tips() {
     const title = `טיפים פורסמו — ${day.label}`;
     const body  = `קיבלת טיפים (${totalLabel}) — ${now}`;
 
-    if (businessId) {
-      const notify = unique.filter(w => w.personId).map(w => ({ personId: w.personId, title, body }));
-      fetch("/api/tips", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, date: REAL_DAY_DEFS.find(d => d.date === day.date)?.iso, ...next, notify }),
-      }).catch(() => {});
-    }
+    const notify = unique.filter(w => w.personId).map(w => ({ personId: w.personId, title, body }));
+    fetch("/api/tips", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ businessId, date: REAL_DAY_DEFS.find(d => d.date === day.date)?.iso, ...next, notify }),
+    }).catch(() => {});
 
     try {
       const newNotif = {
@@ -232,8 +197,8 @@ export default function Tips() {
 
   function lockTips() {
     const now = new Date().toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
-    const next = { ...tips, locked: true, lockedBy: MANAGER, lockedAt: now };
-    update({ locked: true, lockedBy: MANAGER, lockedAt: now });
+    const next = { ...tips, locked: true, lockedBy: managerName, lockedAt: now };
+    update({ locked: true, lockedBy: managerName, lockedAt: now });
     persist(next);
   }
 

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Pin, Users, ChefHat, GlassWater, UtensilsCrossed, X, Send, Trash2, MoreVertical, Pencil, ArrowRight, Plus, Check, Camera } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
@@ -36,67 +37,16 @@ const iconMap: Record<string, React.ComponentType<{ size: number }>> = {
   Users, UtensilsCrossed, ChefHat, GlassWater,
 };
 
-const allEmployees = [
-  { id: "שירה כהן", name: "שירה כהן",    initials: "שי", role: "מלצר",  color: "#E6F1FB", textColor: "#0C447C" },
-  { id: "עידו בן דוד", name: "עידו בן דוד", initials: "עי", role: "מלצר",  color: "#FAECE7", textColor: "#712B13" },
-  { id: "דניאל לוי", name: "דניאל לוי",   initials: "דנ", role: "מטבח",  color: "#E1F5EE", textColor: "#085041" },
-  { id: "נועה ברק", name: "נועה ברק",    initials: "נו", role: "מטבח",  color: "#E1F5EE", textColor: "#085041" },
-  { id: "רותם אביב", name: "רותם אביב",   initials: "רו", role: "בר",    color: "#EEEDFE", textColor: "#3C3489" },
-  { id: "מיכל שרון", name: "מיכל שרון",   initials: "מי", role: "שטיפה", color: "#F1EFE8", textColor: "#444441" },
-];
-
-const initialChannels: (Channel & { messages: Message[] })[] = [
-  {
-    id: "all", name: "כל הצוות", iconName: "Users", emoji: "👥",
-    last: "מנהל: שינוי בתפריט מ-1.7", time: "10:02", unread: 3, pinned: true,
-    color: "#E6F1FB", iconColor: "#185FA5",
-    messages: [
-      { id: 1, from: "מנהל", text: "שבוע טוב לכולם! יש שינוי בתפריט מ-1.7 — מנה חדשה נוספת", time: "10:02", isMine: true },
-      { id: 2, from: "שירה כהן", text: "תודה! מה השינוי בדיוק?", time: "10:05", isMine: false },
-      { id: 3, from: "מנהל", text: "פסטה ברוטב שמנת כמהין — פריט מיוחד סוף שבוע", time: "10:06", isMine: true },
-    ],
-  },
-  {
-    id: "waiters", name: "מלצרים", iconName: "UtensilsCrossed", emoji: "🍽️",
-    last: "שירה: מי יכול להחליף אותי ביום שישי?", time: "09:40", unread: 1, pinned: false,
-    color: "#E6F1FB", iconColor: "#185FA5",
-    messages: [
-      { id: 1, from: "שירה כהן", text: "מי יכול להחליף אותי ביום שישי? יש לי אירוע משפחתי", time: "09:40", isMine: false },
-      { id: 2, from: "עידו בן דוד", text: "אני יכול לקחת ערב שישי", time: "09:45", isMine: false },
-      { id: 3, from: "שירה כהן", text: "מצוין! מנהל תאשר?", time: "09:46", isMine: false },
-    ],
-  },
-  {
-    id: "kitchen", name: "מטבח", iconName: "ChefHat", emoji: "🍕",
-    last: "דניאל: נגמר לנו סלמון", time: "אתמול", unread: 0, pinned: false,
-    color: "#E1F5EE", iconColor: "#085041",
-    messages: [
-      { id: 1, from: "דניאל לוי", text: "נגמר לנו סלמון, צריך הזמנה דחופה", time: "אתמול", isMine: false },
-      { id: 2, from: "מנהל", text: "אני מסדר הזמנה עכשיו, יגיע מחר בבוקר", time: "אתמול", isMine: true },
-    ],
-  },
-  {
-    id: "bar", name: "בר", iconName: "GlassWater", emoji: "🍺",
-    last: "רותם: הגיע משלוח הג׳ין החדש", time: "שני", unread: 0, pinned: false,
-    color: "#EEEDFE", iconColor: "#3C3489",
-    messages: [
-      { id: 1, from: "רותם אביב", text: "הגיע משלוח הג׳ין החדש מ-Monkey 47", time: "שני", isMine: false },
-    ],
-  },
-];
-
 type WizardStep = "name" | "emoji" | "color" | "members";
 
 export default function Chat() {
+  const router = useRouter();
   const [businessId, setBusinessId] = useState("");
   const [personId, setPersonId] = useState("");
   const [isManager, setIsManager] = useState(true);
-  const [coworkers, setCoworkers] = useState(allEmployees);
+  const [coworkers, setCoworkers] = useState<{ id: string; name: string; initials: string; role: string; color: string; textColor: string }[]>([]);
 
-  const [channels, setChannels] = useState<Channel[]>(initialChannels);
-  const [legacyMessages, setLegacyMessages] = useState<Record<string, Message[]>>(
-    Object.fromEntries(initialChannels.map(c => [c.id, c.messages]))
-  );
+  const [channels, setChannels] = useState<Channel[]>([]);
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
 
   const [openChannelId, setOpenChannelId] = useState<string | null>(null);
@@ -118,7 +68,7 @@ export default function Chat() {
 
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const openChannel = channels.find(c => c.id === openChannelId) || null;
-  const openMessages = businessId ? liveMessages : (legacyMessages[openChannelId || ""] || []);
+  const openMessages = liveMessages;
 
   useEffect(() => {
     let biz = "", person = "";
@@ -128,7 +78,7 @@ export default function Chat() {
       setIsManager(s.role !== "employee");
     } catch {}
     setBusinessId(biz); setPersonId(person);
-    if (!biz) return;
+    if (!biz) { router.replace("/login"); return; }
 
     (async () => {
       try {
@@ -149,7 +99,6 @@ export default function Chat() {
 
   async function openCh(ch: Channel) {
     setOpenChannelId(ch.id);
-    if (!businessId) return;
     setLiveMessages([]);
     try {
       const res = await fetch(`/api/chat/messages?channelId=${ch.id}`).then(r => r.json());
@@ -167,48 +116,31 @@ export default function Chat() {
     const text = msgInput.trim();
     setMsgInput("");
 
-    if (businessId) {
-      try {
-        const res = await fetch("/api/chat/messages", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ channelId: openChannel.id, senderId: personId, body: text }),
-        }).then(r => r.json());
-        if (res.success) {
-          setLiveMessages(prev => [...prev, { id: res.message.id, from: res.message.from, text: res.message.text, time: res.message.time, isMine: true, senderId: personId }]);
-          setChannels(prev => prev.map(c => c.id === openChannel.id ? { ...c, last: `${res.message.from}: ${text}`, time: res.message.time } : c));
-        }
-      } catch {}
-      return;
-    }
-
-    const newMsg: Message = {
-      id: Date.now(), from: "מנהל", text,
-      time: new Date().toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }),
-      isMine: true,
-    };
-    setLegacyMessages(prev => ({ ...prev, [openChannel.id]: [...(prev[openChannel.id] || []), newMsg] }));
-    setChannels(prev => prev.map(c => c.id === openChannel.id ? { ...c, last: `מנהל: ${text}`, time: newMsg.time } : c));
+    try {
+      const res = await fetch("/api/chat/messages", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelId: openChannel.id, senderId: personId, body: text }),
+      }).then(r => r.json());
+      if (res.success) {
+        setLiveMessages(prev => [...prev, { id: res.message.id, from: res.message.from, text: res.message.text, time: res.message.time, isMine: true, senderId: personId }]);
+        setChannels(prev => prev.map(c => c.id === openChannel.id ? { ...c, last: `${res.message.from}: ${text}`, time: res.message.time } : c));
+      }
+    } catch {}
   }
 
   function deleteMsg(msgId: string | number) {
     if (!openChannel) return;
-    if (businessId) {
-      fetch(`/api/chat/messages?id=${msgId}`, { method: "DELETE" }).catch(() => {});
-      setLiveMessages(prev => prev.filter(m => m.id !== msgId));
-    } else {
-      setLegacyMessages(prev => ({ ...prev, [openChannel.id]: (prev[openChannel.id] || []).filter(m => m.id !== msgId) }));
-    }
+    fetch(`/api/chat/messages?id=${msgId}`, { method: "DELETE" }).catch(() => {});
+    setLiveMessages(prev => prev.filter(m => m.id !== msgId));
     setLongPressId(null);
   }
 
   function renameChannel() {
     if (!openChannel || !nameInput.trim()) return;
-    if (businessId) {
-      fetch("/api/chat/channels", {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: openChannel.id, name: nameInput.trim() }),
-      }).catch(() => {});
-    }
+    fetch("/api/chat/channels", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: openChannel.id, name: nameInput.trim() }),
+    }).catch(() => {});
     setChannels(prev => prev.map(c => c.id === openChannel.id ? { ...c, name: nameInput.trim() } : c));
     setEditingName(false);
     setShowSettings(false);
@@ -216,12 +148,10 @@ export default function Chat() {
 
   function changeEmoji(emoji: string) {
     if (!openChannel) return;
-    if (businessId) {
-      fetch("/api/chat/channels", {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: openChannel.id, emoji }),
-      }).catch(() => {});
-    }
+    fetch("/api/chat/channels", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: openChannel.id, emoji }),
+    }).catch(() => {});
     setChannels(prev => prev.map(c => c.id === openChannel.id ? { ...c, emoji } : c));
     setEditingEmoji(false);
     setShowSettings(false);
@@ -229,20 +159,16 @@ export default function Chat() {
 
   function changeColor(p: { bg: string; icon: string }) {
     if (!openChannel) return;
-    if (businessId) {
-      fetch("/api/chat/channels", {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: openChannel.id, color: p.bg, iconColor: p.icon }),
-      }).catch(() => {});
-    }
+    fetch("/api/chat/channels", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: openChannel.id, color: p.bg, iconColor: p.icon }),
+    }).catch(() => {});
     setChannels(prev => prev.map(c => c.id === openChannel.id ? { ...c, color: p.bg, iconColor: p.icon } : c));
   }
 
   function deleteChannel() {
     if (!openChannel) return;
-    if (businessId) {
-      fetch(`/api/chat/channels?id=${openChannel.id}`, { method: "DELETE" }).catch(() => {});
-    }
+    fetch(`/api/chat/channels?id=${openChannel.id}`, { method: "DELETE" }).catch(() => {});
     setChannels(prev => prev.filter(c => c.id !== openChannel.id));
     setOpenChannelId(null);
     setDeleteConfirm(false);
@@ -251,34 +177,19 @@ export default function Chat() {
 
   async function createGroup() {
     if (!newName.trim()) return;
-
-    if (businessId) {
-      try {
-        const res = await fetch("/api/chat/channels", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ businessId, name: newName.trim(), emoji: newEmoji, color: newColor.bg, iconColor: newColor.icon, memberIds: newMembers }),
-        }).then(r => r.json());
-        if (res.success) {
-          setChannels(prev => [...prev, {
-            id: res.channel.id, name: res.channel.name, iconName: "Users", emoji: res.channel.emoji,
-            color: res.channel.color, iconColor: res.channel.iconColor, pinned: false, unread: 0,
-            last: res.channel.last, time: res.channel.time, memberIds: res.channel.memberIds,
-          }]);
-        }
-      } catch {}
-    } else {
-      const newCh: Channel & { messages: Message[] } = {
-        id: `group-${Date.now()}`,
-        name: newName.trim(), iconName: "Users", emoji: newEmoji,
-        last: "קבוצה חדשה נוצרה",
-        time: new Date().toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }),
-        unread: 0, pinned: false,
-        color: newColor.bg, iconColor: newColor.icon,
-        messages: [],
-      };
-      setChannels(prev => [...prev, newCh]);
-      setLegacyMessages(prev => ({ ...prev, [newCh.id]: [] }));
-    }
+    try {
+      const res = await fetch("/api/chat/channels", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId, name: newName.trim(), emoji: newEmoji, color: newColor.bg, iconColor: newColor.icon, memberIds: newMembers }),
+      }).then(r => r.json());
+      if (res.success) {
+        setChannels(prev => [...prev, {
+          id: res.channel.id, name: res.channel.name, iconName: "Users", emoji: res.channel.emoji,
+          color: res.channel.color, iconColor: res.channel.iconColor, pinned: false, unread: 0,
+          last: res.channel.last, time: res.channel.time, memberIds: res.channel.memberIds,
+        }]);
+      }
+    } catch {}
 
     setShowWizard(false);
     setNewName(""); setNewEmoji("💬"); setNewColor(PALETTE[0]); setNewMembers([]);
@@ -457,10 +368,9 @@ export default function Chat() {
               onTouchStart={() => handleLongPressStart(msg.id)}
               onTouchEnd={handleLongPressEnd}>
               {!msg.isMine && (() => {
-                const emp = businessId ? null : allEmployees.find(e => e.name === msg.from);
-                const initials = msg.initials || emp?.initials;
-                const color = msg.color || emp?.color;
-                const textColor = msg.textColor || emp?.textColor;
+                const initials = msg.initials;
+                const color = msg.color;
+                const textColor = msg.textColor;
                 return (
                   <div className="flex items-center gap-1.5 flex-row px-1">
                     {initials && (

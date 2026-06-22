@@ -4,40 +4,42 @@ import { useRouter } from "next/navigation";
 import { ChevronRight, ChevronLeft, Download, FileSpreadsheet, TrendingUp, ArrowRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import { ALL_EMPLOYEES, mockAttendance, calcHours, formatHours, exportMonthToCSV, buildRealAttendance, type AttendanceMonth } from "@/lib/shiftData";
+import { calcHours, formatHours, exportMonthToCSV, buildRealAttendance, type AttendanceMonth } from "@/lib/shiftData";
+
+type RealEmp = { name: string; role: string; initials: string; color: string; textColor: string };
 
 export default function MyHours() {
   const router = useRouter();
-  const [name, setName] = useState("");
   const [monthIdx, setMonthIdx] = useState(0);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(0);
-  const [realMonthData, setRealMonthData] = useState<AttendanceMonth[] | null>(null);
-  const [realEmp, setRealEmp] = useState<{ name: string; role: string; initials: string; color: string; textColor: string } | null>(null);
+  const [realMonthData, setRealMonthData] = useState<AttendanceMonth[]>([]);
+  const [realEmp, setRealEmp] = useState<RealEmp | null>(null);
 
   useEffect(() => {
+    let biz = "", person = "";
     try {
       const s = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
-      setName(s.name || "");
-      if (s.businessId && s.personId) {
-        fetch(`/api/clock-requests?businessId=${s.businessId}&personId=${s.personId}`)
-          .then(r => r.json())
-          .then(res => { if (res.success) setRealMonthData(buildRealAttendance(res.requests)); })
-          .catch(() => {});
-        fetch(`/api/employees?businessId=${s.businessId}`)
-          .then(r => r.json())
-          .then(res => {
-            if (res.success) {
-              const mine = res.employees.find((e: { id: string }) => e.id === s.personId);
-              if (mine) setRealEmp(mine);
-            }
-          })
-          .catch(() => {});
-      }
+      biz = s.businessId || ""; person = s.personId || "";
     } catch {}
+    if (!biz || !person) { router.replace("/login"); return; }
+
+    fetch(`/api/clock-requests?businessId=${biz}&personId=${person}`)
+      .then(r => r.json())
+      .then(res => { if (res.success) setRealMonthData(buildRealAttendance(res.requests)); })
+      .catch(() => {});
+    fetch(`/api/employees?businessId=${biz}`)
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) {
+          const mine = res.employees.find((e: { id: string }) => e.id === person);
+          if (mine) setRealEmp(mine);
+        }
+      })
+      .catch(() => {});
   }, []);
 
-  const emp = realEmp || ALL_EMPLOYEES.find(e => e.name === name) || ALL_EMPLOYEES[0];
-  const monthData = realMonthData !== null ? realMonthData : (mockAttendance[emp.name] || []);
+  const emp = realEmp;
+  const monthData = realMonthData;
   const currentMonth = monthData[monthIdx];
 
   const allShiftsInMonth = currentMonth ? currentMonth.weeks.flatMap(w => w.shifts) : [];
@@ -45,7 +47,7 @@ export default function MyHours() {
   const totalShifts      = allShiftsInMonth.length;
   const avgPerShift      = totalShifts > 0 ? totalMonthHours / totalShifts : 0;
 
-  if (!currentMonth) {
+  if (!emp || !currentMonth) {
     return (
       <div className="flex flex-col min-h-screen pb-16 items-center justify-center" style={{ background: "var(--gray-bg)" }}>
         <p className="text-sm" style={{ color: "var(--text-secondary)" }}>אין עדיין נתוני נוכחות</p>

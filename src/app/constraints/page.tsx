@@ -76,46 +76,33 @@ function EmployeeConstraints() {
 
     try {
       const session = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
-      if (session.businessId && session.personId) {
-        setBusinessId(session.businessId);
-        setPersonId(session.personId);
-        // Pre-fill with whatever was already submitted for this week, if anything
-        fetch(`/api/constraints?businessId=${session.businessId}&personId=${session.personId}&weekStart=${WEEK_START}`)
-          .then(r => r.json())
-          .then(data => {
-            if (data.success && Object.keys(data.availability).length > 0) {
-              setAvailability(data.availability);
-              setWeekNote(data.weekNote || "");
-            }
-          })
-          .catch(() => {});
-      }
-    } catch {}
+      if (!session.businessId || !session.personId) { router.replace("/login"); return; }
+      setBusinessId(session.businessId);
+      setPersonId(session.personId);
+      // Pre-fill with whatever was already submitted for this week, if anything
+      fetch(`/api/constraints?businessId=${session.businessId}&personId=${session.personId}&weekStart=${WEEK_START}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && Object.keys(data.availability).length > 0) {
+            setAvailability(data.availability);
+            setWeekNote(data.weekNote || "");
+          }
+        })
+        .catch(() => {});
+    } catch { router.replace("/login"); }
   }, []);
 
   const options: DayStatus[] = ["all", "morning", "evening", "off"];
 
   async function handleSubmit() {
     setSubmitting(true);
-    if (businessId && personId) {
-      try {
-        await fetch("/api/constraints", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ businessId, personId, weekStart: WEEK_START, availability, weekNote }),
-        });
-      } catch {}
-    } else {
-      try {
-        const session = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
-        const name = session.name;
-        if (name) {
-          const all = JSON.parse(localStorage.getItem("shiftpro_constraints") || "{}");
-          all[name] = { availability, weekNote, submittedAt: Date.now() };
-          localStorage.setItem("shiftpro_constraints", JSON.stringify(all));
-        }
-      } catch {}
-    }
+    try {
+      await fetch("/api/constraints", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId, personId, weekStart: WEEK_START, availability, weekNote }),
+      });
+    } catch {}
     setSubmitting(false);
     setSubmitted(true);
     setTimeout(() => router.back(), 1800);
@@ -272,7 +259,7 @@ function ManagerConstraints() {
       const s = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
       biz = s.businessId || "";
     } catch {}
-    if (!biz) { setLoading(false); return; }
+    if (!biz) { router.replace("/login"); return; }
 
     (async () => {
       try {

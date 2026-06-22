@@ -1,22 +1,18 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Bell, Clock, ChevronLeft, CheckCheck, X, AlertTriangle, ArrowLeftRight, Fingerprint, LogIn, LogOut, Hourglass } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import { ALL_EMPLOYEES, TODAYS_ASSIGNMENTS, UPCOMING_SHIFTS, mockAttendance, calcHours, formatHours, buildRealAttendance, buildUpcomingShifts, type AttendanceMonth } from "@/lib/shiftData";
-import { getClockState, requestClock, requiresClockOutApproval, type ClockState } from "@/lib/clockRequests";
+import { calcHours, formatHours, buildRealAttendance, buildUpcomingShifts, type AttendanceMonth } from "@/lib/shiftData";
+import { requiresClockOutApproval, type ClockState } from "@/lib/clockRequests";
 
 const TODAY_LABEL = "שלישי, 23.6";
 const TODAY_WEEK_START = "2026-06-21";
 const TODAY_DAY_OF_WEEK = 2;
 
 type Announcement = { id: number | string; title: string; text: string; createdAt: string; confirmed: boolean };
-
-const initialAnnouncements: Announcement[] = [
-  { id: 1, title: "מנת סלמון חדשה בתפריט", text: "החל מ-1.7 מוסיפים פילה סלמון צרוב — חשוב לדעת לתאר ללקוחות את המנה ואת הרטבים", createdAt: "לפני 3 שעות", confirmed: false },
-  { id: 2, title: "אסור להיכנס עם נעליים פתוחות למטבח", text: "תזכורת — נוהל בטיחות. נעלי עבודה בלבד בכל שטח המטבח ואזור הכנת המזון", createdAt: "אתמול", confirmed: true },
-];
 
 type ApiClockRequest = { id: string; personId: string; type: "in" | "out"; status: "pending" | "approved" | "denied"; requestedAt: number };
 
@@ -40,12 +36,13 @@ const notifStyle: Record<string, { bg: string; color: string }> = {
 };
 
 export default function EmployeeDashboard() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [bizName, setBizName] = useState("");
   const [notifsOpen, setNotifsOpen] = useState(false);
   const [notifRead, setNotifRead] = useState(true);
   const [dynamicNotifs, setDynamicNotifs] = useState<Notif[]>([]);
-  const [announcements, setAnnouncements] = useState<Announcement[]>(initialAnnouncements);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [clockState, setClockState] = useState<ClockState>({ in: "none", out: "none" });
   const [outNeedsApproval, setOutNeedsApproval] = useState(true);
   const [businessId, setBusinessId] = useState("");
@@ -55,7 +52,7 @@ export default function EmployeeDashboard() {
   const [coworkers, setCoworkers] = useState<{ id: string; name: string; initials: string; role: string; color: string; textColor: string }[]>([]);
   const [mySwapRequest, setMySwapRequest] = useState<{ id: string; status: string; proposerName?: string } | null>(null);
   const [swapPicker, setSwapPicker] = useState(false);
-  const [upcomingShifts, setUpcomingShifts] = useState(UPCOMING_SHIFTS);
+  const [upcomingShifts, setUpcomingShifts] = useState<ReturnType<typeof buildUpcomingShifts>>([]);
 
   async function refreshClockState(biz: string, person: string) {
     try {
@@ -75,11 +72,10 @@ export default function EmployeeDashboard() {
       const mine = stored.filter((n: { workers?: string[] }) => !n.workers || n.workers.includes(s.name));
       if (mine.length > 0) { setDynamicNotifs(mine); setNotifRead(false); }
       setOutNeedsApproval(requiresClockOutApproval());
-      if (!biz && s.name) setClockState(getClockState(s.name));
     } catch {}
 
     setBusinessId(biz); setPersonId(person);
-    if (!biz) return;
+    if (!biz) { router.replace("/login"); return; }
 
     (async () => {
       try {
@@ -114,52 +110,28 @@ export default function EmployeeDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const emp = ALL_EMPLOYEES.find(e => e.name === name) || ALL_EMPLOYEES[0];
-  const myShiftToday = businessId ? (myShift ? { ...myShift } : null) : TODAYS_ASSIGNMENTS.find(a => a.name === emp.name);
+  const myShiftToday = myShift ? { ...myShift } : null;
 
   // Poll while a request is pending so an approval from the manager's side shows up live
   useEffect(() => {
     if (clockState.in !== "pending" && clockState.out !== "pending") return;
-    const interval = setInterval(() => {
-      if (businessId) refreshClockState(businessId, personId);
-      else setClockState(getClockState(emp.name));
-    }, 2000);
+    const interval = setInterval(() => refreshClockState(businessId, personId), 2000);
     return () => clearInterval(interval);
-  }, [clockState.in, clockState.out, emp.name, businessId, personId]);
+  }, [clockState.in, clockState.out, businessId, personId]);
 
   async function handleClockIn() {
-    if (businessId) {
-      await fetch("/api/clock-requests", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, personId, type: "in" }),
-      }).catch(() => {});
-      refreshClockState(businessId, personId);
-    } else {
-      requestClock(emp.name, "in");
-      setClockState(getClockState(emp.name));
-    }
+    await fetch("/api/clock-requests", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ businessId, personId, type: "in" }),
+    }).catch(() => {});
+    refreshClockState(businessId, personId);
   }
   async function handleClockOut() {
-    if (businessId) {
-      await fetch("/api/clock-requests", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, personId, type: "out", autoApprove: !outNeedsApproval }),
-      }).catch(() => {});
-      refreshClockState(businessId, personId);
-      return;
-    }
-    if (!outNeedsApproval) {
-      // No approval required — record immediately as if approved
-      requestClock(emp.name, "out");
-      const list = JSON.parse(localStorage.getItem("shiftpro_clock_requests") || "[]");
-      const updated = list.map((r: { employeeName: string; type: string; status: string }, i: number) =>
-        i === list.length - 1 && r.employeeName === emp.name && r.type === "out" ? { ...r, status: "approved" } : r
-      );
-      localStorage.setItem("shiftpro_clock_requests", JSON.stringify(updated));
-    } else {
-      requestClock(emp.name, "out");
-    }
-    setClockState(getClockState(emp.name));
+    await fetch("/api/clock-requests", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ businessId, personId, type: "out", autoApprove: !outNeedsApproval }),
+    }).catch(() => {});
+    refreshClockState(businessId, personId);
   }
 
   async function requestSwap(proposedPersonId?: string) {
@@ -174,7 +146,7 @@ export default function EmployeeDashboard() {
     setSwapPicker(false);
   }
 
-  const monthData = realMonthData !== null ? realMonthData : (mockAttendance[emp.name] || []);
+  const monthData = realMonthData || [];
   const currentMonth = monthData[0];
   const allShifts = currentMonth ? currentMonth.weeks.flatMap(w => w.shifts) : [];
   const monthHours = allShifts.reduce((sum, s) => sum + calcHours(s.timeIn, s.timeOut), 0);
@@ -182,12 +154,10 @@ export default function EmployeeDashboard() {
   const pendingAnnouncements = announcements.filter(a => !a.confirmed).length;
 
   function confirmAnnouncement(id: number | string) {
-    if (businessId && personId) {
-      fetch("/api/announcements/confirm", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ announcementId: id, personId }),
-      }).catch(() => {});
-    }
+    fetch("/api/announcements/confirm", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ announcementId: id, personId }),
+    }).catch(() => {});
     setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, confirmed: true } : a));
   }
 
@@ -202,7 +172,7 @@ export default function EmployeeDashboard() {
           </span>
           <div className="flex items-center gap-3 flex-row">
             <div className="text-right">
-              <p className="text-white text-base font-semibold">שלום, {(name || emp.name).split(" ")[0]} 👋</p>
+              <p className="text-white text-base font-semibold">שלום, {name.split(" ")[0]} 👋</p>
               <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>{bizName}</p>
             </div>
             <button className="relative p-2 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}

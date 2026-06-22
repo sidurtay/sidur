@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { X, Plus, Coins, AlertTriangle, Sparkles, ArrowLeftRight, ClipboardList, Pencil } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 
@@ -63,88 +63,10 @@ const WEEK_START: Record<"current" | "next", string> = {
   next: "2026-06-28",
 };
 
-// ── Legacy demo data — used only when there's no real businessId on the session ──
-const LEGACY_EMPLOYEES: EmployeeRow[] = [
-  { id: "שירה כהן",    name: "שירה כהן",    initials: "שי", role: "מלצר",  color: "#E6F1FB", textColor: "#0C447C" },
-  { id: "עידו בן דוד", name: "עידו בן דוד", initials: "עי", role: "מלצר",  color: "#FAECE7", textColor: "#712B13" },
-  { id: "דניאל לוי",   name: "דניאל לוי",   initials: "דנ", role: "מטבח",  color: "#E1F5EE", textColor: "#085041" },
-  { id: "נועה ברק",    name: "נועה ברק",    initials: "נו", role: "מטבח",  color: "#E1F5EE", textColor: "#085041" },
-  { id: "רותם אביב",   name: "רותם אביב",   initials: "רו", role: "בר",    color: "#EEEDFE", textColor: "#3C3489" },
-  { id: "מיכל שרון",   name: "מיכל שרון",   initials: "מי", role: "שטיפה", color: "#F1EFE8", textColor: "#444441" },
-];
-
-const LEGACY_ROLES: RoleRow[] = [
-  { key: "מלצר",  label: "מלצרים" },
-  { key: "מטבח",  label: "מטבח"   },
-  { key: "בר",    label: "בר"     },
-  { key: "שטיפה", label: "שטיפה"  },
-];
-
-type LegacyAssignment = Omit<Assignment, "dayOfWeek" | "personId">;
-
-const LEGACY_SCHEDULE: { current: Record<number, LegacyAssignment[]>; next: Record<number, LegacyAssignment[]> } = {
-  current: {
-    0: [
-      { id:"c0-1", name:"שירה כהן",    initials:"שי", role:"מלצר",  color:"#E6F1FB", textColor:"#0C447C", timeIn:"08:00", timeOut:"16:00",
-        actualIn:{ time:"08:02", source:"qr" }, actualOut:{ time:"16:05", source:"qr" } },
-      { id:"c0-2", name:"נועה ברק",    initials:"נו", role:"מטבח",  color:"#E1F5EE", textColor:"#085041", timeIn:"12:00", timeOut:"20:00",
-        actualIn:{ time:"12:00", source:"fingerprint" }, actualOut:{ time:"20:10", source:"fingerprint" } },
-      { id:"c0-3", name:"מיכל שרון",   initials:"מי", role:"שטיפה", color:"#F1EFE8", textColor:"#444441", timeIn:"12:00", timeOut:"20:00",
-        actualIn:{ time:"12:00", source:"manual" }, actualOut:{ time:"20:00", source:"manual" } },
-    ],
-    1: [
-      { id:"c1-1", name:"עידו בן דוד", initials:"עי", role:"מלצר",  color:"#FAECE7", textColor:"#712B13", timeIn:"16:00", timeOut:"00:00",
-        actualIn:{ time:"15:55", source:"qr" }, actualOut:{ time:"00:05", source:"qr" } },
-      { id:"c1-2", name:"דניאל לוי",   initials:"דנ", role:"מטבח",  color:"#E1F5EE", textColor:"#085041", timeIn:"09:00", timeOut:"17:00",
-        actualIn:{ time:"09:00", source:"fingerprint" }, actualOut:{ time:"17:00", source:"fingerprint" } },
-    ],
-    2: [
-      { id:"c2-1", name:"שירה כהן",    initials:"שי", role:"מלצר",  color:"#E6F1FB", textColor:"#0C447C", timeIn:"08:00", timeOut:"16:00",
-        actualIn:{ time:"08:02", source:"qr" }, actualOut:{ time:"16:02", source:"fingerprint" } },
-      { id:"c2-2", name:"דניאל לוי",   initials:"דנ", role:"מטבח",  color:"#E1F5EE", textColor:"#085041", timeIn:"09:00", timeOut:"17:00",
-        actualIn:{ time:"09:00", source:"manual" } },
-      { id:"c2-3", name:"נועה ברק",    initials:"נו", role:"מטבח",  color:"#E1F5EE", textColor:"#085041", timeIn:"12:00", timeOut:"20:00" },
-      { id:"c2-4", name:"רותם אביב",   initials:"רו", role:"בר",    color:"#EEEDFE", textColor:"#3C3489", timeIn:"18:00", timeOut:"02:00" },
-      { id:"c2-5", name:"מיכל שרון",   initials:"מי", role:"שטיפה", color:"#F1EFE8", textColor:"#444441", timeIn:"12:00", timeOut:"20:00",
-        actualIn:{ time:"12:05", source:"fingerprint" } },
-    ],
-    3: [
-      { id:"c3-1", name:"שירה כהן",    initials:"שי", role:"מלצר",  color:"#E6F1FB", textColor:"#0C447C", timeIn:"08:00", timeOut:"16:00" },
-      { id:"c3-2", name:"נועה ברק",    initials:"נו", role:"מטבח",  color:"#E1F5EE", textColor:"#085041", timeIn:"12:00", timeOut:"20:00" },
-      { id:"c3-3", name:"רותם אביב",   initials:"רו", role:"בר",    color:"#EEEDFE", textColor:"#3C3489", timeIn:"10:00", timeOut:"18:00",
-        actualIn:{ time:"10:00", source:"manual" }, actualOut:{ time:"18:00", source:"manual" } },
-    ],
-  },
-  next: {
-    0: [
-      { id:"n0-1", name:"עידו בן דוד", initials:"עי", role:"מלצר",  color:"#FAECE7", textColor:"#712B13", timeIn:"08:00", timeOut:"16:00" },
-      { id:"n0-2", name:"דניאל לוי",   initials:"דנ", role:"מטבח",  color:"#E1F5EE", textColor:"#085041", timeIn:"10:00", timeOut:"18:00" },
-      { id:"n0-3", name:"רותם אביב",   initials:"רו", role:"בר",    color:"#EEEDFE", textColor:"#3C3489", timeIn:"16:00", timeOut:"00:00" },
-    ],
-    1: [
-      { id:"n1-1", name:"שירה כהן",    initials:"שי", role:"מלצר",  color:"#E6F1FB", textColor:"#0C447C", timeIn:"08:00", timeOut:"16:00" },
-      { id:"n1-2", name:"מיכל שרון",   initials:"מי", role:"שטיפה", color:"#F1EFE8", textColor:"#444441", timeIn:"10:00", timeOut:"18:00" },
-    ],
-    5: [
-      { id:"n5-1", name:"שירה כהן",    initials:"שי", role:"מלצר",  color:"#E6F1FB", textColor:"#0C447C", timeIn:"12:00", timeOut:"22:00" },
-      { id:"n5-2", name:"עידו בן דוד", initials:"עי", role:"מלצר",  color:"#FAECE7", textColor:"#712B13", timeIn:"16:00", timeOut:"00:00" },
-      { id:"n5-3", name:"נועה ברק",    initials:"נו", role:"מטבח",  color:"#E1F5EE", textColor:"#085041", timeIn:"10:00", timeOut:"22:00" },
-      { id:"n5-4", name:"רותם אביב",   initials:"רו", role:"בר",    color:"#EEEDFE", textColor:"#3C3489", timeIn:"18:00", timeOut:"02:00" },
-    ],
-  },
-};
-
-function flattenLegacy(weekKey: "current" | "next"): Assignment[] {
-  const flat: Assignment[] = [];
-  Object.entries(LEGACY_SCHEDULE[weekKey]).forEach(([day, list]) => {
-    list.forEach(a => flat.push({ ...a, dayOfWeek: Number(day), personId: a.name }));
-  });
-  return flat;
-}
-
 export default function SchedulePage() { return <Suspense><Schedule /></Suspense>; }
 
 function Schedule() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [businessId, setBusinessId] = useState("");
   const [loading,    setLoading]    = useState(true);
@@ -179,28 +101,7 @@ function Schedule() {
     } catch {}
     setBusinessId(biz);
 
-    if (!biz) {
-      setEmployees(LEGACY_EMPLOYEES);
-      setJobRoles(LEGACY_ROLES);
-      setAssignments(flattenLegacy("current"));
-      setLoading(false);
-
-      // Legacy AI-merge path — only relevant for demo sessions with no real business yet
-      const aiSchedule = localStorage.getItem("shiftpro_ai_schedule");
-      if (aiSchedule && searchParams.get("week") === "next") {
-        try {
-          const parsed = JSON.parse(aiSchedule);
-          const flat: Assignment[] = [];
-          Object.entries(parsed).forEach(([day, list]) => {
-            (list as LegacyAssignment[]).forEach(a => flat.push({ ...a, dayOfWeek: Number(day), personId: a.name }));
-          });
-          setAssignments(flat);
-          setActiveWeek("next"); setActiveDay(0);
-          localStorage.removeItem("shiftpro_ai_schedule");
-        } catch {}
-      }
-      return;
-    }
+    if (!biz) { router.replace("/login"); return; }
 
     (async () => {
       try {
@@ -210,11 +111,13 @@ function Schedule() {
         ]);
         if (rolesRes.success) setJobRoles(rolesRes.roles);
         if (empRes.success) setEmployees(empRes.employees);
-        await loadWeek(biz, "current");
+        if (searchParams.get("week") === "next") {
+          setActiveWeek("next"); setActiveDay(0);
+          await loadWeek(biz, "next");
+        } else {
+          await loadWeek(biz, "current");
+        }
       } catch {
-        setEmployees(LEGACY_EMPLOYEES);
-        setJobRoles(LEGACY_ROLES);
-        setAssignments(flattenLegacy("current"));
       } finally {
         setLoading(false);
       }
@@ -228,8 +131,7 @@ function Schedule() {
   function switchWeek(w: "current"|"next") {
     setActiveWeek(w);
     setActiveDay(w === "current" ? 2 : 0);
-    if (businessId) loadWeek(businessId, w);
-    else setAssignments(flattenLegacy(w));
+    loadWeek(businessId, w);
   }
 
   function getByRole(role: string) { return dayAssignments.filter(a => a.role === role); }
@@ -240,57 +142,39 @@ function Schedule() {
 
   async function addEmployee(emp: EmployeeRow, targetRole: string) {
     const homeRole = targetRole !== emp.role ? emp.role : undefined;
-    if (businessId) {
-      try {
-        const res = await fetch("/api/schedule", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            businessId, weekStart: WEEK_START[activeWeek], dayOfWeek: activeDay,
-            personId: emp.id, roleKey: targetRole, homeRoleKey: homeRole || null,
-            timeIn: "09:00", timeOut: "17:00",
-          }),
-        });
-        const data = await res.json();
-        if (data.success) setAssignments(prev => [...prev, data.assignment]);
-      } catch {}
-    } else {
-      const newEntry: Assignment = {
-        id: `${activeWeek}-${activeDay}-${Date.now()}`, dayOfWeek: activeDay, personId: emp.id,
-        name: emp.name, initials: emp.initials, role: targetRole, homeRole,
-        color: emp.color, textColor: emp.textColor, timeIn: "09:00", timeOut: "17:00",
-      };
-      setAssignments(prev => [...prev, newEntry]);
-    }
+    try {
+      const res = await fetch("/api/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessId, weekStart: WEEK_START[activeWeek], dayOfWeek: activeDay,
+          personId: emp.id, roleKey: targetRole, homeRoleKey: homeRole || null,
+          timeIn: "09:00", timeOut: "17:00",
+        }),
+      });
+      const data = await res.json();
+      if (data.success) setAssignments(prev => [...prev, data.assignment]);
+    } catch {}
     setAddRole(null);
   }
 
   async function removeEmployee(id: string) {
-    if (businessId) {
-      try { await fetch(`/api/schedule?id=${id}`, { method: "DELETE" }); } catch {}
-    }
+    try { await fetch(`/api/schedule?id=${id}`, { method: "DELETE" }); } catch {}
     setAssignments(prev => prev.filter(a => a.id !== id));
   }
 
   async function swapEmployee(replacement: EmployeeRow) {
     if (!swapTarget) return;
     const homeRole = replacement.role !== swapTarget.role ? replacement.role : undefined;
-    if (businessId) {
-      try {
-        const res = await fetch("/api/schedule", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: swapTarget.id, personId: replacement.id, roleKey: swapTarget.role, homeRoleKey: homeRole || null }),
-        });
-        const data = await res.json();
-        if (data.success) setAssignments(prev => prev.map(a => a.id === swapTarget.id ? data.assignment : a));
-      } catch {}
-    } else {
-      setAssignments(prev => prev.map(a => a.id === swapTarget.id
-        ? { ...a, personId: replacement.id, name: replacement.name, initials: replacement.initials, color: replacement.color, textColor: replacement.textColor, homeRole }
-        : a
-      ));
-    }
+    try {
+      const res = await fetch("/api/schedule", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: swapTarget.id, personId: replacement.id, roleKey: swapTarget.role, homeRoleKey: homeRole || null }),
+      });
+      const data = await res.json();
+      if (data.success) setAssignments(prev => prev.map(a => a.id === swapTarget.id ? data.assignment : a));
+    } catch {}
     setSwapTarget(null);
   }
 
@@ -302,28 +186,19 @@ function Schedule() {
 
   async function saveTime() {
     if (!editTarget) return;
-    if (businessId) {
-      try {
-        const res = await fetch("/api/schedule", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: editTarget.id, timeIn: editIn, timeOut: editOut,
-            actualInTime: editIn, actualInSource: "manual",
-            actualOutTime: editOut, actualOutSource: "manual",
-          }),
-        });
-        const data = await res.json();
-        if (data.success) setAssignments(prev => prev.map(a => a.id === editTarget.id ? data.assignment : a));
-      } catch {}
-    } else {
-      setAssignments(prev => prev.map(a => a.id === editTarget.id
-        ? { ...a, timeIn: editIn, timeOut: editOut,
-            actualIn: { time: editIn, source: "manual" as ClockSource },
-            actualOut: { time: editOut, source: "manual" as ClockSource } }
-        : a
-      ));
-    }
+    try {
+      const res = await fetch("/api/schedule", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editTarget.id, timeIn: editIn, timeOut: editOut,
+          actualInTime: editIn, actualInSource: "manual",
+          actualOutTime: editOut, actualOutSource: "manual",
+        }),
+      });
+      const data = await res.json();
+      if (data.success) setAssignments(prev => prev.map(a => a.id === editTarget.id ? data.assignment : a));
+    } catch {}
     setEditTarget(null);
   }
 
@@ -331,36 +206,29 @@ function Schedule() {
     const name = newRoleName.trim();
     if (!name || jobRoles.some(r => r.key === name)) { setNewRoleName(""); setAddingCustomRole(false); return; }
 
-    if (businessId) {
-      try {
-        const res = await fetch("/api/roles", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ businessId, name }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          setJobRoles(prev => [...prev, data.role]);
-          setRecurrencePrompt(name);
-        }
-      } catch {}
-    } else {
-      setJobRoles(prev => [...prev, { key: name, label: name }]);
-      setRecurrencePrompt(name);
-    }
+    try {
+      const res = await fetch("/api/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId, name }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setJobRoles(prev => [...prev, data.role]);
+        setRecurrencePrompt(name);
+      }
+    } catch {}
     setNewRoleName(""); setAddingCustomRole(false);
   }
 
   async function setRoleRecurring(role: string, recurring: boolean) {
-    if (businessId) {
-      try {
-        await fetch("/api/roles", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ businessId, key: role, recurring }),
-        });
-      } catch {}
-    }
+    try {
+      await fetch("/api/roles", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId, key: role, recurring }),
+      });
+    } catch {}
     setRecurrencePrompt(null);
   }
 
