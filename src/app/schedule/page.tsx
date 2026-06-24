@@ -1,11 +1,10 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
-import { X, Plus, Coins, AlertTriangle, Sparkles, ArrowLeftRight, ClipboardList, Pencil, ChevronLeft, ChevronRight, Search, ChevronDown } from "lucide-react";
+import { X, Plus, Coins, AlertTriangle, Sparkles, ArrowLeftRight, ClipboardList, ChevronLeft, ChevronRight, Search, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import { paletteFor } from "@/lib/avatarPalette";
 
 type ClockSource = "qr" | "fingerprint" | "manual";
 type ClockEvent  = { time: string; source: ClockSource };
@@ -25,10 +24,6 @@ type Assignment = {
 
 function inColor(src?: ClockSource)  { return src === "manual" ? "var(--amber)" : "var(--green)"; }
 function outColor(src?: ClockSource) { return src === "manual" ? "var(--amber)" : "var(--red)"; }
-function inBg(src?: ClockSource)     { return src === "manual" ? "var(--amber-light)" : "var(--green-light)"; }
-function outBg(src?: ClockSource)    { return src === "manual" ? "var(--amber-light)" : "var(--red-light)"; }
-function inBorder(src?: ClockSource) { return src === "manual" ? "#EBC395" : "#A8D9BB"; }
-function outBorder(src?: ClockSource){ return src === "manual" ? "#EBC395" : "#EFB3B3"; }
 
 // The app-wide frozen "today" — Tuesday 2026-06-23, in the week starting Sunday 2026-06-21.
 const BASE_WEEK_START = new Date(2026, 5, 21); // month is 0-indexed: June
@@ -345,7 +340,7 @@ function Schedule() {
         </div>
 
         {/* Role tables */}
-        {jobRoles.map(({ key, label }, roleIdx) => {
+        {jobRoles.map(({ key, label }) => {
           const allAssigned = getByRole(key);
           const assigned  = searchTerm.trim()
             ? allAssigned.filter(a => a.name.includes(searchTerm.trim()))
@@ -353,19 +348,18 @@ function Schedule() {
           const available = getAvailable(key);
           const assignedIds = new Set(dayAssignments.map(a => a.personId));
           const anyAddable  = employees.some(e => !assignedIds.has(e.id));
-          const rolePalette = paletteFor(roleIdx);
           if (searchTerm.trim() && assigned.length === 0) return null;
           return (
             <div key={key}>
               <div className="flex items-center justify-between gap-1.5 mb-2 px-3 py-1.5 rounded-lg"
-                style={{ background: rolePalette.color }}>
-                <ChevronDown size={13} style={{ color: rolePalette.textColor, opacity: 0.6 }} />
+                style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)" }}>
+                <ChevronDown size={13} style={{ color: "var(--blue)", opacity: 0.6 }} />
                 <div className="flex items-center gap-1.5 flex-row">
                   {allAssigned.length > 0 && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
-                      style={{ background: "rgba(255,255,255,0.6)", color: rolePalette.textColor }}>{allAssigned.length}</span>
+                      style={{ background: "var(--navy)", color: "#fff" }}>{allAssigned.length}</span>
                   )}
-                  <p className="text-xs font-bold" style={{ color: rolePalette.textColor }}>{label}</p>
+                  <p className="text-xs font-bold" style={{ color: "var(--navy)" }}>{label}</p>
                 </div>
               </div>
 
@@ -382,72 +376,43 @@ function Schedule() {
                     const hasPendingSwap = pendingSwaps.some(r => r.assignmentId === emp.id);
 
                     return (
-                      <div key={emp.id} className="rounded-xl overflow-hidden flex flex-col"
-                        style={{ border: "1px solid var(--border)", boxShadow: "0 1px 3px rgba(20,24,31,0.05)" }}>
-                        {/* Colored header strip — name + remove */}
-                        <div className="flex items-center justify-between gap-1 px-2 py-1.5 flex-row"
-                          style={{ background: emp.color }}>
-                          <button onClick={() => removeEmployee(emp.id)} className="flex-shrink-0">
-                            <X size={12} style={{ color: emp.textColor, opacity: 0.6 }} />
-                          </button>
-                          <p className="text-xs font-bold truncate" style={{ color: emp.textColor }}>{emp.name}</p>
-                        </div>
-
-                        {/* Body — times + emergency badge + swap */}
-                        <div className="flex-1 flex flex-col gap-1.5 p-2" style={{ background: isEmergency ? "var(--amber-light)" : "#fff" }}>
-                          {isEmergency && (
-                            <p className="text-[9px] font-medium flex items-center gap-0.5 justify-end" style={{ color: "var(--amber)" }}>
-                              <AlertTriangle size={9} /> בד״כ {emp.homeRole}
-                            </p>
-                          )}
-
-                          <div className="flex items-center gap-1.5 flex-row">
-                            <button onClick={() => openEdit(emp)} className="flex-1 flex items-center justify-center">
-                              <div className="w-full flex items-center gap-0.5 px-1.5 py-1 rounded-lg justify-center"
-                                style={{
-                                  background: hasOut ? outBg(outSrc) : "#F3F3F2",
-                                  border: `1px solid ${hasOut ? outBorder(outSrc) : "#DEDCDA"}`,
-                                }}>
-                                {hasOut && outSrc === "manual"
-                                  ? <Pencil size={7} style={{ color: outColor(outSrc), flexShrink: 0 }} />
-                                  : <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                                      style={{ background: hasOut ? outColor(outSrc) : "#9A9890" }} />
-                                }
-                                <span className="text-[10px] font-semibold"
-                                  style={{ color: hasOut ? outColor(outSrc) : "#6B6966", direction: "ltr" }}>
-                                  {outTime}
-                                </span>
-                              </div>
+                      <div key={emp.id} className="relative rounded-lg px-2 py-1.5 flex flex-col gap-0.5"
+                        style={{
+                          background: isEmergency ? "var(--amber-light)" : "var(--blue-light)",
+                          border: `1px solid ${isEmergency ? "#EBC395" : "var(--blue-border)"}`,
+                        }}>
+                        {/* Top row — name + tiny remove/swap icons, no separate header band */}
+                        <div className="flex items-center justify-between gap-1 flex-row">
+                          <div className="flex items-center gap-1 flex-row flex-shrink-0">
+                            <button onClick={() => removeEmployee(emp.id)}>
+                              <X size={10} style={{ color: "var(--text-secondary)", opacity: 0.6 }} />
                             </button>
-                            <button onClick={() => openEdit(emp)} className="flex-1 flex items-center justify-center">
-                              <div className="w-full flex items-center gap-0.5 px-1.5 py-1 rounded-lg justify-center"
-                                style={{
-                                  background: hasIn ? inBg(inSrc) : "#F3F3F2",
-                                  border: `1px solid ${hasIn ? inBorder(inSrc) : "#DEDCDA"}`,
-                                }}>
-                                {hasIn && inSrc === "manual"
-                                  ? <Pencil size={7} style={{ color: inColor(inSrc), flexShrink: 0 }} />
-                                  : <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                                      style={{ background: hasIn ? inColor(inSrc) : "#9A9890" }} />
-                                }
-                                <span className="text-[10px] font-semibold"
-                                  style={{ color: hasIn ? inColor(inSrc) : "#6B6966", direction: "ltr" }}>
-                                  {inTime}
-                                </span>
-                              </div>
+                            <button onClick={() => setSwapTarget(emp)} className="relative">
+                              {hasPendingSwap && (
+                                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full" style={{ background: "var(--amber)" }} title="בקשת החלפה ממתינה לאישור" />
+                              )}
+                              <ArrowLeftRight size={10} style={{ color: "var(--blue)" }} />
                             </button>
                           </div>
-
-                          <button onClick={() => setSwapTarget(emp)}
-                            className="relative w-full flex items-center justify-center gap-1 py-1.5 rounded-lg flex-row"
-                            style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)" }}>
-                            {hasPendingSwap && (
-                              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full" style={{ background: "var(--amber)", border: "1px solid #fff" }} title="בקשת החלפה ממתינה לאישור" />
-                            )}
-                            <ArrowLeftRight size={10} style={{ color: "var(--blue)" }} />
-                            <span className="text-[10px] font-semibold" style={{ color: "var(--blue)" }}>החלף</span>
-                          </button>
+                          <p className="text-[11px] font-bold truncate" style={{ color: "var(--navy)" }}>{emp.name}</p>
                         </div>
+
+                        {/* Time row — click to edit */}
+                        <button onClick={() => openEdit(emp)} className="flex items-center justify-center gap-1 flex-row" style={{ direction: "ltr" }}>
+                          <span className="text-[11px] font-semibold" style={{ color: hasIn ? inColor(inSrc) : "var(--text-secondary)" }}>
+                            {inTime}
+                          </span>
+                          <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>–</span>
+                          <span className="text-[11px] font-semibold" style={{ color: hasOut ? outColor(outSrc) : "var(--text-secondary)" }}>
+                            {outTime}
+                          </span>
+                        </button>
+
+                        {isEmergency && (
+                          <p className="text-[8px] font-medium flex items-center gap-0.5 justify-center" style={{ color: "var(--amber)" }}>
+                            <AlertTriangle size={8} /> בד״כ {emp.homeRole}
+                          </p>
+                        )}
                       </div>
                     );
                   })}
