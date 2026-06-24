@@ -130,12 +130,32 @@ export async function POST(req: NextRequest) {
 // employee gets) and clears the old hashed password so it stops working.
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, businessId, action, businessName } = await req.json();
-    if (!id || !businessId || action !== "reset_password") {
+    const { id, businessId, action, businessName, roleKey } = await req.json();
+    if (!id || !businessId || !action) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
 
     const supabase = createServiceRoleClient();
+
+    if (action === "update_role") {
+      if (!roleKey) return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
+      const { data, error } = await supabase
+        .from("people")
+        .update({ role_key: roleKey })
+        .eq("id", id)
+        .eq("business_id", businessId)
+        .select("id, name, phone, email, role_key")
+        .single();
+      if (error || !data) {
+        return NextResponse.json({ error: error?.message || "עדכון התפקיד נכשל" }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, employee: data });
+    }
+
+    if (action !== "reset_password") {
+      return NextResponse.json({ error: "פעולה לא מוכרת" }, { status: 400 });
+    }
+
     const tempPassword = generateTempPassword();
 
     const { data, error } = await supabase

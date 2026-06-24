@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Phone, Calendar, Lock, Download, ChevronRight, ChevronLeft, Clock, TrendingUp, FileSpreadsheet, Mail, User, IdCard } from "lucide-react";
+import { Plus, X, Phone, Calendar, Lock, Download, ChevronRight, ChevronLeft, Clock, TrendingUp, FileSpreadsheet, Mail, User, IdCard, Briefcase } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import { calcHours, formatHours, exportMonthToCSV, buildRealAttendance, type AttendanceMonth } from "@/lib/shiftData";
@@ -30,6 +30,8 @@ export default function Employees() {
   const [isManager,  setIsManager]  = useState(true);
   const [resetting,  setResetting]  = useState(false);
   const [resetResult, setResetResult] = useState<{ tempPassword: string; emailSent?: boolean } | { error: string } | null>(null);
+  const [changingRole, setChangingRole] = useState(false);
+  const [roleChangeError, setRoleChangeError] = useState("");
 
   const cats = ["הכל", ...jobRoles];
 
@@ -90,6 +92,28 @@ export default function Employees() {
       setResetResult({ error: "שגיאת רשת — נסה שוב" });
     } finally {
       setResetting(false);
+    }
+  }
+
+  async function changeRole(emp: Employee, roleKey: string) {
+    if (!emp.id || !businessId || roleKey === emp.role) return;
+    setChangingRole(true);
+    setRoleChangeError("");
+    try {
+      const res = await fetch("/api/employees", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: emp.id, businessId, action: "update_role", roleKey }),
+      }).then(r => r.json());
+      if (res.success) {
+        setEmployees(prev => prev.map(e => e.id === emp.id ? { ...e, role: roleKey, cat: roleKey } : e));
+        setSelected(prev => prev && prev.id === emp.id ? { ...prev, role: roleKey, cat: roleKey } : prev);
+      } else {
+        setRoleChangeError(res.error || "עדכון התפקיד נכשל");
+      }
+    } catch {
+      setRoleChangeError("שגיאת רשת — נסה שוב");
+    } finally {
+      setChangingRole(false);
     }
   }
 
@@ -214,7 +238,7 @@ export default function Employees() {
         {filtered.map(emp => (
           <div key={emp.id || emp.name} className="bg-white rounded-xl px-3 py-3 flex items-center gap-2 flex-row cursor-pointer"
             style={{ border: "1px solid var(--border)" }}
-            onClick={() => { setSelected(emp); setResetResult(null); }}>
+            onClick={() => { setSelected(emp); setResetResult(null); setRoleChangeError(""); }}>
             <span className="text-xs px-2 py-0.5 rounded-md flex-shrink-0"
               style={{ background: "var(--gray-bg)", color: "var(--text-secondary)" }}>{emp.role}</span>
             <span className="flex-1 text-center text-sm font-medium">{emp.name}</span>
@@ -254,6 +278,29 @@ export default function Employees() {
                 <Calendar size={16} style={{ color: "var(--text-secondary)" }} />
               </div>
             </div>
+
+            {isManager && (
+              <div className="bg-white rounded-xl p-3 mb-3" style={{ border: "1px solid var(--border)" }}>
+                <div className="flex items-center gap-2 mb-2.5 flex-row justify-end">
+                  <p className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>תפקיד</p>
+                  <Briefcase size={14} style={{ color: "var(--text-secondary)" }} />
+                </div>
+                <div className="flex flex-row gap-2 flex-wrap justify-end">
+                  {jobRoles.map(r => (
+                    <button key={r} onClick={() => changeRole(selected, r)} disabled={changingRole}
+                      className="text-xs px-3 py-1.5 rounded-full"
+                      style={selected.role === r
+                        ? { background: "var(--navy)", color: "#fff" }
+                        : { background: "var(--gray-bg)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+                      {r}
+                    </button>
+                  ))}
+                </div>
+                {roleChangeError && (
+                  <p className="text-xs mt-2 text-right" style={{ color: "var(--red)" }}>{roleChangeError}</p>
+                )}
+              </div>
+            )}
             <button className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 mb-2"
               style={{ background: "var(--green-light)", color: "var(--green)" }}>
               <Phone size={14} /> חייג
