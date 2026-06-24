@@ -231,7 +231,7 @@ function Schedule() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen pb-16" style={{ background: "var(--gray-bg)" }}>
+    <div className="flex flex-col min-h-screen pb-28" style={{ background: "var(--gray-bg)" }}>
       {/* Header */}
       <div className="bg-white px-4 pt-12 pb-3 relative" style={{ borderBottom: "1px solid var(--border)" }}>
         <div className="absolute top-3 left-4"><Logo size={22} /></div>
@@ -369,120 +369,105 @@ function Schedule() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)", boxShadow: "0 1px 3px rgba(20,24,31,0.04)" }}>
-                {assigned.length > 0 && (
-                  <div className="grid items-center px-3 py-1.5" style={{ gridTemplateColumns: "1fr 64px 64px 56px", background: "var(--gray-bg)" }}>
-                    <span className="text-[9px] font-semibold text-right" style={{ color: "var(--text-secondary)" }}>עובד</span>
-                    <span className="text-[9px] font-semibold text-center" style={{ color: "var(--text-secondary)" }}>כניסה</span>
-                    <span className="text-[9px] font-semibold text-center" style={{ color: "var(--text-secondary)" }}>יציאה</span>
-                    <span />
-                  </div>
-                )}
+              {assigned.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 mb-2" style={{ gridAutoRows: "1fr" }}>
+                  {assigned.map(emp => {
+                    const isEmergency = !!emp.homeRole;
+                    const hasIn       = !!emp.actualIn;
+                    const hasOut      = !!emp.actualOut;
+                    const inSrc    = emp.actualIn?.source;
+                    const outSrc   = emp.actualOut?.source;
+                    const inTime   = emp.actualIn?.time  || emp.timeIn;
+                    const outTime  = emp.actualOut?.time || emp.timeOut;
+                    const hasPendingSwap = pendingSwaps.some(r => r.assignmentId === emp.id);
 
-                {assigned.map((emp, i) => {
-                  const isEmergency = !!emp.homeRole;
-                  const hasIn       = !!emp.actualIn;
-                  const hasOut      = !!emp.actualOut;
-
-                  // In badge: green if qr/fingerprint, orange if manual, gray if not set
-                  const inSrc    = emp.actualIn?.source;
-                  const outSrc   = emp.actualOut?.source;
-                  const inTime   = emp.actualIn?.time  || emp.timeIn;
-                  const outTime  = emp.actualOut?.time || emp.timeOut;
-                  const hasPendingSwap = pendingSwaps.some(r => r.assignmentId === emp.id);
-
-                  return (
-                    <div key={emp.id} className="grid items-center px-3 py-3"
-                      style={{
-                        gridTemplateColumns: "1fr 64px 64px 56px",
-                        borderTop: i > 0 ? "1px solid var(--border)" : "none",
-                        background: isEmergency ? "var(--amber-light)" : i % 2 === 1 ? "rgba(20,24,31,0.012)" : "transparent",
-                      }}>
-                      <div className="flex items-center gap-2.5 flex-row min-w-0">
-                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0"
-                          style={{ background: emp.color, color: emp.textColor }}>
-                          {emp.initials}
+                    return (
+                      <div key={emp.id} className="rounded-xl overflow-hidden flex flex-col"
+                        style={{ border: "1px solid var(--border)", boxShadow: "0 1px 3px rgba(20,24,31,0.05)" }}>
+                        {/* Colored header strip — name + remove */}
+                        <div className="flex items-center justify-between gap-1 px-2 py-1.5 flex-row"
+                          style={{ background: emp.color }}>
+                          <button onClick={() => removeEmployee(emp.id)} className="flex-shrink-0">
+                            <X size={12} style={{ color: emp.textColor, opacity: 0.6 }} />
+                          </button>
+                          <p className="text-xs font-bold truncate" style={{ color: emp.textColor }}>{emp.name}</p>
                         </div>
-                        <div className="text-right min-w-0">
-                          <p className="text-xs font-semibold truncate">{emp.name}</p>
+
+                        {/* Body — times + emergency badge + swap */}
+                        <div className="flex-1 flex flex-col gap-1.5 p-2" style={{ background: isEmergency ? "var(--amber-light)" : "#fff" }}>
                           {isEmergency && (
                             <p className="text-[9px] font-medium flex items-center gap-0.5 justify-end" style={{ color: "var(--amber)" }}>
                               <AlertTriangle size={9} /> בד״כ {emp.homeRole}
                             </p>
                           )}
+
+                          <div className="flex items-center gap-1.5 flex-row">
+                            <button onClick={() => openEdit(emp)} className="flex-1 flex items-center justify-center">
+                              <div className="w-full flex items-center gap-0.5 px-1.5 py-1 rounded-lg justify-center"
+                                style={{
+                                  background: hasOut ? outBg(outSrc) : "#F3F3F2",
+                                  border: `1px solid ${hasOut ? outBorder(outSrc) : "#DEDCDA"}`,
+                                }}>
+                                {hasOut && outSrc === "manual"
+                                  ? <Pencil size={7} style={{ color: outColor(outSrc), flexShrink: 0 }} />
+                                  : <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                      style={{ background: hasOut ? outColor(outSrc) : "#9A9890" }} />
+                                }
+                                <span className="text-[10px] font-semibold"
+                                  style={{ color: hasOut ? outColor(outSrc) : "#6B6966", direction: "ltr" }}>
+                                  {outTime}
+                                </span>
+                              </div>
+                            </button>
+                            <button onClick={() => openEdit(emp)} className="flex-1 flex items-center justify-center">
+                              <div className="w-full flex items-center gap-0.5 px-1.5 py-1 rounded-lg justify-center"
+                                style={{
+                                  background: hasIn ? inBg(inSrc) : "#F3F3F2",
+                                  border: `1px solid ${hasIn ? inBorder(inSrc) : "#DEDCDA"}`,
+                                }}>
+                                {hasIn && inSrc === "manual"
+                                  ? <Pencil size={7} style={{ color: inColor(inSrc), flexShrink: 0 }} />
+                                  : <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                      style={{ background: hasIn ? inColor(inSrc) : "#9A9890" }} />
+                                }
+                                <span className="text-[10px] font-semibold"
+                                  style={{ color: hasIn ? inColor(inSrc) : "#6B6966", direction: "ltr" }}>
+                                  {inTime}
+                                </span>
+                              </div>
+                            </button>
+                          </div>
+
+                          <button onClick={() => setSwapTarget(emp)}
+                            className="relative w-full flex items-center justify-center gap-1 py-1.5 rounded-lg flex-row"
+                            style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)" }}>
+                            {hasPendingSwap && (
+                              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full" style={{ background: "var(--amber)", border: "1px solid #fff" }} title="בקשת החלפה ממתינה לאישור" />
+                            )}
+                            <ArrowLeftRight size={10} style={{ color: "var(--blue)" }} />
+                            <span className="text-[10px] font-semibold" style={{ color: "var(--blue)" }}>החלף</span>
+                          </button>
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
+              )}
 
-                      <button onClick={() => openEdit(emp)} className="flex items-center justify-center">
-                        <div className="flex items-center gap-0.5 px-2 py-1 rounded-full justify-center"
-                          style={{
-                            background: hasIn ? inBg(inSrc) : "#F3F3F2",
-                            border: `1px solid ${hasIn ? inBorder(inSrc) : "#DEDCDA"}`,
-                          }}>
-                          {hasIn && inSrc === "manual"
-                            ? <Pencil size={7} style={{ color: inColor(inSrc), flexShrink: 0 }} />
-                            : <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                                style={{ background: hasIn ? inColor(inSrc) : "#9A9890" }} />
-                          }
-                          <span className="text-[10px] font-semibold"
-                            style={{ color: hasIn ? inColor(inSrc) : "#6B6966", direction: "ltr" }}>
-                            {inTime}
-                          </span>
-                        </div>
-                      </button>
+              {anyAddable && (
+                <button onClick={() => setAddRole(key)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl flex-row"
+                  style={{ border: "1.5px dashed var(--blue-border)", background: "var(--blue-light)" }}>
+                  <Plus size={13} style={{ color: "var(--blue)" }} />
+                  <span className="text-xs font-semibold" style={{ color: "var(--blue)" }}>הוסף ל{label}</span>
+                </button>
+              )}
 
-                      <button onClick={() => openEdit(emp)} className="flex items-center justify-center">
-                        <div className="flex items-center gap-0.5 px-2 py-1 rounded-full justify-center"
-                          style={{
-                            background: hasOut ? outBg(outSrc) : "#F3F3F2",
-                            border: `1px solid ${hasOut ? outBorder(outSrc) : "#DEDCDA"}`,
-                          }}>
-                          {hasOut && outSrc === "manual"
-                            ? <Pencil size={7} style={{ color: outColor(outSrc), flexShrink: 0 }} />
-                            : <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                                style={{ background: hasOut ? outColor(outSrc) : "#9A9890" }} />
-                          }
-                          <span className="text-[10px] font-semibold"
-                            style={{ color: hasOut ? outColor(outSrc) : "#6B6966", direction: "ltr" }}>
-                            {outTime}
-                          </span>
-                        </div>
-                      </button>
-
-                      <div className="flex items-center justify-center gap-1 flex-row">
-                        <button onClick={() => setSwapTarget(emp)}
-                          className="relative w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                          style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)" }}>
-                          {hasPendingSwap && (
-                            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ background: "var(--amber)", border: "1px solid #fff" }} title="בקשת החלפה ממתינה לאישור" />
-                          )}
-                          <ArrowLeftRight size={10} style={{ color: "var(--blue)" }} />
-                        </button>
-                        <button onClick={() => removeEmployee(emp.id)}
-                          className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                          style={{ background: "var(--gray-bg)", border: "1px solid var(--border)" }}>
-                          <X size={11} style={{ color: "var(--text-secondary)" }} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {anyAddable && (
-                  <button onClick={() => setAddRole(key)}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 flex-row"
-                    style={{ borderTop: assigned.length > 0 ? "1px solid var(--border)" : "none", background: "var(--blue-light)" }}>
-                    <Plus size={13} style={{ color: "var(--blue)" }} />
-                    <span className="text-xs font-semibold" style={{ color: "var(--blue)" }}>הוסף ל{label}</span>
-                  </button>
-                )}
-
-                {!anyAddable && assigned.length === 0 && (
-                  <div className="flex items-center justify-center px-4 py-3">
-                    <p className="text-xs" style={{ color: "var(--text-secondary)" }}>כל העובדים משובצים היום</p>
-                  </div>
-                )}
-              </div>
+              {!anyAddable && assigned.length === 0 && (
+                <div className="flex items-center justify-center px-4 py-3 rounded-xl bg-white" style={{ border: "1px solid var(--border)" }}>
+                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>כל העובדים משובצים היום</p>
+                </div>
+              )}
 
               {recurrencePrompt === key && (
                 <div className="mt-2 rounded-xl px-3 py-2.5 flex flex-col gap-2" style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)" }}>
