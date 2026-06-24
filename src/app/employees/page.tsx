@@ -6,7 +6,7 @@ import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import { calcHours, formatHours, exportMonthToCSV, buildRealAttendance, type AttendanceMonth } from "@/lib/shiftData";
 
-type Employee = { id?: string; name: string; initials: string; role: string; phone: string; since: string; cat: string; color: string; textColor: string };
+type Employee = { id?: string; name: string; initials: string; role: string; phone: string; email?: string; since: string; cat: string; color: string; textColor: string };
 
 const DEFAULT_JOB_ROLES = ["מלצרים", "מטבח", "בר", "שטיפה"];
 
@@ -21,14 +21,15 @@ export default function Employees() {
   const [newName,    setNewName]    = useState("");
   const [newId,      setNewId]      = useState("");
   const [newPhone,   setNewPhone]   = useState("");
+  const [newEmail,   setNewEmail]   = useState("");
   const [newRole,    setNewRole]    = useState("");
   const [sending,    setSending]    = useState(false);
-  const [sentResult, setSentResult] = useState<{ tempPassword: string; success: boolean; error?: string } | null>(null);
+  const [sentResult, setSentResult] = useState<{ tempPassword: string; success: boolean; emailSent?: boolean; error?: string } | null>(null);
   const [bizName,    setBizName]    = useState("Sidur");
   const [businessId, setBusinessId] = useState("");
   const [isManager,  setIsManager]  = useState(true);
   const [resetting,  setResetting]  = useState(false);
-  const [resetResult, setResetResult] = useState<{ tempPassword: string } | { error: string } | null>(null);
+  const [resetResult, setResetResult] = useState<{ tempPassword: string; emailSent?: boolean } | { error: string } | null>(null);
 
   const cats = ["הכל", ...jobRoles];
 
@@ -81,9 +82,9 @@ export default function Employees() {
     try {
       const res = await fetch("/api/employees", {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: emp.id, businessId, action: "reset_password" }),
+        body: JSON.stringify({ id: emp.id, businessId, action: "reset_password", businessName: bizName }),
       }).then(r => r.json());
-      if (res.success) setResetResult({ tempPassword: res.tempPassword });
+      if (res.success) setResetResult({ tempPassword: res.tempPassword, emailSent: res.emailSent });
       else setResetResult({ error: res.error || "איפוס הסיסמה נכשל" });
     } catch {
       setResetResult({ error: "שגיאת רשת — נסה שוב" });
@@ -123,7 +124,7 @@ export default function Employees() {
       const res = await fetch("/api/employees", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, name: newName.trim(), phone: newPhone, roleKey: newRole }),
+        body: JSON.stringify({ businessId, name: newName.trim(), phone: newPhone, email: newEmail.trim() || undefined, roleKey: newRole, businessName: bizName }),
       });
       const data = await res.json();
       if (!data.success) {
@@ -133,15 +134,23 @@ export default function Employees() {
       }
       tempPassword = data.tempPassword;
       setEmployees(prev => [...prev, data.employee]);
+
+      // Email (free, sent server-side during creation) takes priority over SMS
+      if (data.emailSent) {
+        setSentResult({ tempPassword, success: true, emailSent: true });
+        setSending(false);
+        setNewName(""); setNewId(""); setNewPhone(""); setNewEmail(""); setNewRole(jobRoles[0] || "");
+        return;
+      }
     } catch {
       setSentResult({ tempPassword: "", success: false, error: "שגיאת רשת — נסה שוב" });
       setSending(false);
       return;
     }
 
-    // Send WhatsApp
+    // Fall back to SMS if no email was provided / email sending failed
     try {
-      const res = await fetch("/api/send-whatsapp", {
+      const res = await fetch("/api/send-sms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ to: newPhone, employeeName: newName.trim(), tempPassword, businessName: bizName }),
@@ -152,7 +161,7 @@ export default function Employees() {
       setSentResult({ tempPassword, success: false, error: "שגיאת רשת" });
     } finally {
       setSending(false);
-      setNewName(""); setNewId(""); setNewPhone(""); setNewRole(jobRoles[0] || "");
+      setNewName(""); setNewId(""); setNewPhone(""); setNewEmail(""); setNewRole(jobRoles[0] || "");
     }
   }
 
@@ -259,11 +268,15 @@ export default function Employees() {
 
                 {resetResult && "tempPassword" in resetResult ? (
                   <div className="rounded-xl px-3 py-3 mb-3 text-center" style={{ background: "var(--green-light)", border: "1px solid #A8D9BB" }}>
-                    <p className="text-sm font-semibold" style={{ color: "var(--green)" }}>הסיסמה אופסה בהצלחה ✓</p>
+                    <p className="text-sm font-semibold" style={{ color: "var(--green)" }}>
+                      {resetResult.emailSent ? "הסיסמה אופסה ונשלחה במייל ✓" : "הסיסמה אופסה בהצלחה ✓"}
+                    </p>
                     <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
                       סיסמה זמנית: <span className="font-bold" style={{ direction: "ltr", display: "inline-block" }}>{resetResult.tempPassword}</span>
                     </p>
-                    <p className="text-[10px] mt-1" style={{ color: "var(--text-secondary)" }}>שלח/י את הסיסמה הזו ל{selected.name} ידנית — בכניסה הראשונה תתבקש להחליף אותה.</p>
+                    {!resetResult.emailSent && (
+                      <p className="text-[10px] mt-1" style={{ color: "var(--text-secondary)" }}>שלח/י את הסיסמה הזו ל{selected.name} ידנית — בכניסה הראשונה תתבקש להחליף אותה.</p>
+                    )}
                   </div>
                 ) : (
                   <button onClick={() => resetPassword(selected)} disabled={resetting}
@@ -519,6 +532,17 @@ export default function Employees() {
                 />
               </div>
               <div>
+                <p className="text-xs mb-1 text-right" style={{ color: "var(--text-secondary)" }}>אימייל (לא חובה — אם יש, נשלחת בו הסיסמה הזמנית בחינם)</p>
+                <input
+                  type="email"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm text-right"
+                  style={{ border: "1px solid var(--border)", background: "var(--surface)", direction: "ltr" }}
+                  placeholder="name@example.com"
+                  value={newEmail}
+                  onChange={e => setNewEmail(e.target.value)}
+                />
+              </div>
+              <div>
                 <p className="text-xs mb-2 text-right" style={{ color: "var(--text-secondary)" }}>תפקיד</p>
                 <div className="flex flex-row gap-2 flex-wrap">
                   {jobRoles.map(r => (
@@ -540,14 +564,16 @@ export default function Employees() {
                   }}>
                   {sentResult.success ? (
                     <>
-                      <p className="text-sm font-semibold" style={{ color: "var(--green)" }}>✓ הודעת WhatsApp נשלחה!</p>
+                      <p className="text-sm font-semibold" style={{ color: "var(--green)" }}>
+                        {sentResult.emailSent ? "✓ פרטי הכניסה נשלחו במייל!" : "✓ הודעת SMS נשלחה!"}
+                      </p>
                       <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
                         סיסמה זמנית: <span className="font-bold" style={{ direction: "ltr", display: "inline-block" }}>{sentResult.tempPassword}</span>
                       </p>
                     </>
                   ) : (
                     <>
-                      <p className="text-sm font-semibold" style={{ color: "var(--amber)" }}>לא ניתן לשלוח WhatsApp</p>
+                      <p className="text-sm font-semibold" style={{ color: "var(--amber)" }}>לא ניתן לשלוח SMS</p>
                       <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
                         סיסמה זמנית: <span className="font-bold">{sentResult.tempPassword}</span> — שלח ידנית
                       </p>
@@ -565,7 +591,7 @@ export default function Employees() {
                 <button onClick={confirmAdd} disabled={sending || !newName.trim() || !newPhone.trim()}
                   className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-1 flex items-center justify-center gap-2"
                   style={{ background: sending || !newName.trim() || !newPhone.trim() ? "#ADA89D" : "var(--navy)" }}>
-                  {sending ? "שולח WhatsApp..." : "הוסף עובד ושלח WhatsApp"}
+                  {sending ? "שולח SMS..." : "הוסף עובד ושלח SMS"}
                 </button>
               )}
             </div>

@@ -1,24 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Plain SMS via Twilio — unlike WhatsApp Business, this doesn't require Meta
+// business verification, so it works for any phone number immediately.
 export async function POST(req: NextRequest) {
   try {
     const { to, employeeName, tempPassword, businessName } = await req.json();
 
     const sid   = process.env.TWILIO_ACCOUNT_SID;
     const token = process.env.TWILIO_AUTH_TOKEN;
-    const from  = process.env.TWILIO_WHATSAPP_FROM;
+    const from  = process.env.TWILIO_SMS_FROM;
 
     if (!sid || !token || !from) {
-      return NextResponse.json({ error: "Twilio not configured" }, { status: 500 });
+      return NextResponse.json({ error: "Twilio SMS not configured" }, { status: 500 });
     }
 
-    const toWhatsApp = `whatsapp:+972${to.replace(/^0/, "").replace(/-/g, "")}`;
+    const toNumber = `+972${to.replace(/^0/, "").replace(/-/g, "")}`;
 
-    const message = `שלום ${employeeName} 👋\n\nהתווספת לצוות *${businessName}* דרך Sidur.\n\n📱 כניסה לאפליקציה:\n• שם משתמש: ${to}\n• סיסמה זמנית: *${tempPassword}*\n\n⚠️ תתבקש לשנות סיסמה בכניסה הראשונה.`;
+    const message = `שלום ${employeeName}! התווספת לצוות ${businessName} דרך Sidur.\nכניסה לאפליקציה:\nשם משתמש: ${to}\nסיסמה זמנית: ${tempPassword}\nתתבקש/י לשנות סיסמה בכניסה הראשונה.`;
 
     const body = new URLSearchParams({
       From: from,
-      To:   toWhatsApp,
+      To:   toNumber,
       Body: message,
     });
 
@@ -37,13 +39,13 @@ export async function POST(req: NextRequest) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Twilio error:", data);
+      console.error("Twilio SMS error:", data);
       return NextResponse.json({ error: data.message || "Twilio error" }, { status: 400 });
     }
 
     return NextResponse.json({ success: true, sid: data.sid });
   } catch (err) {
-    console.error("send-whatsapp error:", err);
+    console.error("send-sms error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

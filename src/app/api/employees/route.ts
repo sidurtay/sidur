@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { paletteFor, initialsFor, sinceLabel } from "@/lib/avatarPalette";
+import { sendMail } from "@/lib/mailer";
+
+function credentialsEmailHtml(employeeName: string, businessName: string, phone: string, tempPassword: string) {
+  return `
+    <div dir="rtl" style="font-family: sans-serif; text-align: right;">
+      <p>שלום ${employeeName}! 👋</p>
+      <p>התווספת לצוות <strong>${businessName}</strong> דרך Sidur.</p>
+      <p>📱 כניסה לאפליקציה:</p>
+      <ul>
+        <li>שם משתמש (טלפון): ${phone}</li>
+        <li>סיסמה זמנית: <strong>${tempPassword}</strong></li>
+      </ul>
+      <p>⚠️ תתבקש/י לשנות סיסמה בכניסה הראשונה.</p>
+    </div>
+  `;
+}
 
 function generateTempPassword() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -15,7 +31,7 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("people")
-    .select("id, name, phone, role_key, initials, color, text_color, since_label, created_at")
+    .select("id, name, phone, email, role_key, initials, color, text_color, since_label, created_at")
     .eq("business_id", businessId)
     .eq("role_type", "employee")
     .order("created_at");
@@ -28,6 +44,7 @@ export async function GET(req: NextRequest) {
     id: e.id,
     name: e.name,
     phone: e.phone,
+    email: e.email,
     role: e.role_key,
     cat: e.role_key,
     initials: e.initials,
@@ -41,7 +58,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, name, phone, roleKey } = await req.json();
+    const { businessId, name, phone, email, roleKey, businessName } = await req.json();
     if (!businessId || !name?.trim() || !phone?.trim() || !roleKey) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
@@ -64,6 +81,7 @@ export async function POST(req: NextRequest) {
         business_id: businessId,
         name: name.trim(),
         phone: phone.trim(),
+        email: email?.trim() || null,
         role_type: "employee",
         role_key: roleKey,
         initials,
@@ -80,11 +98,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: message || "הוספת העובד נכשלה" }, { status: 500 });
     }
 
+    let emailSent = false;
+    if (employee.email) {
+      emailSent = await sendMail(
+        employee.email,
+        "פרטי כניסה ל-Sidur",
+        credentialsEmailHtml(employee.name, businessName || "", employee.phone, tempPassword)
+      );
+    }
+
     return NextResponse.json({
       success: true,
       tempPassword,
+      emailSent,
       employee: {
-        id: employee.id, name: employee.name, phone: employee.phone,
+        id: employee.id, name: employee.name, phone: employee.phone, email: employee.email,
         role: employee.role_key, cat: employee.role_key,
         initials: employee.initials, color: employee.color, textColor: employee.text_color,
         since: sinceLabel(employee.created_at),
@@ -102,7 +130,7 @@ export async function POST(req: NextRequest) {
 // employee gets) and clears the old hashed password so it stops working.
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, businessId, action } = await req.json();
+    const { id, businessId, action, businessName } = await req.json();
     if (!id || !businessId || action !== "reset_password") {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
@@ -115,14 +143,23 @@ export async function PATCH(req: NextRequest) {
       .update({ temp_password: tempPassword, password_hash: null, must_change_password: true })
       .eq("id", id)
       .eq("business_id", businessId)
-      .select("id, name, phone")
+      .select("id, name, phone, email")
       .single();
 
     if (error || !data) {
       return NextResponse.json({ error: error?.message || "איפוס הסיסמה נכשל" }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, tempPassword, employee: data });
+    let emailSent = false;
+    if (data.email) {
+      emailSent = await sendMail(
+        data.email,
+        "סיסמה חדשה ל-Sidur",
+        credentialsEmailHtml(data.name, businessName || "", data.phone, tempPassword)
+      );
+    }
+
+    return NextResponse.json({ success: true, tempPassword, emailSent, employee: data });
   } catch (err) {
     console.error("reset employee password error:", err);
     return NextResponse.json({ error: "שגיאת שרת" }, { status: 500 });
