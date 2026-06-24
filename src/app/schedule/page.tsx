@@ -1,10 +1,11 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
-import { X, Plus, Coins, AlertTriangle, Sparkles, ArrowLeftRight, ClipboardList, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Plus, Coins, AlertTriangle, Sparkles, ArrowLeftRight, ClipboardList, Pencil, ChevronLeft, ChevronRight, Search, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
+import { paletteFor } from "@/lib/avatarPalette";
 
 type ClockSource = "qr" | "fingerprint" | "manual";
 type ClockEvent  = { time: string; source: ClockSource };
@@ -79,6 +80,7 @@ function Schedule() {
   const [addingCustomRole, setAddingCustomRole] = useState(false);
   const [newRoleName, setNewRoleName] = useState("");
   const [recurrencePrompt, setRecurrencePrompt] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   async function loadWeek(biz: string, weekStart: string) {
     try {
@@ -281,8 +283,8 @@ function Schedule() {
           <p className="text-sm text-center py-10" style={{ color: "var(--text-secondary)" }}>טוען סידור...</p>
         ) : (
         <>
-        {/* Day selector */}
-        <div className="flex flex-row gap-2 overflow-x-auto pb-1">
+        {/* Day selector — sticky so it stays reachable while scrolling through roles */}
+        <div className="sticky -mx-3 px-3 pt-1 flex flex-row gap-2 overflow-x-auto pb-1 z-10" style={{ top: 0, background: "var(--gray-bg)" }}>
           {week.days.map(d => {
             const count   = assignments.filter(a => a.dayOfWeek === d.d).length;
             const isToday = d.d === week.today;
@@ -323,23 +325,51 @@ function Schedule() {
           ))}
         </div>
 
+        {/* Employee search — filters the rows below by name, like Tabit's sidebar search */}
+        <div className="relative flex items-center">
+          <Search size={15} className="absolute right-3.5" style={{ color: "var(--text-secondary)" }} />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm("")} className="absolute left-3.5">
+              <X size={14} style={{ color: "var(--text-secondary)" }} />
+            </button>
+          )}
+          <input
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="חיפוש עובד..."
+            className="w-full pr-10 pl-9 py-2.5 rounded-xl text-sm text-right outline-none transition-shadow"
+            style={{ border: "1.5px solid var(--border)", background: "var(--surface)" }}
+            onFocus={e => e.currentTarget.style.borderColor = "var(--blue)"}
+            onBlur={e => e.currentTarget.style.borderColor = "var(--border)"}
+          />
+        </div>
+
         {/* Role tables */}
-        {jobRoles.map(({ key, label }) => {
-          const assigned  = getByRole(key);
+        {jobRoles.map(({ key, label }, roleIdx) => {
+          const allAssigned = getByRole(key);
+          const assigned  = searchTerm.trim()
+            ? allAssigned.filter(a => a.name.includes(searchTerm.trim()))
+            : allAssigned;
           const available = getAvailable(key);
           const assignedIds = new Set(dayAssignments.map(a => a.personId));
           const anyAddable  = employees.some(e => !assignedIds.has(e.id));
+          const rolePalette = paletteFor(roleIdx);
+          if (searchTerm.trim() && assigned.length === 0) return null;
           return (
             <div key={key}>
-              <div className="flex items-center justify-end gap-1.5 mb-2">
-                {assigned.length > 0 && (
-                  <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
-                    style={{ background: "var(--blue-light)", color: "var(--blue)" }}>{assigned.length}</span>
-                )}
-                <p className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>{label}</p>
+              <div className="flex items-center justify-between gap-1.5 mb-2 px-3 py-1.5 rounded-lg"
+                style={{ background: rolePalette.color }}>
+                <ChevronDown size={13} style={{ color: rolePalette.textColor, opacity: 0.6 }} />
+                <div className="flex items-center gap-1.5 flex-row">
+                  {allAssigned.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
+                      style={{ background: "rgba(255,255,255,0.6)", color: rolePalette.textColor }}>{allAssigned.length}</span>
+                  )}
+                  <p className="text-xs font-bold" style={{ color: rolePalette.textColor }}>{label}</p>
+                </div>
               </div>
 
-              <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+              <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)", boxShadow: "0 1px 3px rgba(20,24,31,0.04)" }}>
                 {assigned.length > 0 && (
                   <div className="grid items-center px-3 py-1.5" style={{ gridTemplateColumns: "1fr 64px 64px 56px", background: "var(--gray-bg)" }}>
                     <span className="text-[9px] font-semibold text-right" style={{ color: "var(--text-secondary)" }}>עובד</span>
@@ -362,19 +392,19 @@ function Schedule() {
                   const hasPendingSwap = pendingSwaps.some(r => r.assignmentId === emp.id);
 
                   return (
-                    <div key={emp.id} className="grid items-center px-3 py-2.5"
+                    <div key={emp.id} className="grid items-center px-3 py-3"
                       style={{
                         gridTemplateColumns: "1fr 64px 64px 56px",
                         borderTop: i > 0 ? "1px solid var(--border)" : "none",
-                        background: isEmergency ? "var(--amber-light)" : "transparent",
+                        background: isEmergency ? "var(--amber-light)" : i % 2 === 1 ? "rgba(20,24,31,0.012)" : "transparent",
                       }}>
-                      <div className="flex items-center gap-2 flex-row min-w-0">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0"
+                      <div className="flex items-center gap-2.5 flex-row min-w-0">
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0"
                           style={{ background: emp.color, color: emp.textColor }}>
                           {emp.initials}
                         </div>
                         <div className="text-right min-w-0">
-                          <p className="text-xs font-medium truncate">{emp.name}</p>
+                          <p className="text-xs font-semibold truncate">{emp.name}</p>
                           {isEmergency && (
                             <p className="text-[9px] font-medium flex items-center gap-0.5 justify-end" style={{ color: "var(--amber)" }}>
                               <AlertTriangle size={9} /> בד״כ {emp.homeRole}
