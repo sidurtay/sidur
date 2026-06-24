@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Phone, Calendar, Lock, Download, ChevronRight, ChevronLeft, Clock, TrendingUp, FileSpreadsheet } from "lucide-react";
+import { Plus, X, Phone, Calendar, Lock, Download, ChevronRight, ChevronLeft, Clock, TrendingUp, FileSpreadsheet, Mail, User, IdCard } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import { calcHours, formatHours, exportMonthToCSV, buildRealAttendance, type AttendanceMonth } from "@/lib/shiftData";
@@ -114,7 +114,7 @@ export default function Employees() {
   }
 
   async function confirmAdd() {
-    if (!newName.trim() || !newPhone.trim()) return;
+    if (!newName.trim() || !newPhone.trim() || !newEmail.trim()) return;
     setSending(true);
     setSentResult(null);
 
@@ -508,42 +508,68 @@ export default function Employees() {
               <p className="text-base font-semibold">הוספת עובד חדש</p>
             </div>
             <div className="flex flex-col gap-3">
-              {[
-                { label: "שם מלא",     value: newName, onChange: setNewName, placeholder: "לדוגמא: יוסי כהן", type: "text" },
-                { label: "תעודת זהות", value: newId,   onChange: setNewId,   placeholder: "9 ספרות",          type: "text" },
-              ].map(f => (
-                <div key={f.label}>
-                  <p className="text-xs mb-1 text-right" style={{ color: "var(--text-secondary)" }}>{f.label}</p>
-                  <input className="w-full px-3 py-2.5 rounded-xl text-sm text-right"
-                    style={{ border: "1px solid var(--border)", background: "var(--surface)" }}
-                    placeholder={f.placeholder} value={f.value}
-                    onChange={e => f.onChange(e.target.value)} />
+              <div>
+                <p className="text-xs font-semibold mb-1.5 text-right" style={{ color: "var(--text-secondary)" }}>שם מלא</p>
+                <div className="relative flex items-center">
+                  <User size={15} className="absolute right-3.5" style={{ color: "var(--text-secondary)" }} />
+                  <input className="w-full pr-10 pl-3 py-3 rounded-xl text-sm text-right outline-none transition-shadow"
+                    style={{ border: "1.5px solid var(--border)", background: "var(--surface)" }}
+                    onFocus={e => e.currentTarget.style.borderColor = "var(--blue)"}
+                    onBlur={e => e.currentTarget.style.borderColor = "var(--border)"}
+                    placeholder="לדוגמא: יוסי כהן" value={newName}
+                    onChange={e => setNewName(e.target.value)} />
                 </div>
-              ))}
-              <div>
-                <p className="text-xs mb-1 text-right" style={{ color: "var(--text-secondary)" }}>מספר טלפון</p>
-                <input
-                  type="tel" inputMode="numeric"
-                  className="w-full px-3 py-2.5 rounded-xl text-sm text-right"
-                  style={{ border: "1px solid var(--border)", background: "var(--surface)", direction: "ltr" }}
-                  placeholder="052-XXXXXXX"
-                  value={newPhone}
-                  onChange={e => setNewPhone(formatPhone(e.target.value))}
-                />
               </div>
+
               <div>
-                <p className="text-xs mb-1 text-right" style={{ color: "var(--text-secondary)" }}>אימייל (לא חובה — אם יש, נשלחת בו הסיסמה הזמנית בחינם)</p>
-                <input
-                  type="email"
-                  className="w-full px-3 py-2.5 rounded-xl text-sm text-right"
-                  style={{ border: "1px solid var(--border)", background: "var(--surface)", direction: "ltr" }}
-                  placeholder="name@example.com"
-                  value={newEmail}
-                  onChange={e => setNewEmail(e.target.value)}
-                />
+                <p className="text-xs font-semibold mb-1.5 text-right" style={{ color: "var(--text-secondary)" }}>תעודת זהות</p>
+                <div className="relative flex items-center">
+                  <IdCard size={15} className="absolute right-3.5" style={{ color: "var(--text-secondary)" }} />
+                  <input className="w-full pr-10 pl-3 py-3 rounded-xl text-sm text-right outline-none transition-shadow"
+                    style={{ border: "1.5px solid var(--border)", background: "var(--surface)" }}
+                    onFocus={e => e.currentTarget.style.borderColor = "var(--blue)"}
+                    onBlur={e => e.currentTarget.style.borderColor = "var(--border)"}
+                    placeholder="9 ספרות" value={newId}
+                    onChange={e => setNewId(e.target.value)} />
+                </div>
               </div>
+
               <div>
-                <p className="text-xs mb-2 text-right" style={{ color: "var(--text-secondary)" }}>תפקיד</p>
+                <p className="text-xs font-semibold mb-1.5 text-right" style={{ color: "var(--text-secondary)" }}>מספר טלפון</p>
+                <div className="relative flex items-center">
+                  <Phone size={15} className="absolute right-3.5" style={{ color: "var(--text-secondary)" }} />
+                  <input
+                    type="tel" inputMode="numeric"
+                    className="w-full pr-10 pl-3 py-3 rounded-xl text-sm text-right outline-none transition-shadow"
+                    style={{ border: "1.5px solid var(--border)", background: "var(--surface)", direction: "ltr" }}
+                    onFocus={e => e.currentTarget.style.borderColor = "var(--blue)"}
+                    onBlur={e => e.currentTarget.style.borderColor = "var(--border)"}
+                    placeholder="052-XXXXXXX"
+                    value={newPhone}
+                    onChange={e => setNewPhone(formatPhone(e.target.value))}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold mb-1.5 text-right" style={{ color: "var(--text-secondary)" }}>אימייל</p>
+                <div className="relative flex items-center">
+                  <Mail size={15} className="absolute right-3.5" style={{ color: "var(--text-secondary)" }} />
+                  <input
+                    type="email"
+                    className="w-full pr-10 pl-3 py-3 rounded-xl text-sm text-right outline-none transition-shadow"
+                    style={{ border: "1.5px solid var(--border)", background: "var(--surface)", direction: "ltr" }}
+                    onFocus={e => e.currentTarget.style.borderColor = "var(--blue)"}
+                    onBlur={e => e.currentTarget.style.borderColor = "var(--border)"}
+                    placeholder="name@example.com"
+                    value={newEmail}
+                    onChange={e => setNewEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold mb-2 text-right" style={{ color: "var(--text-secondary)" }}>תפקיד</p>
                 <div className="flex flex-row gap-2 flex-wrap">
                   {jobRoles.map(r => (
                     <button key={r} onClick={() => setNewRole(r)}
@@ -573,7 +599,7 @@ export default function Employees() {
                     </>
                   ) : (
                     <>
-                      <p className="text-sm font-semibold" style={{ color: "var(--amber)" }}>לא ניתן לשלוח SMS</p>
+                      <p className="text-sm font-semibold" style={{ color: "var(--amber)" }}>לא ניתן לשלוח את פרטי הכניסה</p>
                       <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
                         סיסמה זמנית: <span className="font-bold">{sentResult.tempPassword}</span> — שלח ידנית
                       </p>
@@ -588,10 +614,10 @@ export default function Employees() {
               )}
 
               {!sentResult && (
-                <button onClick={confirmAdd} disabled={sending || !newName.trim() || !newPhone.trim()}
+                <button onClick={confirmAdd} disabled={sending || !newName.trim() || !newPhone.trim() || !newEmail.trim()}
                   className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-1 flex items-center justify-center gap-2"
-                  style={{ background: sending || !newName.trim() || !newPhone.trim() ? "#ADA89D" : "var(--navy)" }}>
-                  {sending ? "שולח SMS..." : "הוסף עובד ושלח SMS"}
+                  style={{ background: sending || !newName.trim() || !newPhone.trim() || !newEmail.trim() ? "#ADA89D" : "var(--navy)" }}>
+                  {sending ? "שולח פרטי כניסה..." : "הוסף עובד ושלח פרטי כניסה"}
                 </button>
               )}
             </div>

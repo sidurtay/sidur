@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { businessId, name, phone, email, roleKey, businessName } = await req.json();
-    if (!businessId || !name?.trim() || !phone?.trim() || !roleKey) {
+    if (!businessId || !name?.trim() || !phone?.trim() || !email?.trim() || !roleKey) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
 
