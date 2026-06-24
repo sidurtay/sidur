@@ -6,7 +6,6 @@ import { CalendarDays, Eye, EyeOff, ShieldCheck } from "lucide-react";
 export default function ChangePassword() {
   const router = useRouter();
   const [name,     setName]    = useState("");
-  const [phone,    setPhone]   = useState("");
   const [personId, setPersonId] = useState("");
   const [newPw,    setNewPw]   = useState("");
   const [confirm,  setConfirm] = useState("");
@@ -18,7 +17,6 @@ export default function ChangePassword() {
     try {
       const s = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
       setName(s.name || "");
-      setPhone(s.phone || "");
       setPersonId(s.personId || "");
     } catch {}
   }, []);
@@ -29,31 +27,20 @@ export default function ChangePassword() {
     if (newPw !== confirm)  { setError("הסיסמאות אינן תואמות"); return; }
     setLoading(true);
 
-    if (personId) {
-      try {
-        const res = await fetch("/api/auth/change-password", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ personId, newPassword: newPw }),
-        });
-        const data = await res.json();
-        if (!data.success) { setError(data.error || "שמירה נכשלה"); setLoading(false); return; }
-        router.replace("/dashboard");
-        return;
-      } catch {
-        setError("שגיאת רשת"); setLoading(false); return;
-      }
-    }
+    if (!personId) { setError("שגיאה — נסה להתחבר מחדש"); setLoading(false); return; }
 
-    // Legacy fallback — employees added before this device had Supabase wired up
     try {
-      const creds = JSON.parse(localStorage.getItem("shiftpro_employee_creds") || "{}");
-      if (creds[phone]) {
-        creds[phone] = { ...creds[phone], password: newPw, tempPassword: null, mustChangePassword: false };
-        localStorage.setItem("shiftpro_employee_creds", JSON.stringify(creds));
-      }
-    } catch {}
-    router.replace("/dashboard");
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ personId, newPassword: newPw }),
+      });
+      const data = await res.json();
+      if (!data.success) { setError(data.error || "שמירה נכשלה"); setLoading(false); return; }
+      router.replace("/dashboard");
+    } catch {
+      setError("שגיאת רשת"); setLoading(false);
+    }
   }
 
   return (

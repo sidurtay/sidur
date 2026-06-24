@@ -8,14 +8,20 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = createServiceRoleClient();
-  const [{ data: anns, error }, { data: confirmations }] = await Promise.all([
-    supabase.from("announcements").select("id, title, body, created_at").eq("business_id", businessId).order("created_at", { ascending: false }),
-    supabase.from("announcement_confirmations").select("announcement_id, person_id, people(name)"),
-  ]);
+  const { data: anns, error } = await supabase
+    .from("announcements")
+    .select("id, title, body, created_at")
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  const annIds = (anns || []).map(a => a.id);
+  const { data: confirmations } = annIds.length
+    ? await supabase.from("announcement_confirmations").select("announcement_id, person_id, people(name)").in("announcement_id", annIds)
+    : { data: [] };
 
   type Conf = { announcement_id: string; person_id: string; people: { name: string } | null };
   const announcements = (anns || []).map(a => ({

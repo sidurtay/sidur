@@ -21,16 +21,21 @@ export default function BiometricDevicePage() {
   const [phone, setPhone] = useState("");
   const [business, setBusiness] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   async function submit() {
     if (!name.trim() || !phone.trim()) return;
+    setSubmitError("");
     try {
-      await fetch("/api/device-waitlist", {
+      const res = await fetch("/api/device-waitlist", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), phone: phone.trim(), business: business.trim() }),
-      });
-    } catch {}
-    setSubmitted(true);
+      }).then(r => r.json());
+      if (res.success) setSubmitted(true);
+      else setSubmitError(res.error || "ההצטרפות לרשימת ההמתנה נכשלה, נסה/י שוב");
+    } catch {
+      setSubmitError("שגיאת רשת — נסה/י שוב");
+    }
   }
 
   return (
@@ -145,6 +150,9 @@ export default function BiometricDevicePage() {
               placeholder="שם העסק (אופציונלי)"
               className="w-full px-4 py-3 rounded-xl text-sm text-right outline-none"
               style={{ background: "var(--gray-bg)", border: "1px solid var(--border)" }} />
+            {submitError && (
+              <p className="text-xs text-center font-medium" style={{ color: "var(--red)" }}>{submitError}</p>
+            )}
             <button onClick={submit} disabled={!name.trim() || !phone.trim()}
               className="w-full py-3.5 rounded-xl text-sm font-semibold text-white"
               style={{ background: name.trim() && phone.trim() ? "var(--navy)" : "#ADA89D" }}>

@@ -94,7 +94,7 @@ export default function AISchedule() {
   const [constraintsMap, setConstraintsMap] = useState<ConstraintsMap>({});
   const [businessId, setBusinessId] = useState("");
   const [employees, setEmployees] = useState<EmployeeRow[]>([]);
-  const missingConstraints = employees.filter(e => !constraintsMap[e.name]);
+  const missingConstraints = employees.filter(e => !constraintsMap[e.personId]);
 
   useEffect(() => {
     const cfg = getEffectiveConfig();
@@ -128,8 +128,8 @@ export default function AISchedule() {
         const consRes = await fetch(`/api/constraints?businessId=${biz}&weekStart=${AI_WEEK_START}`).then(r => r.json());
         if (consRes.success) {
           const map: ConstraintsMap = {};
-          consRes.people.forEach((p: { name: string; availability: Record<number, DayAvailability> }) => {
-            map[p.name] = { availability: p.availability };
+          consRes.people.forEach((p: { personId: string; availability: Record<number, DayAvailability> }) => {
+            map[p.personId] = { availability: p.availability };
           });
           setConstraintsMap(map);
         }
@@ -187,8 +187,8 @@ export default function AISchedule() {
 
     // An employee with no submitted constraints is treated as fully available
     // (and is already flagged separately as "missing constraints").
-    function isAvailable(name: string, dayIndex: number, part: "morning" | "evening"): boolean {
-      const status = constraintsMap[name]?.availability?.[dayIndex] ?? "all";
+    function isAvailable(personId: string, dayIndex: number, part: "morning" | "evening"): boolean {
+      const status = constraintsMap[personId]?.availability?.[dayIndex] ?? "all";
       if (status === "off") return false;
       if (status === "morning") return part === "morning";
       if (status === "evening") return part === "evening";
@@ -213,12 +213,12 @@ export default function AISchedule() {
 
       const dayList: ScheduleEntry[] = [];
 
-      const morningWaiterPool = waiters.filter(e => isAvailable(e.name, day.d, "morning"));
-      const eveningWaiterPool = waiters.filter(e => isAvailable(e.name, day.d, "evening"));
-      const morningKitchenPool = kitchen.filter(e => isAvailable(e.name, day.d, "morning"));
-      const eveningKitchenPool = kitchen.filter(e => isAvailable(e.name, day.d, "evening"));
-      const eveningBarPool = bar.filter(e => isAvailable(e.name, day.d, "evening"));
-      const morningWashPool = wash.filter(e => isAvailable(e.name, day.d, "morning"));
+      const morningWaiterPool = waiters.filter(e => isAvailable(e.personId, day.d, "morning"));
+      const eveningWaiterPool = waiters.filter(e => isAvailable(e.personId, day.d, "evening"));
+      const morningKitchenPool = kitchen.filter(e => isAvailable(e.personId, day.d, "morning"));
+      const eveningKitchenPool = kitchen.filter(e => isAvailable(e.personId, day.d, "evening"));
+      const eveningBarPool = bar.filter(e => isAvailable(e.personId, day.d, "evening"));
+      const morningWashPool = wash.filter(e => isAvailable(e.personId, day.d, "morning"));
 
       const wantMw = aiConfig.morningWaiters;
       const wantEw = aiConfig.eveningWaiters + (isFriday && aiConfig.fridayExtra ? 1 : 0);
@@ -229,7 +229,7 @@ export default function AISchedule() {
         dayList.push({ id: `${day.d}-mw-${i}`, ...e, timeIn: bh.from, timeOut: midStr });
         addHours(e, bh.from, midStr);
       });
-      eveningWaiterPool.filter(e => !dayList.find(d => d.name === e.name)).slice(0, wantEw).forEach((e, i) => {
+      eveningWaiterPool.filter(e => !dayList.find(d => d.personId === e.personId)).slice(0, wantEw).forEach((e, i) => {
         dayList.push({ id: `${day.d}-ew-${i}`, ...e, timeIn: midStr, timeOut: bh.to || "00:00" });
         addHours(e, midStr, bh.to || "00:00");
       });
@@ -237,7 +237,7 @@ export default function AISchedule() {
         dayList.push({ id: `${day.d}-mk-${i}`, ...e, timeIn: bh.from, timeOut: midStr });
         addHours(e, bh.from, midStr);
       });
-      eveningKitchenPool.filter(e => !dayList.find(d => d.name === e.name)).slice(0, wantEk).forEach((e, i) => {
+      eveningKitchenPool.filter(e => !dayList.find(d => d.personId === e.personId)).slice(0, wantEk).forEach((e, i) => {
         dayList.push({ id: `${day.d}-ek-${i}`, ...e, timeIn: midStr, timeOut: bh.to || "00:00" });
         addHours(e, midStr, bh.to || "00:00");
       });

@@ -84,26 +84,10 @@ export default function Login() {
         return;
       }
     } catch {
-      // fall through to legacy localStorage check below
+      setError("שגיאת רשת — נסה שוב");
+      setLoading(false);
+      return;
     }
-
-    // Legacy fallback — employees added before this device had Supabase wired up
-    try {
-      const creds = JSON.parse(localStorage.getItem("shiftpro_employee_creds") || "{}");
-      const emp = creds[phone];
-      if (emp && emp.tempPassword === password) {
-        const session = { phone, name: emp.name, role: "employee", loginAt: Date.now() };
-        localStorage.setItem("shiftpro_session", JSON.stringify(session));
-        router.replace("/change-password");
-        return;
-      }
-      if (emp && emp.password === password) {
-        const session = { phone, name: emp.name, role: "employee", loginAt: Date.now() };
-        localStorage.setItem("shiftpro_session", JSON.stringify(session));
-        router.replace("/dashboard");
-        return;
-      }
-    } catch {}
 
     setError("טלפון או סיסמה שגויים");
     setLoading(false);
