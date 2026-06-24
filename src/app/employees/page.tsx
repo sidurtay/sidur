@@ -158,35 +158,15 @@ export default function Employees() {
       }
       tempPassword = data.tempPassword;
       setEmployees(prev => [...prev, data.employee]);
-
-      // Email (free, sent server-side during creation) takes priority over SMS
-      if (data.emailSent) {
-        setSentResult({ tempPassword, success: true, emailSent: true });
-        setSending(false);
-        setNewName(""); setNewId(""); setNewPhone(""); setNewEmail(""); setNewRole(jobRoles[0] || "");
-        return;
-      }
+      setSentResult({ tempPassword, success: !!data.emailSent, emailSent: data.emailSent });
     } catch {
       setSentResult({ tempPassword: "", success: false, error: "שגיאת רשת — נסה שוב" });
       setSending(false);
       return;
     }
 
-    // Fall back to SMS if no email was provided / email sending failed
-    try {
-      const res = await fetch("/api/send-sms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: newPhone, employeeName: newName.trim(), tempPassword, businessName: bizName }),
-      });
-      const data = await res.json();
-      setSentResult({ tempPassword, success: !!data.success, error: data.error });
-    } catch {
-      setSentResult({ tempPassword, success: false, error: "שגיאת רשת" });
-    } finally {
-      setSending(false);
-      setNewName(""); setNewId(""); setNewPhone(""); setNewEmail(""); setNewRole(jobRoles[0] || "");
-    }
+    setSending(false);
+    setNewName(""); setNewId(""); setNewPhone(""); setNewEmail(""); setNewRole(jobRoles[0] || "");
   }
 
   const monthData    = attendanceData;
@@ -638,7 +618,7 @@ export default function Employees() {
                   {sentResult.success ? (
                     <>
                       <p className="text-sm font-semibold" style={{ color: "var(--green)" }}>
-                        {sentResult.emailSent ? "✓ פרטי הכניסה נשלחו במייל!" : "✓ הודעת SMS נשלחה!"}
+                        ✓ פרטי הכניסה נשלחו במייל!
                       </p>
                       <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
                         סיסמה זמנית: <span className="font-bold" style={{ direction: "ltr", display: "inline-block" }}>{sentResult.tempPassword}</span>
@@ -646,9 +626,9 @@ export default function Employees() {
                     </>
                   ) : (
                     <>
-                      <p className="text-sm font-semibold" style={{ color: "var(--amber)" }}>לא ניתן לשלוח את פרטי הכניסה</p>
+                      <p className="text-sm font-semibold" style={{ color: "var(--amber)" }}>לא ניתן לשלוח את המייל</p>
                       <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
-                        סיסמה זמנית: <span className="font-bold">{sentResult.tempPassword}</span> — שלח ידנית
+                        סיסמה זמנית: <span className="font-bold">{sentResult.tempPassword}</span> — שלח/י לעובד/ת ידנית
                       </p>
                       {sentResult.error && <p className="text-xs mt-0.5 opacity-60">{sentResult.error}</p>}
                     </>
