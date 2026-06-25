@@ -49,7 +49,7 @@ export default function MyHours() {
 
   if (!emp || !currentMonth) {
     return (
-      <div className="flex flex-col min-h-screen pb-16 items-center justify-center" style={{ background: "var(--gray-bg)" }}>
+      <div className="flex flex-col min-h-screen pb-28 items-center justify-center" style={{ background: "var(--gray-bg)" }}>
         <p className="text-sm" style={{ color: "var(--text-secondary)" }}>אין עדיין נתוני נוכחות</p>
         <BottomNav />
       </div>
@@ -57,7 +57,7 @@ export default function MyHours() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen pb-16" style={{ background: "var(--gray-bg)" }}>
+    <div className="flex flex-col min-h-screen pb-28" style={{ background: "var(--gray-bg)" }}>
       {/* Header */}
       <div className="bg-white px-4 pt-12 pb-3" style={{ borderBottom: "1px solid var(--border)" }}>
         <div className="flex items-center gap-3 flex-row">

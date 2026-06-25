@@ -30,7 +30,7 @@ export default function EmployeeSettings() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen pb-16" style={{ background: "var(--gray-bg)" }}>
+    <div className="flex flex-col min-h-screen pb-28" style={{ background: "var(--gray-bg)" }}>
       <div className="bg-white px-4 pt-12 pb-3 relative" style={{ borderBottom: "1px solid var(--border)" }}>
         <div className="absolute top-3 left-4"><Logo size={22} /></div>
         <p className="text-base font-semibold text-right">הגדרות</p>

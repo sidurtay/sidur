@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Bell, Clock, ChevronLeft, CheckCheck, X, AlertTriangle, ArrowLeftRight } from "lucide-react";
+import { Clock, ChevronLeft, CheckCheck, X, AlertTriangle, ArrowLeftRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import ClockInOutCard from "@/components/ClockInOutCard";
@@ -14,20 +14,10 @@ const TODAY_DAY_OF_WEEK = 2;
 
 type Announcement = { id: number | string; title: string; text: string; createdAt: string; confirmed: boolean };
 
-type Notif = { id: string | number; title: string; text: string; time: string; type: string; unread: boolean };
-const notifStyle: Record<string, { bg: string; color: string }> = {
-  warn:    { bg: "var(--amber-light)", color: "var(--amber)" },
-  info:    { bg: "var(--blue-light)", color: "var(--blue)" },
-  success: { bg: "var(--green-light)", color: "var(--green)" },
-};
-
 export default function EmployeeDashboard() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [bizName, setBizName] = useState("");
-  const [notifsOpen, setNotifsOpen] = useState(false);
-  const [notifRead, setNotifRead] = useState(true);
-  const [dynamicNotifs, setDynamicNotifs] = useState<Notif[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [businessId, setBusinessId] = useState("");
   const [personId, setPersonId] = useState("");
@@ -45,9 +35,6 @@ export default function EmployeeDashboard() {
       setName(s.name || "");
       setBizName(s.businessName || "");
       biz = s.businessId || ""; person = s.personId || "";
-      const stored = JSON.parse(localStorage.getItem("shiftpro_tips_notifications") || "[]");
-      const mine = stored.filter((n: { workers?: string[] }) => !n.workers || n.workers.includes(s.name));
-      if (mine.length > 0) { setDynamicNotifs(mine); setNotifRead(false); }
     } catch {}
 
     setBusinessId(biz); setPersonId(person);
@@ -115,7 +102,7 @@ export default function EmployeeDashboard() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen pb-16" style={{ background: "var(--gray-bg)" }}>
+    <div className="flex flex-col min-h-screen pb-28" style={{ background: "var(--gray-bg)" }}>
       {/* Header */}
       <div style={{ background: "var(--navy)" }} className="px-4 pt-12 pb-4">
         <div className="flex items-center justify-between flex-row">
@@ -128,13 +115,6 @@ export default function EmployeeDashboard() {
               style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>
               {TODAY_LABEL}
             </span>
-            <button className="relative p-2 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}
-              onClick={() => { setNotifsOpen(true); setNotifRead(true); }}>
-              <Bell size={20} color="white" />
-              {(!notifRead || dynamicNotifs.some(n => n.unread)) && (
-                <span className="absolute top-1.5 left-1.5 w-2 h-2 rounded-full" style={{ background: "#F87171" }} />
-              )}
-            </button>
             <Logo size={22} />
           </div>
         </div>
@@ -261,47 +241,6 @@ export default function EmployeeDashboard() {
           </div>
         </div>
       </div>
-
-      {/* Notifications sheet */}
-      {notifsOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
-          onClick={() => setNotifsOpen(false)}>
-          <div className="w-full max-w-lg rounded-t-2xl overflow-hidden"
-            style={{ background: "var(--gray-bg)", maxHeight: "85vh", overflowY: "auto", paddingBottom: 80 }}
-            onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-4" style={{ background: "#C4C2B8" }} />
-            <div className="flex items-center justify-between px-4 mb-4 flex-row">
-              <button onClick={() => setNotifsOpen(false)}><X size={18} style={{ color: "var(--text-secondary)" }} /></button>
-              <p className="text-base font-semibold">התראות</p>
-            </div>
-            <div className="px-4 pb-4 flex flex-col gap-0">
-              {dynamicNotifs.length === 0 ? (
-                <p className="text-sm text-center py-6" style={{ color: "var(--text-secondary)" }}>אין התראות חדשות</p>
-              ) : dynamicNotifs.map((n, i, arr) => {
-                const ns = notifStyle[n.type] || notifStyle["info"];
-                return (
-                  <div key={n.id} className="flex items-start gap-3 py-3 flex-row"
-                    style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : "none" }}>
-                    {n.unread && <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: "var(--navy)" }} />}
-                    {!n.unread && <div className="w-2 flex-shrink-0" />}
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: ns.bg, color: ns.color }}>
-                      {n.type === "warn"    && <AlertTriangle size={14} />}
-                      {n.type === "info"    && <ArrowLeftRight size={14} />}
-                      {n.type === "success" && <CheckCheck size={14} />}
-                    </div>
-                    <div className="flex-1 text-right">
-                      <p className="text-sm font-semibold">{n.title}</p>
-                      <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--text-secondary)" }}>{n.text}</p>
-                      <p className="text-xs mt-1" style={{ color: "#9A9890" }}>{n.time}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Swap picker sheet */}
       {swapPicker && (

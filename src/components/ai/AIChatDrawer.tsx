@@ -1,12 +1,19 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { X, Send } from "lucide-react";
+import { X, Send, Sparkles, ArrowLeft } from "lucide-react";
+import { EXAMPLE_PROMPTS } from "@/lib/ai/intentMatcher";
+import AiWalker from "./AiWalker";
+import ScheduleBuilderChat from "./ScheduleBuilderChat";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Action = { label: string; href: string };
+type Msg = { role: "user" | "assistant"; content: string; action?: Action };
 
 type Session = { businessId: string; personId: string; name: string; businessName: string; isManager: boolean };
 
-export default function AIChatDrawer({ session, onClose }: { session: Session; onClose: () => void }) {
+export default function AIChatDrawer({ session, initialMessage, onConsumedInitialMessage, onClose }: {
+  session: Session; initialMessage?: string | null; onConsumedInitialMessage?: () => void; onClose: () => void;
+}) {
+  const [wizardActive, setWizardActive] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -14,6 +21,7 @@ export default function AIChatDrawer({ session, onClose }: { session: Session; o
   const [error, setError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const sentRef = useRef(false);
+  const sentInitialRef = useRef(false);
 
   useEffect(() => {
     // Guards against a race where the user sends a message (optimistically appended
@@ -26,21 +34,29 @@ export default function AIChatDrawer({ session, onClose }: { session: Session; o
         if (res.success && res.history.length > 0) {
           setMessages(res.history.map((h: { role: "user" | "assistant"; content: string }) => ({ role: h.role, content: h.content })));
         } else {
-          setMessages([{ role: "assistant", content: `שלום ${session.name.split(" ")[0]}! איך אפשר לעזור? אפשר לשאול אותי על שעות עבודה, משמרות קרובות, או לבקש החלפה / היעדרות.` }]);
+          setMessages([{ role: "assistant", content: `היי ${session.name.split(" ")[0]}! 👋 איך אפשר לעזור?` }]);
         }
       })
       .catch(() => {
-        if (!sentRef.current) setMessages([{ role: "assistant", content: "שלום! איך אפשר לעזור?" }]);
+        if (!sentRef.current) setMessages([{ role: "assistant", content: "היי! איך אפשר לעזור? 👋" }]);
       })
       .finally(() => setLoadingHistory(false));
   }, [session.businessId, session.personId, session.name]);
 
   useEffect(() => {
+    if (!initialMessage || sentInitialRef.current) return;
+    sentInitialRef.current = true;
+    send(initialMessage);
+    onConsumedInitialMessage?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMessage]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  async function send() {
-    const text = input.trim();
+  async function send(textOverride?: string) {
+    const text = (textOverride ?? input).trim();
     if (!text || loading) return;
     sentRef.current = true;
     setInput("");
@@ -59,7 +75,7 @@ export default function AIChatDrawer({ session, onClose }: { session: Session; o
       }).then(r => r.json());
 
       if (res.success) {
-        setMessages(prev => [...prev, { role: "assistant", content: res.reply }]);
+        setMessages(prev => [...prev, { role: "assistant", content: res.reply, action: res.action }]);
       } else {
         setError(res.error || "משהו נכשל, נסה שוב");
       }
@@ -70,81 +86,146 @@ export default function AIChatDrawer({ session, onClose }: { session: Session; o
     }
   }
 
+  const showSuggestions = !loadingHistory && messages.length <= 1 && !loading;
+
   return (
     <div
       className="fixed inset-0 z-[70] flex items-end justify-center"
-      style={{ background: "rgba(0,0,0,0.45)" }}
+      style={{ background: "rgba(20,24,31,0.55)" }}
       onClick={onClose}
     >
       <div
         onClick={e => e.stopPropagation()}
         className="w-full max-w-lg flex flex-col"
         style={{
-          background: "#141414",
-          borderRadius: "20px 20px 0 0",
-          height: "78vh",
+          background: "#1A1F29",
+          borderRadius: "22px 22px 0 0",
+          height: "80vh",
           direction: "rtl",
+          boxShadow: "0 -8px 40px rgba(0,0,0,0.35)",
         }}
       >
-        <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ background: "rgba(232,240,255,0.25)" }} />
+        <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ background: "rgba(249,115,22,0.35)" }} />
 
-        <div className="flex items-center justify-between px-4 py-3 flex-row" style={{ borderBottom: "1px solid rgba(232,240,255,0.1)" }}>
-          <button onClick={onClose}>
-            <X size={18} style={{ color: "#e8f0ff" }} />
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 flex-row"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", background: "linear-gradient(180deg, rgba(249,115,22,0.06), transparent)" }}>
+          <button onClick={onClose} className="p-1">
+            <X size={18} style={{ color: "rgba(255,255,255,0.7)" }} />
           </button>
-          <p className="text-sm font-semibold" style={{ color: "#e8f0ff" }}>עוזר AI · Sidur</p>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
-          {loadingHistory ? (
-            <p className="text-sm text-center py-6" style={{ color: "rgba(232,240,255,0.5)" }}>טוען...</p>
-          ) : (
-            messages.map((m, i) => (
-              <div key={i} className={`flex flex-col ${m.role === "user" ? "items-start" : "items-end"}`}>
-                <div
-                  className="px-3.5 py-2.5 rounded-2xl text-sm max-w-[85%] leading-relaxed whitespace-pre-wrap"
-                  style={m.role === "user"
-                    ? { background: "rgba(232,240,255,0.1)", color: "#e8f0ff" }
-                    : { background: "#e8f0ff", color: "#141414" }}
-                >
-                  {m.content}
-                </div>
-              </div>
-            ))
-          )}
-          {loading && (
-            <div className="flex flex-col items-end">
-              <div className="px-3.5 py-2.5 rounded-2xl text-sm" style={{ background: "#e8f0ff", color: "#141414" }}>
-                <span style={{ opacity: 0.6 }}>חושב...</span>
-              </div>
+          <div className="flex items-center gap-2 flex-row">
+            <div className="text-right">
+              <p className="text-sm font-bold" style={{ color: "#fff" }}>עוזר AI · Sidur</p>
+              <p className="text-[10px] flex items-center gap-1 justify-end" style={{ color: "rgba(255,255,255,0.45)" }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#34D399" }} />
+                מחובר ומוכן לעזור
+              </p>
             </div>
-          )}
-          {error && (
-            <p className="text-xs text-center" style={{ color: "#F87171" }}>{error}</p>
-          )}
-          <div ref={bottomRef} />
+            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: "linear-gradient(145deg, #1F2937, #14181F)", border: "1.5px solid rgba(249,115,22,0.45)" }}>
+              <Sparkles size={14} style={{ color: "#F97316" }} />
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 px-4 py-3 flex-row" style={{ borderTop: "1px solid rgba(232,240,255,0.1)" }}>
-          <button
-            onClick={send}
-            disabled={loading || !input.trim()}
-            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ background: "#e8f0ff", opacity: loading || !input.trim() ? 0.5 : 1 }}
-          >
-            <Send size={15} color="#141414" />
-          </button>
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") send(); }}
-            placeholder="שאל אותי משהו..."
-            disabled={loading}
-            className="flex-1 text-sm text-right px-3.5 py-2.5 rounded-xl outline-none"
-            style={{ background: "rgba(232,240,255,0.08)", color: "#e8f0ff" }}
-          />
-        </div>
+        {wizardActive ? (
+          <ScheduleBuilderChat onDone={onClose} />
+        ) : (
+          <>
+            {/* Messages */}
+            <div className="ai-chat-scroll flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
+              {loadingHistory ? (
+                <div className="flex flex-col items-end gap-2">
+                  <div className="h-8 w-2/3 rounded-2xl" style={{ background: "rgba(255,255,255,0.06)" }} />
+                  <div className="h-8 w-1/2 rounded-2xl" style={{ background: "rgba(255,255,255,0.06)" }} />
+                </div>
+              ) : (
+                messages.map((m, i) => (
+                  <div key={i} className={`flex flex-col gap-1.5 ${m.role === "user" ? "items-start" : "items-end"}`}>
+                    <div
+                      className="px-3.5 py-2.5 rounded-2xl text-sm max-w-[85%] leading-relaxed whitespace-pre-wrap"
+                      style={m.role === "user"
+                        ? { background: "rgba(255,255,255,0.08)", color: "#fff" }
+                        : { background: "linear-gradient(150deg, #FFF7ED, #FFFFFF)", color: "#1F2937" }}
+                    >
+                      {m.content}
+                    </div>
+                    {m.action && (
+                      <button
+                        onClick={() => setWizardActive(true)}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold flex-row"
+                        style={{ background: "#F97316", color: "#fff" }}
+                      >
+                        <ArrowLeft size={13} />
+                        {m.action.label}
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
+
+              {showSuggestions && (
+                <div className="flex flex-col items-end gap-1.5 mt-1">
+                  <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>אפשר למשל לשאול:</p>
+                  <div className="flex flex-row flex-wrap gap-1.5 justify-end">
+                    {EXAMPLE_PROMPTS.slice(0, 4).map(p => (
+                      <button key={p} onClick={() => send(p)}
+                        className="px-3 py-1.5 rounded-full text-[11px] font-medium"
+                        style={{ background: "rgba(249,115,22,0.12)", color: "#FDBA74", border: "1px solid rgba(249,115,22,0.3)" }}>
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {loading && <AiWalker />}
+              {error && (
+                <p className="text-xs text-center" style={{ color: "#F87171" }}>{error}</p>
+              )}
+              <div ref={bottomRef} />
+            </div>
+
+            {/* Input */}
+            <div className="flex items-center gap-2 px-4 py-3 flex-row" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+              <button
+                onClick={() => send()}
+                disabled={loading || !input.trim()}
+                className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: "#F97316", opacity: loading || !input.trim() ? 0.4 : 1 }}
+              >
+                <Send size={15} color="#fff" />
+              </button>
+              <input
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") send(); }}
+                placeholder="שאל אותי משהו..."
+                disabled={loading}
+                className="flex-1 text-sm text-right px-3.5 py-2.5 rounded-xl outline-none"
+                style={{ background: "rgba(255,255,255,0.06)", color: "#fff" }}
+              />
+            </div>
+          </>
+        )}
       </div>
+
+      <style jsx>{`
+        .ai-chat-scroll {
+          scrollbar-color: #f97316 rgba(255, 255, 255, 0.06);
+          scrollbar-width: thin;
+        }
+        .ai-chat-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+        .ai-chat-scroll::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.06);
+        }
+        .ai-chat-scroll::-webkit-scrollbar-thumb {
+          background: #f97316;
+          border-radius: 6px;
+        }
+      `}</style>
     </div>
   );
 }

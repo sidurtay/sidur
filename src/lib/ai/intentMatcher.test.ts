@@ -124,6 +124,31 @@ describe("matchIntent — manager-only intents", () => {
   });
 });
 
+describe("matchIntent — build_schedule (manager-only AI scheduler handoff)", () => {
+  it("matches several phrasings of asking the AI to build a schedule", () => {
+    expect(matchIntent("תבנה לי סידור", true).intent).toBe("build_schedule");
+    expect(matchIntent("תכין לי משמרות לשבוע הבא", true).intent).toBe("build_schedule");
+    expect(matchIntent("אפשר לבנות לי את הסידור?", true).intent).toBe("build_schedule");
+    expect(matchIntent("build me a schedule", true).intent).toBe("build_schedule");
+  });
+
+  it("is manager-only", () => {
+    expect(matchIntent("תבנה לי סידור", false).intent).not.toBe("build_schedule");
+  });
+
+  it("does not false-positive on innocent questions about upcoming shifts", () => {
+    expect(matchIntent("מתי המשמרות הקרובות שלי?", true).intent).not.toBe("build_schedule");
+  });
+});
+
+describe("matchIntent — faq fallback covers scheduling knowledge too", () => {
+  it("answers how the AI scheduler works for managers", () => {
+    const res = matchIntent("איך עובד הבונה האוטומטי?", true);
+    expect(res.intent).toBe("faq");
+    expect(res.faqAnswer).toBeTruthy();
+  });
+});
+
 describe("matchIntent — unknown fallback", () => {
   it("falls back to unknown for unrecognized text", () => {
     expect(matchIntent("בלה בלה משהו לא קשור", false).intent).toBe("unknown");

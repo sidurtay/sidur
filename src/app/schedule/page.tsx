@@ -1,10 +1,11 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
-import { X, Plus, Coins, AlertTriangle, Sparkles, ArrowLeftRight, ClipboardList, ChevronLeft, ChevronRight, Search, ChevronDown } from "lucide-react";
+import { X, Plus, Coins, AlertTriangle, ArrowLeftRight, ClipboardList, ChevronLeft, ChevronRight, Search, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
+import { shiftBucket, SHIFT_BUCKET_LABEL, type ShiftSplit } from "@/lib/businessConfig";
 
 type ClockSource = "qr" | "fingerprint" | "manual";
 type ClockEvent  = { time: string; source: ClockSource };
@@ -31,6 +32,15 @@ const TODAY_DAY_OF_WEEK = 2;
 const DAY_LETTERS = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
+
+// Default clock-in/out for a newly added employee, keyed by which shift is
+// currently selected at the top of the page — chosen so each one lands
+// squarely inside the matching bucket per shiftBucket() in businessConfig.ts.
+const SHIFT_DEFAULT_TIMES: Record<"morning" | "evening" | "night", { timeIn: string; timeOut: string }> = {
+  morning: { timeIn: "08:00", timeOut: "16:00" },
+  evening: { timeIn: "16:00", timeOut: "00:00" },
+  night:   { timeIn: "22:00", timeOut: "06:00" },
+};
 
 // weekOffset 0 = the frozen "today"'s week, negative = past weeks, positive = future —
 // lets the manager navigate arbitrarily far back to fix old records, not just one week each way.
@@ -76,6 +86,8 @@ function Schedule() {
   const [newRoleName, setNewRoleName] = useState("");
   const [recurrencePrompt, setRecurrencePrompt] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [shiftSplit, setShiftSplitState] = useState<ShiftSplit>("none");
+  const [selectedShift, setSelectedShift] = useState<"morning" | "evening" | "night">("morning");
 
   async function loadWeek(biz: string, weekStart: string) {
     try {
@@ -100,12 +112,14 @@ function Schedule() {
 
     (async () => {
       try {
-        const [rolesRes, empRes] = await Promise.all([
+        const [rolesRes, empRes, bizRes] = await Promise.all([
           fetch(`/api/roles?businessId=${biz}`).then(r => r.json()),
           fetch(`/api/employees?businessId=${biz}`).then(r => r.json()),
+          fetch(`/api/business?businessId=${biz}`).then(r => r.json()),
         ]);
         if (rolesRes.success) setJobRoles(rolesRes.roles);
         if (empRes.success) setEmployees(empRes.employees);
+        if (bizRes.success) setShiftSplitState(bizRes.business.shiftSplit || "none");
         const initialOffset = searchParams.get("week") === "next" ? 1 : 0;
         setWeekOffset(initialOffset);
         setActiveDay(initialOffset === 0 ? TODAY_DAY_OF_WEEK : 0);
@@ -127,7 +141,66 @@ function Schedule() {
     loadWeek(businessId, getWeekInfo(offset).weekStart);
   }
 
-  function getByRole(role: string) { return dayAssignments.filter(a => a.role === role); }
+  function renderEmployeeCard(emp: Assignment) {
+    const isEmergency = !!emp.homeRole;
+    const hasIn       = !!emp.actualIn;
+    const hasOut      = !!emp.actualOut;
+    const inSrc    = emp.actualIn?.source;
+    const outSrc   = emp.actualOut?.source;
+    const inTime   = emp.actualIn?.time  || emp.timeIn;
+    const outTime  = emp.actualOut?.time || emp.timeOut;
+    const hasPendingSwap = pendingSwaps.some(r => r.assignmentId === emp.id);
+
+    return (
+      <div key={emp.id} className="relative rounded-lg px-2 py-1.5 flex flex-col gap-0.5"
+        style={{
+          background: isEmergency ? "var(--amber-light)" : "var(--blue-light)",
+          border: `1px solid ${isEmergency ? "#EBC395" : "var(--blue-border)"}`,
+        }}>
+        {/* Top row — name + tiny remove/swap icons, no separate header band */}
+        <div className="flex items-center justify-between gap-1 flex-row">
+          <div className="flex items-center gap-1 flex-row flex-shrink-0">
+            <button onClick={() => removeEmployee(emp.id)}>
+              <X size={10} style={{ color: "var(--text-secondary)", opacity: 0.6 }} />
+            </button>
+            <button onClick={() => setSwapTarget(emp)} className="relative">
+              {hasPendingSwap && (
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full" style={{ background: "var(--amber)" }} title="בקשת החלפה ממתינה לאישור" />
+              )}
+              <ArrowLeftRight size={10} style={{ color: "var(--blue)" }} />
+            </button>
+          </div>
+          <p className="text-[11px] font-bold truncate" style={{ color: "var(--navy)" }}>{emp.name}</p>
+        </div>
+
+        {/* Time row — click to edit */}
+        <button onClick={() => openEdit(emp)} className="flex items-center justify-center gap-1 flex-row" style={{ direction: "ltr" }}>
+          <span className="text-[11px] font-semibold" style={{ color: hasIn ? inColor(inSrc) : "var(--text-secondary)" }}>
+            {inTime}
+          </span>
+          <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>–</span>
+          <span className="text-[11px] font-semibold" style={{ color: hasOut ? outColor(outSrc) : "var(--text-secondary)" }}>
+            {outTime}
+          </span>
+        </button>
+
+        {isEmergency && (
+          <p className="text-[8px] font-medium flex items-center gap-0.5 justify-center" style={{ color: "var(--amber)" }}>
+            <AlertTriangle size={8} /> בד״כ {emp.homeRole}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // When shift-split is on, each role's list is filtered down to the currently
+  // selected shift — the picker switches between three separate schedules
+  // (morning / evening / night) rather than just sub-grouping one combined list.
+  function getByRole(role: string) {
+    const all = dayAssignments.filter(a => a.role === role);
+    if (shiftSplit === "none") return all;
+    return all.filter(a => shiftBucket(a.actualIn?.time || a.timeIn, shiftSplit) === selectedShift);
+  }
   function getAvailable(role: string) {
     const assignedIds = new Set(dayAssignments.map(a => a.personId));
     return employees.filter(e => e.role === role && !assignedIds.has(e.id));
@@ -135,6 +208,7 @@ function Schedule() {
 
   async function addEmployee(emp: EmployeeRow, targetRole: string) {
     const homeRole = targetRole !== emp.role ? emp.role : undefined;
+    const { timeIn, timeOut } = shiftSplit !== "none" ? SHIFT_DEFAULT_TIMES[selectedShift] : { timeIn: "09:00", timeOut: "17:00" };
     try {
       const res = await fetch("/api/schedule", {
         method: "POST",
@@ -142,7 +216,7 @@ function Schedule() {
         body: JSON.stringify({
           businessId, weekStart: week.weekStart, dayOfWeek: activeDay,
           personId: emp.id, roleKey: targetRole, homeRoleKey: homeRole || null,
-          timeIn: "09:00", timeOut: "17:00",
+          timeIn, timeOut,
         }),
       });
       const data = await res.json();
@@ -242,11 +316,6 @@ function Schedule() {
               style={{ background: "var(--green-light)", color: "var(--green)", border: "1px solid #A8D9BB" }}>
               <ClipboardList size={13} /> אילוצים
             </Link>
-            <Link href="/schedule/ai"
-              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0"
-              style={{ background: "var(--navy)", color: "#fff" }}>
-              <Sparkles size={13} /> AI
-            </Link>
           </div>
           <p className="text-base font-semibold">סידור עבודה</p>
         </div>
@@ -303,6 +372,25 @@ function Schedule() {
             );
           })}
         </div>
+
+        {/* Shift picker — only when shift-split is enabled in settings. Adding an
+            employee to a role now drops them straight into this shift's time
+            range, so they land in the right bucket below without manual editing. */}
+        {shiftSplit !== "none" && (
+          <div className="flex flex-row gap-1.5">
+            {(["morning", "evening", "night"] as const)
+              .filter(s => s !== "night" || shiftSplit === "morning_evening_night")
+              .map(s => (
+                <button key={s} onClick={() => setSelectedShift(s)}
+                  className="flex-1 py-2 rounded-xl text-xs font-bold"
+                  style={selectedShift === s
+                    ? { background: "var(--navy)", color: "#fff" }
+                    : { background: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+                  {SHIFT_BUCKET_LABEL[s]}
+                </button>
+              ))}
+          </div>
+        )}
 
         {/* Legend */}
         <div className="flex flex-row gap-1.5 flex-wrap">
@@ -365,57 +453,7 @@ function Schedule() {
 
               {assigned.length > 0 && (
                 <div className="grid grid-cols-2 gap-2 mb-2" style={{ gridAutoRows: "1fr" }}>
-                  {assigned.map(emp => {
-                    const isEmergency = !!emp.homeRole;
-                    const hasIn       = !!emp.actualIn;
-                    const hasOut      = !!emp.actualOut;
-                    const inSrc    = emp.actualIn?.source;
-                    const outSrc   = emp.actualOut?.source;
-                    const inTime   = emp.actualIn?.time  || emp.timeIn;
-                    const outTime  = emp.actualOut?.time || emp.timeOut;
-                    const hasPendingSwap = pendingSwaps.some(r => r.assignmentId === emp.id);
-
-                    return (
-                      <div key={emp.id} className="relative rounded-lg px-2 py-1.5 flex flex-col gap-0.5"
-                        style={{
-                          background: isEmergency ? "var(--amber-light)" : "var(--blue-light)",
-                          border: `1px solid ${isEmergency ? "#EBC395" : "var(--blue-border)"}`,
-                        }}>
-                        {/* Top row — name + tiny remove/swap icons, no separate header band */}
-                        <div className="flex items-center justify-between gap-1 flex-row">
-                          <div className="flex items-center gap-1 flex-row flex-shrink-0">
-                            <button onClick={() => removeEmployee(emp.id)}>
-                              <X size={10} style={{ color: "var(--text-secondary)", opacity: 0.6 }} />
-                            </button>
-                            <button onClick={() => setSwapTarget(emp)} className="relative">
-                              {hasPendingSwap && (
-                                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full" style={{ background: "var(--amber)" }} title="בקשת החלפה ממתינה לאישור" />
-                              )}
-                              <ArrowLeftRight size={10} style={{ color: "var(--blue)" }} />
-                            </button>
-                          </div>
-                          <p className="text-[11px] font-bold truncate" style={{ color: "var(--navy)" }}>{emp.name}</p>
-                        </div>
-
-                        {/* Time row — click to edit */}
-                        <button onClick={() => openEdit(emp)} className="flex items-center justify-center gap-1 flex-row" style={{ direction: "ltr" }}>
-                          <span className="text-[11px] font-semibold" style={{ color: hasIn ? inColor(inSrc) : "var(--text-secondary)" }}>
-                            {inTime}
-                          </span>
-                          <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>–</span>
-                          <span className="text-[11px] font-semibold" style={{ color: hasOut ? outColor(outSrc) : "var(--text-secondary)" }}>
-                            {outTime}
-                          </span>
-                        </button>
-
-                        {isEmergency && (
-                          <p className="text-[8px] font-medium flex items-center gap-0.5 justify-center" style={{ color: "var(--amber)" }}>
-                            <AlertTriangle size={8} /> בד״כ {emp.homeRole}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {assigned.map(emp => renderEmployeeCard(emp))}
                 </div>
               )}
 

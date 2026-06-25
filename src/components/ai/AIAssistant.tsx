@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import AICharacter from "./AICharacter";
 import AIChatDrawer from "./AIChatDrawer";
+import AiProactiveBubble from "./AiProactiveBubble";
 
 type Session = { businessId: string; personId: string; name: string; businessName: string; isManager: boolean };
 
@@ -10,6 +11,7 @@ type Session = { businessId: string; personId: string; name: string; businessNam
 export default function AIAssistant() {
   const [session, setSession] = useState<Session | null>(null);
   const [open, setOpen] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
 
   useEffect(() => {
     function readSession() {
@@ -37,7 +39,15 @@ export default function AIAssistant() {
   return (
     <>
       <AICharacter onClick={() => setOpen(true)} />
-      {open && <AIChatDrawer session={session} onClose={() => setOpen(false)} />}
+      {!open && <AiProactiveBubble session={session} onOpenWithMessage={msg => { setPendingMessage(msg); setOpen(true); }} />}
+      {open && (
+        <AIChatDrawer
+          session={session}
+          initialMessage={pendingMessage}
+          onConsumedInitialMessage={() => setPendingMessage(null)}
+          onClose={() => setOpen(false)}
+        />
+      )}
     </>
   );
 }

@@ -40,9 +40,9 @@ test("manager can open the AI assistant and ask about pending requests", async (
 
   await chatInput.fill("שלום");
   await chatInput.press("Enter");
-  await expect(page.getByText(/איך אפשר לעזור/)).toHaveCount(1, { timeout: 10000 });
+  await expect(page.getByText(/אפשר לעזור/)).toHaveCount(1, { timeout: 10000 });
 
   await chatInput.fill("בקשות ממתינות");
   await chatInput.press("Enter");
-  await expect(page.getByText(/אין בקשות ממתינות כרגע/)).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText(/אין בקשות ממתינות|הכל מטופל/)).toBeVisible({ timeout: 10000 });
 });

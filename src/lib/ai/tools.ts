@@ -1,10 +1,12 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { calcHours } from "@/lib/shiftData";
 
 // Matches the convention used across the rest of the app (schedule, tips, AI scheduler):
 // a frozen "current" week and the "next" week it's building toward.
 export const CURRENT_WEEK_START = "2026-06-21";
 export const NEXT_WEEK_START = "2026-06-28";
 export const TODAY_DAY_OF_WEEK = 2; // Tuesday, 23.6
+const TODAY_DATE = "2026-06-23";
 
 type ToolCtx = { businessId: string; personId: string; isManager: boolean };
 
@@ -263,6 +265,48 @@ export async function getMostRecentPendingNotification(ctx: ToolCtx) {
   if (error) return { error: error.message };
   if (!data) return { notification: null };
   return { notification: data };
+}
+
+// Tips are tracked per-business per-shift (one pool, not per employee), and
+// split client-side proportionally to hours worked — see tips/page.tsx's
+// calcShares(). This mirrors that same proportional split so the assistant
+// can answer "how much did I make in tips today" with a real number instead
+// of just pointing at the tips page.
+export async function getTipsToday(ctx: ToolCtx) {
+  const supabase = createServiceRoleClient();
+  const { data: tipsDay, error: tipsError } = await supabase
+    .from("tips_days")
+    .select("morning_total, evening_total, daily_total, published")
+    .eq("business_id", ctx.businessId)
+    .eq("date", TODAY_DATE)
+    .maybeSingle();
+  if (tipsError) return { error: tipsError.message };
+  if (!tipsDay || !tipsDay.published) return { published: false };
+
+  const { data: assignments, error: assignError } = await supabase
+    .from("schedule_assignments")
+    .select("person_id, time_in, time_out")
+    .eq("business_id", ctx.businessId)
+    .eq("week_start", CURRENT_WEEK_START)
+    .eq("day_of_week", TODAY_DAY_OF_WEEK);
+  if (assignError) return { error: assignError.message };
+
+  const mine = (assignments || []).find(a => a.person_id === ctx.personId);
+  if (!mine) return { published: true, myShare: 0, worked: false };
+
+  const myHour = parseInt(mine.time_in.slice(0, 2), 10);
+  const isEvening = myHour >= 15;
+  const shiftAssignments = (assignments || []).filter(a => {
+    const h = parseInt(a.time_in.slice(0, 2), 10);
+    return (h >= 15) === isEvening;
+  });
+
+  const totalForShift = Number(isEvening ? tipsDay.evening_total : tipsDay.morning_total) || 0;
+  const totalHours = shiftAssignments.reduce((s, a) => s + calcHours(a.time_in.slice(0, 5), a.time_out.slice(0, 5)), 0);
+  const myHours = calcHours(mine.time_in.slice(0, 5), mine.time_out.slice(0, 5));
+  const myShare = totalHours > 0 ? Math.round((totalForShift * myHours) / totalHours) : 0;
+
+  return { published: true, worked: true, myShare, shiftLabel: isEvening ? "ערב" : "בוקר", myHours: Math.round(myHours * 10) / 10 };
 }
 
 export async function markNotificationRead(notificationId: string) {

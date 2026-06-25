@@ -18,6 +18,8 @@ export type Intent =
   | "manager_pending"
   | "approve_last"
   | "deny_last"
+  | "build_schedule"
+  | "tips_today"
   | "faq"
   | "unknown";
 
@@ -130,6 +132,12 @@ const PATTERNS: { intent: Intent; test: RegExp }[] = [
   { intent: "approve_last", test: /^(אשר|תאשר|מאשר)$|אשר\s*(את\s*)?(ה)?בקשה|אשר\s*(את\s*)?האחרונה|\bapprove\b/ },
   { intent: "deny_last", test: /^(דחה|תדחה|דוחה)$|דחה\s*(את\s*)?(ה)?בקשה|דחה\s*(את\s*)?האחרונה|\bdeny\b|\breject\b/ },
   {
+    // Manager-only: hand off to the full AI schedule-builder wizard at /schedule/ai
+    // instead of trying to run that whole multi-step flow inside this lightweight chat.
+    intent: "build_schedule",
+    test: /(בנה|תבנה|לבנות|תכין|להכין|תעשה|לעשות|תסדר|לסדר|תזמן)\s*(לי\s*)?(את\s*)?(ה)?(סידור|משמרות|עובדים)|בניית\s*סידור|בונה\s*(ה)?סידור|build.*schedule|auto.*schedule|schedule\s*builder/,
+  },
+  {
     intent: "create_absence",
     test: /חופש|היעדרות|לא\s*אגיע|לא\s*יכול\s*לבוא|לא\s*אוכל\s*להגיע|לא\s*מגיע|אני\s*חולה|מחלה|absence|day\s*off|sick\s*day|time\s*off|vacation|take.*off/,
   },
@@ -150,6 +158,10 @@ const PATTERNS: { intent: Intent; test: RegExp }[] = [
     intent: "hours",
     test: /כמה\s*שעות|שעות\s*עבדתי|דוח\s*שעות|כמה\s*עבדתי|סיכום\s*שעות|hours.*work|how\s*many\s*hours|total\s*hours|my\s*hours/,
   },
+  {
+    intent: "tips_today",
+    test: /כמה\s*טיפים|טיפים\s*(שלי|היום)|הטיפים\s*שלי|כמה\s*עשיתי\s*(בטיפים)?|my\s*tips|tips\s*today|how\s*much.*tips/,
+  },
 ];
 
 function matchFaq(text: string, isManager: boolean): string | undefined {
@@ -165,7 +177,7 @@ export function matchIntent(rawText: string, isManager: boolean): MatchResult {
 
   for (const { intent, test } of PATTERNS) {
     if (!test.test(text)) continue;
-    if ((intent === "manager_pending" || intent === "approve_last" || intent === "deny_last") && !isManager) continue;
+    if ((intent === "manager_pending" || intent === "approve_last" || intent === "deny_last" || intent === "build_schedule") && !isManager) continue;
 
     if (intent === "hours") return { intent, month: extractMonth(text) };
     if (intent === "schedule_for_date") {

@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("businesses")
-    .select("name, business_id_num, tips_mode, clockout_requires_approval")
+    .select("name, business_id_num, tips_mode, clockout_requires_approval, plan, shift_split")
     .eq("id", businessId)
     .single();
 
@@ -23,13 +23,14 @@ export async function GET(req: NextRequest) {
     business: {
       name: data.name, businessIdNum: data.business_id_num || "",
       tipsMode: data.tips_mode, clockoutRequiresApproval: data.clockout_requires_approval,
+      plan: data.plan || "starter", shiftSplit: data.shift_split || "none",
     },
   });
 }
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { businessId, name, businessIdNum, tipsMode, clockoutRequiresApproval } = await req.json();
+    const { businessId, name, businessIdNum, tipsMode, clockoutRequiresApproval, shiftSplit } = await req.json();
     if (!businessId) {
       return NextResponse.json({ error: "businessId חסר" }, { status: 400 });
     }
@@ -39,6 +40,7 @@ export async function PATCH(req: NextRequest) {
     if (businessIdNum !== undefined) update.business_id_num = businessIdNum;
     if (tipsMode !== undefined) update.tips_mode = tipsMode;
     if (clockoutRequiresApproval !== undefined) update.clockout_requires_approval = clockoutRequiresApproval;
+    if (shiftSplit !== undefined) update.shift_split = shiftSplit;
 
     const supabase = createServiceRoleClient();
     const { error } = await supabase.from("businesses").update(update).eq("id", businessId);

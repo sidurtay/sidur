@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, AlertTriangle, Clock, ArrowLeftRight, X, CheckCheck, Plus, Pencil, Trash2, ChevronLeft, Users, Fingerprint, LogIn, LogOut } from "lucide-react";
+import { AlertTriangle, Clock, ArrowLeftRight, X, CheckCheck, Plus, Pencil, Trash2, ChevronLeft, Users, Fingerprint, LogIn, LogOut } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import ClockInOutCard from "@/components/ClockInOutCard";
@@ -17,11 +17,6 @@ type Announcement = {
   confirmedBy: string[];
 };
 
-const notifStyle: Record<string, { bg: string; color: string }> = {
-  warn:    { bg: "var(--amber-light)", color: "var(--amber)" },
-  info:    { bg: "var(--blue-light)", color: "var(--blue)" },
-  success: { bg: "var(--green-light)", color: "var(--green)" },
-};
 const statusLabel: Record<string, { label: string; bg: string; color: string }> = {
   active:  { label: "נוכח",       bg: "var(--green-light)", color: "var(--green)" },
   late:    { label: "איחור",      bg: "var(--red-light)", color: "var(--red)" },
@@ -32,7 +27,6 @@ const TODAY_LABEL = "שלישי, 23.6";
 const TODAY_WEEK_START = "2026-06-21";
 const TODAY_DAY_OF_WEEK = 2;
 
-type Notif = { id: string|number; title: string; text: string; time: string; type: string; unread: boolean };
 type TodayWorker = { id: string; name: string; initials: string; role: string; color: string; textColor: string; timeIn: string; timeOut: string; status: "active"|"late"|"pending"; checkin: string };
 type SwapRequest = {
   id: string; status: string; assignmentId: string; dayOfWeek?: number; roleKey?: string; timeIn?: string; timeOut?: string;
@@ -60,9 +54,6 @@ function buildTodayWorkers(assignments: { id: string; name: string; initials: st
 export default function Dashboard() {
   const router = useRouter();
   const [showAll,     setShowAll]     = useState(false);
-  const [notifsOpen,  setNotifsOpen]  = useState(false);
-  const [notifRead,   setNotifRead]   = useState(false);
-  const [dynamicNotifs, setDynamicNotifs] = useState<Notif[]>([]);
   const [role, setRole] = useState<"manager" | "employee" | null>(null);
   const [clockRequests, setClockRequests] = useState<ClockRequest[]>([]);
   const [businessId, setBusinessId] = useState("");
@@ -85,13 +76,6 @@ export default function Dashboard() {
       if (session.businessName) setBusinessName(session.businessName);
       if (session.personId) setMyPersonId(session.personId);
     } catch { setRole("manager"); }
-    try {
-      const stored = JSON.parse(localStorage.getItem("shiftpro_tips_notifications") || "[]");
-      if (stored.length > 0) {
-        setDynamicNotifs(stored);
-        setNotifRead(false);
-      }
-    } catch {}
 
     setBusinessId(biz);
 
@@ -200,7 +184,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen pb-16" style={{ background: "var(--gray-bg)" }}>
+    <div className="flex flex-col min-h-screen pb-28" style={{ background: "var(--gray-bg)" }}>
 
       {/* ── Header ────────────────────────────────────────── */}
       <div style={{ background: "var(--navy)" }} className="px-4 pt-12 pb-4">
@@ -214,13 +198,6 @@ export default function Dashboard() {
               style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>
               {TODAY_LABEL}
             </span>
-            <button className="relative p-2 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}
-              onClick={() => { setNotifsOpen(true); setNotifRead(true); }}>
-              <Bell size={20} color="white" />
-              {(!notifRead || dynamicNotifs.some(n => n.unread)) && (
-                <span className="absolute top-1.5 left-1.5 w-2 h-2 rounded-full" style={{ background: "#F87171" }} />
-              )}
-            </button>
             <Logo size={22} />
           </div>
         </div>
@@ -681,47 +658,6 @@ export default function Dashboard() {
               <button onClick={() => deleteAnnouncement(deleteConfirm)}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
                 style={{ background: "var(--red)" }}>מחק</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Notifications sheet ───────────────────────────── */}
-      {notifsOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
-          onClick={() => setNotifsOpen(false)}>
-          <div className="w-full max-w-lg rounded-t-2xl overflow-hidden"
-            style={{ background: "var(--gray-bg)", maxHeight: "85vh", overflowY: "auto", paddingBottom: 80 }}
-            onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-4" style={{ background: "#C4C2B8" }} />
-            <div className="flex items-center justify-between px-4 mb-4 flex-row">
-              <button onClick={() => setNotifsOpen(false)}><X size={18} style={{ color: "var(--text-secondary)" }} /></button>
-              <p className="text-base font-semibold">התראות</p>
-            </div>
-            <div className="px-4 pb-4 flex flex-col gap-0">
-              {dynamicNotifs.length === 0 ? (
-                <p className="text-sm text-center py-6" style={{ color: "var(--text-secondary)" }}>אין התראות חדשות</p>
-              ) : dynamicNotifs.map((n, i, arr) => {
-                const ns = notifStyle[n.type] || notifStyle["info"];
-                return (
-                  <div key={n.id} className="flex items-start gap-3 py-3 flex-row"
-                    style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : "none" }}>
-                    {n.unread && <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: "var(--navy)" }} />}
-                    {!n.unread && <div className="w-2 flex-shrink-0" />}
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: ns.bg, color: ns.color }}>
-                      {n.type === "warn"    && <AlertTriangle size={14} />}
-                      {n.type === "info"    && <ArrowLeftRight size={14} />}
-                      {n.type === "success" && <CheckCheck size={14} />}
-                    </div>
-                    <div className="flex-1 text-right">
-                      <p className="text-sm font-semibold">{n.title}</p>
-                      <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--text-secondary)" }}>{n.text}</p>
-                      <p className="text-xs mt-1" style={{ color: "#9A9890" }}>{n.time}</p>
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           </div>
         </div>

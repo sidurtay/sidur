@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Store, Clock, Users, Plus, X, AlertTriangle, Check, Receipt, ShieldCheck, Mail, Send, Lock, Fingerprint, ChevronLeft, Sparkles } from "lucide-react";
+import { Store, Clock, Users, Plus, X, AlertTriangle, Check, Receipt, ShieldCheck, Mail, Send, Lock, Fingerprint, ChevronLeft, Sparkles, Layers, Crown } from "lucide-react";
 import InstagramIcon from "@/components/InstagramIcon";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
@@ -11,7 +11,7 @@ import EmployeeSettings from "./EmployeeSettings";
 import {
   getStoredConfig, savePermanent, saveWeekOverride,
   configChanged, DEFAULT_CONFIG,
-  type BusinessConfig, type DayConfig,
+  type BusinessConfig, type DayConfig, type ShiftSplit,
 } from "@/lib/businessConfig";
 import { requiresClockOutApproval, setRequiresClockOutApproval } from "@/lib/clockRequests";
 
@@ -66,6 +66,8 @@ export default function Settings() {
   const [clockOutApproval, setClockOutApproval] = useState(true);
   const [businessId, setBusinessId] = useState("");
   const [personId, setPersonId] = useState("");
+  const [plan, setPlan] = useState("starter");
+  const [shiftSplit, setShiftSplit] = useState<ShiftSplit>("none");
 
   useEffect(() => {
     const stored = getStoredConfig();
@@ -104,6 +106,8 @@ export default function Settings() {
         if (bizRes.success) {
           setBizName(bizRes.business.name); setBizId(bizRes.business.businessIdNum);
           setTipsMode(bizRes.business.tipsMode); setClockOutApproval(bizRes.business.clockoutRequiresApproval);
+          setPlan(bizRes.business.plan || "starter");
+          setShiftSplit(bizRes.business.shiftSplit || "none");
         }
         if (hoursRes.success) setDays(hoursRes.days);
         if (rolesRes.success) setRoles(rolesRes.roles.map((r: { key: string }) => r.key));
@@ -178,7 +182,7 @@ export default function Settings() {
 
     fetch("/api/business", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ businessId, name: bizName, businessIdNum: bizId, tipsMode, clockoutRequiresApproval: clockOutApproval }),
+      body: JSON.stringify({ businessId, name: bizName, businessIdNum: bizId, tipsMode, clockoutRequiresApproval: clockOutApproval, shiftSplit: plan === "starter" ? "none" : shiftSplit }),
     }).catch(() => {});
     if (scope === "permanent") {
       fetch("/api/business-hours", {
@@ -233,7 +237,7 @@ export default function Settings() {
   const enabledCount = permPopupRole ? PERMISSIONS.filter(p => popupPerms[p.key]).length : 0;
 
   return (
-    <div className="flex flex-col min-h-screen pb-16" style={{ background: "var(--gray-bg)" }}>
+    <div className="flex flex-col min-h-screen pb-28" style={{ background: "var(--gray-bg)" }}>
       <div className="bg-white px-4 pt-12 pb-3 relative" style={{ borderBottom: "1px solid var(--border)" }}>
         <div className="absolute top-3 left-4"><Logo size={22} /></div>
         <p className="text-base font-semibold text-right">הגדרות עסק</p>
@@ -316,6 +320,58 @@ export default function Settings() {
             </p>
             <Check size={13} style={{ color: "var(--blue)" }} />
           </div>
+        </div>
+
+        {/* Shift split — gated by plan */}
+        <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+          <div className="flex items-center justify-between px-3 py-2.5 flex-row" style={{ borderBottom: "1px solid var(--border)" }}>
+            {plan === "starter" && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 flex-row"
+                style={{ background: "var(--navy)", color: "#fff" }}>
+                <Crown size={10} /> Plus ומעלה
+              </span>
+            )}
+            <div className="flex items-center gap-2 flex-row">
+              <Layers size={13} style={{ color: "var(--blue)" }} />
+              <p className="text-sm font-semibold">חילוק משמרות בסידור</p>
+            </div>
+          </div>
+
+          {plan === "starter" ? (
+            <div className="px-3 py-4 flex flex-col items-center gap-2 text-center">
+              <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                במסלול Starter הסידור מציג כל עובד בבלוק אחד ליום. שדרגו ל-Plus או Business כדי לחלק את הסידור לבוקר, ערב ואפילו לילה.
+              </p>
+            </div>
+          ) : (
+            <div className="p-3 flex flex-col gap-2">
+              <p className="text-xs text-right mb-1" style={{ color: "var(--text-secondary)" }}>
+                איך לחלק את הסידור היומי בכל תפקיד
+              </p>
+              <div className="flex flex-col gap-2">
+                {([
+                  ["none", "בלי חילוק", "כל העובדים ביחד, כמו היום"],
+                  ["morning_evening", "בוקר וערב", "מחלק את כל תפקיד לשתי משמרות"],
+                  ["morning_evening_night", "בוקר, ערב ולילה", "מתאים למקום שפתוח 24 שעות"],
+                ] as [ShiftSplit, string, string][]).map(([mode, label, desc]) => (
+                  <button key={mode} onClick={() => setShiftSplit(mode)}
+                    className="rounded-xl p-3 text-right flex items-center justify-between flex-row"
+                    style={shiftSplit === mode
+                      ? { background: "var(--navy)", border: "2px solid var(--navy)" }
+                      : { background: "var(--gray-bg)", border: "1.5px solid var(--border)" }}>
+                    <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ border: `2px solid ${shiftSplit === mode ? "#fff" : "var(--border)"}` }}>
+                      {shiftSplit === mode && <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#fff" }} />}
+                    </div>
+                    <div className="flex-1 mr-2">
+                      <p className="text-xs font-bold" style={{ color: shiftSplit === mode ? "#fff" : "var(--text-main)" }}>{label}</p>
+                      <p className="text-[10px]" style={{ color: shiftSplit === mode ? "rgba(255,255,255,0.65)" : "var(--text-secondary)" }}>{desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Tips mode */}

@@ -5,6 +5,29 @@ export type DayConfig = {
   to: string;
 };
 
+// Whether the manual schedule page groups each role's employees by shift.
+// Gated by subscription plan — "starter" (free) only supports "none".
+export type ShiftSplit = "none" | "morning_evening" | "morning_evening_night";
+
+/**
+ * Buckets a scheduled start time into a shift, given the split mode in effect.
+ * Treats anything from 21:00 onward (or starting right at midnight, i.e. a
+ * shift that rolls into the next calendar day) as "night" — but only when
+ * the night bucket is actually enabled; otherwise it folds into "evening".
+ */
+export function shiftBucket(timeIn: string, split: ShiftSplit): "morning" | "evening" | "night" {
+  const hour = parseInt(timeIn.split(":")[0], 10) || 0;
+  const isLate = hour === 0 || hour >= 21;
+  if (isLate) return split === "morning_evening_night" ? "night" : "evening";
+  return hour < 15 ? "morning" : "evening";
+}
+
+export const SHIFT_BUCKET_LABEL: Record<"morning" | "evening" | "night", string> = {
+  morning: "בוקר",
+  evening: "ערב",
+  night: "לילה",
+};
+
 export type BusinessConfig = {
   bizName: string;
   bizId: string;
