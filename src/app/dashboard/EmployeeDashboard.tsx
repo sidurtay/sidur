@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Clock, ChevronLeft, CheckCheck, X, AlertTriangle, ArrowLeftRight } from "lucide-react";
+import { Clock, ChevronLeft, CheckCheck, X, AlertTriangle, ArrowLeftRight, Coins } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import ClockInOutCard from "@/components/ClockInOutCard";
@@ -27,6 +27,7 @@ export default function EmployeeDashboard() {
   const [mySwapRequest, setMySwapRequest] = useState<{ id: string; status: string; proposerName?: string } | null>(null);
   const [swapPicker, setSwapPicker] = useState(false);
   const [upcomingShifts, setUpcomingShifts] = useState<ReturnType<typeof buildUpcomingShifts>>([]);
+  const [tipsToday, setTipsToday] = useState<{ published: boolean; worked?: boolean; myShare?: number; shiftLabel?: string } | null>(null);
 
   useEffect(() => {
     let biz = "", person = "";
@@ -67,6 +68,10 @@ export default function EmployeeDashboard() {
       fetch(`/api/clock-requests?businessId=${biz}&personId=${person}`)
         .then(r => r.json())
         .then(res => { if (res.success) setRealMonthData(buildRealAttendance(res.requests)); })
+        .catch(() => {});
+      fetch(`/api/tips/mine?businessId=${biz}&personId=${person}`)
+        .then(r => r.json())
+        .then(res => { if (res.success) setTipsToday(res); })
         .catch(() => {});
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -186,6 +191,21 @@ export default function EmployeeDashboard() {
             <p className="text-[9px]" style={{ color: "rgba(255,255,255,0.65)" }}>שעות</p>
           </div>
         </Link>
+
+        {/* Today's tips — only shown once there's a real, published number to show */}
+        {tipsToday?.published && tipsToday.worked && (
+          <div className="bg-white rounded-xl p-4 flex items-center justify-between flex-row" style={{ border: "1px solid var(--border)" }}>
+            <div className="rounded-xl px-3 py-2 text-center" style={{ background: "var(--green-light)" }}>
+              <p className="text-base font-bold" style={{ color: "var(--green)" }}>₪{tipsToday.myShare}</p>
+              <p className="text-[9px]" style={{ color: "var(--green)" }}>טיפים</p>
+            </div>
+            <div className="text-right flex-1 mx-3">
+              <p className="text-sm font-semibold">הטיפים שלי היום</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>ממשמרת ה{tipsToday.shiftLabel}</p>
+            </div>
+            <Coins size={16} style={{ color: "var(--text-secondary)" }} />
+          </div>
+        )}
 
         {/* Upcoming shifts */}
         <div>

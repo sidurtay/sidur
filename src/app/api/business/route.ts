@@ -40,9 +40,26 @@ export async function PATCH(req: NextRequest) {
     if (businessIdNum !== undefined) update.business_id_num = businessIdNum;
     if (tipsMode !== undefined) update.tips_mode = tipsMode;
     if (clockoutRequiresApproval !== undefined) update.clockout_requires_approval = clockoutRequiresApproval;
-    if (shiftSplit !== undefined) update.shift_split = shiftSplit;
 
     const supabase = createServiceRoleClient();
+
+    // Shift-split is a paid-plan feature — enforce that server-side too, not just
+    // in the settings UI, so a starter-plan business can't enable it by calling
+    // the API directly.
+    if (shiftSplit !== undefined) {
+      if (shiftSplit !== "none") {
+        const { data: biz, error: planError } = await supabase
+          .from("businesses").select("plan").eq("id", businessId).single();
+        if (planError || !biz) {
+          return NextResponse.json({ error: planError?.message || "העסק לא נמצא" }, { status: 404 });
+        }
+        if ((biz.plan || "starter") === "starter") {
+          return NextResponse.json({ error: "חילוק משמרות זמין רק במסלולים בתשלום" }, { status: 403 });
+        }
+      }
+      update.shift_split = shiftSplit;
+    }
+
     const { error } = await supabase.from("businesses").update(update).eq("id", businessId);
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

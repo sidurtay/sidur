@@ -185,3 +185,26 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "שגיאת שרת" }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  const id = req.nextUrl.searchParams.get("id");
+  const businessId = req.nextUrl.searchParams.get("businessId");
+  if (!id || !businessId) {
+    return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
+  }
+
+  const supabase = createServiceRoleClient();
+
+  // Most person_id foreign keys cascade-delete automatically (schedule_assignments,
+  // clock_requests, ai_conversations, chat memberships...), but swap_requests.proposed_person
+  // and announcements.created_by don't — clear those references first so the FK
+  // constraint on the people row itself doesn't block deletion.
+  await supabase.from("swap_requests").update({ proposed_person: null }).eq("proposed_person", id);
+  await supabase.from("announcements").update({ created_by: null }).eq("created_by", id);
+
+  const { error } = await supabase.from("people").delete().eq("id", id).eq("business_id", businessId);
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  return NextResponse.json({ success: true });
+}

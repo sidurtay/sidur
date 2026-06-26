@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Phone, Calendar, Lock, Download, ChevronRight, ChevronLeft, Clock, TrendingUp, FileSpreadsheet, Mail, User, IdCard, Briefcase } from "lucide-react";
+import { Plus, X, Phone, Calendar, Lock, Download, ChevronRight, ChevronLeft, Clock, TrendingUp, FileSpreadsheet, Mail, User, IdCard, Briefcase, Trash2, AlertTriangle } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import { calcHours, formatHours, exportMonthToCSV, buildRealAttendance, type AttendanceMonth } from "@/lib/shiftData";
@@ -32,6 +32,9 @@ export default function Employees() {
   const [resetResult, setResetResult] = useState<{ tempPassword: string; emailSent?: boolean } | { error: string } | null>(null);
   const [changingRole, setChangingRole] = useState(false);
   const [roleChangeError, setRoleChangeError] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const cats = ["הכל", ...jobRoles];
 
@@ -114,6 +117,26 @@ export default function Employees() {
       setRoleChangeError("שגיאת רשת — נסה שוב");
     } finally {
       setChangingRole(false);
+    }
+  }
+
+  async function deleteEmployee(emp: Employee) {
+    if (!emp.id || !businessId) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      const res = await fetch(`/api/employees?id=${emp.id}&businessId=${businessId}`, { method: "DELETE" }).then(r => r.json());
+      if (res.success) {
+        setEmployees(prev => prev.filter(e => e.id !== emp.id));
+        setSelected(null);
+        setDeleteConfirm(false);
+      } else {
+        setDeleteError(res.error || "הסרת העובד נכשלה");
+      }
+    } catch {
+      setDeleteError("שגיאת רשת — נסה שוב");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -218,7 +241,7 @@ export default function Employees() {
         {filtered.map(emp => (
           <div key={emp.id || emp.name} className="bg-white rounded-xl px-3 py-3 flex items-center gap-2 flex-row cursor-pointer"
             style={{ border: "1px solid var(--border)" }}
-            onClick={() => { setSelected(emp); setResetResult(null); setRoleChangeError(""); }}>
+            onClick={() => { setSelected(emp); setResetResult(null); setRoleChangeError(""); setDeleteConfirm(false); setDeleteError(""); }}>
             <span className="text-xs px-2 py-0.5 rounded-md flex-shrink-0"
               style={{ background: "var(--gray-bg)", color: "var(--text-secondary)" }}>{emp.role}</span>
             <span className="flex-1 text-center text-sm font-medium">{emp.name}</span>
@@ -316,9 +339,41 @@ export default function Employees() {
                   <p className="text-xs text-center mb-3" style={{ color: "var(--red)" }}>{resetResult.error}</p>
                 )}
 
-                <p className="text-xs flex items-center gap-1 justify-end" style={{ color: "#9A9890" }}>
+                <p className="text-xs flex items-center gap-1 justify-end mb-3" style={{ color: "#9A9890" }}>
                   <Lock size={11} /> שעות עבודה ונתונים נוספים גלויים למנהל בלבד
                 </p>
+
+                {deleteConfirm ? (
+                  <div className="rounded-xl p-3 mb-2" style={{ background: "var(--red-light)", border: "1px solid #F3B8B8" }}>
+                    <p className="text-xs font-semibold text-right flex items-center gap-1.5 justify-end mb-1" style={{ color: "var(--red)" }}>
+                      <AlertTriangle size={13} /> להסיר את {selected.name} לצמיתות?
+                    </p>
+                    <p className="text-[10px] text-right mb-2.5" style={{ color: "var(--text-secondary)" }}>
+                      פעולה זו לא הפיכה — כל הסידורים, הנוכחות וההיסטוריה של העובד/ת יימחקו.
+                    </p>
+                    <div className="flex gap-2 flex-row">
+                      <button onClick={() => deleteEmployee(selected)} disabled={deleting}
+                        className="flex-1 py-2.5 rounded-lg text-xs font-bold text-white"
+                        style={{ background: deleting ? "#D08A8A" : "var(--red)" }}>
+                        {deleting ? "מסיר..." : "כן, הסר לצמיתות"}
+                      </button>
+                      <button onClick={() => setDeleteConfirm(false)} disabled={deleting}
+                        className="flex-1 py-2.5 rounded-lg text-xs font-medium"
+                        style={{ background: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+                        ביטול
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setDeleteConfirm(true)}
+                    className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 mb-2"
+                    style={{ background: "var(--red-light)", color: "var(--red)", border: "1px solid #F3B8B8" }}>
+                    <Trash2 size={14} /> הסר עובד/ת מהעסק
+                  </button>
+                )}
+                {deleteError && (
+                  <p className="text-xs text-center mb-2" style={{ color: "var(--red)" }}>{deleteError}</p>
+                )}
               </>
             )}
           </div>
