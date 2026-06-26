@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { paletteFor, initialsFor, sinceLabel } from "@/lib/avatarPalette";
 import { sendMail } from "@/lib/mailer";
+import { MINIMUM_WAGE_HOURLY } from "@/lib/minimumWage";
 
 function credentialsEmailHtml(employeeName: string, businessName: string, phone: string, tempPassword: string) {
   return `
@@ -154,9 +155,13 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (action === "update_wage") {
+      const wageValue = hourlyWage === "" || hourlyWage == null ? null : Number(hourlyWage);
+      if (wageValue != null && wageValue < MINIMUM_WAGE_HOURLY) {
+        return NextResponse.json({ error: `לא ניתן לשמור — מתחת לשכר המינימום החוקי (₪${MINIMUM_WAGE_HOURLY} לשעה)` }, { status: 400 });
+      }
       const { data, error } = await supabase
         .from("people")
-        .update({ hourly_wage: hourlyWage === "" || hourlyWage == null ? null : Number(hourlyWage) })
+        .update({ hourly_wage: wageValue })
         .eq("id", id)
         .eq("business_id", businessId)
         .select("id, name, hourly_wage")

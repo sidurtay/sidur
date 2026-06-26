@@ -9,6 +9,7 @@ import {
   buildRealAttendance, compareWeekToSchedule, findNoShows,
   type AttendanceMonth, type ComparedShift,
 } from "@/lib/shiftData";
+import { MINIMUM_WAGE_HOURLY, isBelowMinimumWage } from "@/lib/minimumWage";
 
 type Employee = { id?: string; name: string; initials: string; role: string; phone: string; email?: string; since: string; cat: string; color: string; textColor: string; hourlyWage?: number };
 
@@ -147,8 +148,12 @@ export default function Employees() {
   // cost vs. revenue) — purely informational for now, optional per employee.
   async function saveWage(emp: Employee) {
     if (!emp.id || !businessId) return;
-    setSavingWage(true);
     setWageError("");
+    if (wageInput.trim() && Number(wageInput) < MINIMUM_WAGE_HOURLY) {
+      setWageError(`לא ניתן לשמור — מתחת לשכר המינימום החוקי (₪${MINIMUM_WAGE_HOURLY} לשעה)`);
+      return;
+    }
+    setSavingWage(true);
     try {
       const res = await fetch("/api/employees", {
         method: "PATCH", headers: { "Content-Type": "application/json" },
@@ -336,10 +341,15 @@ export default function Employees() {
         {filtered.map(emp => (
           <div key={emp.id || emp.name} className="bg-white rounded-xl px-3 py-3 flex items-center gap-2 flex-row cursor-pointer"
             style={{ border: "1px solid var(--border)" }}
-            onClick={() => { setSelected(emp); setResetResult(null); setRoleChangeError(""); setDeleteConfirm(false); setDeleteError(""); setWageInput(emp.hourlyWage != null ? String(emp.hourlyWage) : ""); setWageError(""); }}>
+            onClick={() => { setSelected(emp); setResetResult(null); setRoleChangeError(""); setDeleteConfirm(false); setDeleteError(""); setWageInput(emp.hourlyWage != null ? String(emp.hourlyWage) : String(MINIMUM_WAGE_HOURLY)); setWageError(""); }}>
             <span className="text-xs px-2 py-0.5 rounded-md flex-shrink-0"
               style={{ background: "var(--gray-bg)", color: "var(--text-secondary)" }}>{emp.role}</span>
-            <span className="flex-1 text-center text-sm font-medium">{emp.name}</span>
+            <span className="flex-1 text-center text-sm font-medium flex items-center gap-1 justify-center">
+              {isBelowMinimumWage(emp.hourlyWage) && (
+                <span title="מתחת לשכר המינימום"><AlertTriangle size={11} style={{ color: "var(--red)" }} /></span>
+              )}
+              {emp.name}
+            </span>
             <span className="text-xs px-2 py-0.5 rounded-md flex-shrink-0"
               style={{ background: "var(--gray-bg)", color: "var(--text-secondary)" }}>{emp.phone}</span>
           </div>
@@ -421,6 +431,14 @@ export default function Employees() {
                 {wageError && (
                   <p className="text-xs mt-2 text-right" style={{ color: "var(--red)" }}>{wageError}</p>
                 )}
+                {!wageError && isBelowMinimumWage(selected.hourlyWage) && (
+                  <p className="text-xs mt-2 text-right flex items-center gap-1 justify-end" style={{ color: "var(--red)" }}>
+                    <AlertTriangle size={12} /> השכר השמור מתחת לשכר המינימום הנוכחי (₪{MINIMUM_WAGE_HOURLY})
+                  </p>
+                )}
+                <p className="text-[10px] mt-2 text-right" style={{ color: "#9A9890" }}>
+                  שכר המינימום החוקי הנוכחי: ₪{MINIMUM_WAGE_HOURLY} לשעה
+                </p>
               </div>
             )}
 
