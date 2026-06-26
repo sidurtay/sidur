@@ -530,7 +530,7 @@ function Schedule() {
         const assignedIds = new Set(dayAssignments.map(a => a.personId));
         const emergency = employees.filter(e => e.role !== addRole && !assignedIds.has(e.id));
         return (
-          <div className="fixed inset-0 z-50 flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
+          <div className="fixed inset-0 z-[60] flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
             onClick={() => setAddRole(null)}>
             <div className="w-full max-w-lg rounded-t-2xl pb-20"
               style={{ background: "var(--gray-bg)", maxHeight: "80vh", overflowY: "auto" }}
@@ -595,7 +595,7 @@ function Schedule() {
         const sameRole  = employees.filter(e => e.role === swapTarget.role && e.id !== swapTarget.personId && !assignedIds.has(e.id));
         const emergency = employees.filter(e => e.role !== swapTarget.role && e.id !== swapTarget.personId && !assignedIds.has(e.id));
         return (
-          <div className="fixed inset-0 z-50 flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
+          <div className="fixed inset-0 z-[60] flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
             onClick={() => setSwapTarget(null)}>
             <div className="w-full max-w-lg rounded-t-2xl pb-20"
               style={{ background: "var(--gray-bg)", maxHeight: "80vh", overflowY: "auto" }}
@@ -651,7 +651,7 @@ function Schedule() {
 
       {/* Edit time popup — saves both as manual (orange) */}
       {editTarget && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-[60] flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setEditTarget(null)}>
           <div className="w-full max-w-lg rounded-t-2xl p-4 pb-8" style={{ background: "var(--gray-bg)" }}
             onClick={e => e.stopPropagation()}>

@@ -264,7 +264,7 @@ export default function EmployeeDashboard() {
 
       {/* Swap picker sheet */}
       {swapPicker && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setSwapPicker(false)}>
           <div className="w-full max-w-lg rounded-t-2xl bg-white" style={{ maxHeight: "75vh", overflowY: "auto", paddingBottom: 24 }}
             onClick={e => e.stopPropagation()}>

@@ -317,7 +317,7 @@ export default function Employees() {
 
       {/* ── Employee detail sheet ──────────────────────────────── */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setSelected(null)}>
           <div className="w-full max-w-lg rounded-t-2xl p-4 pb-10" style={{ background: "var(--gray-bg)" }}
             onClick={e => e.stopPropagation()}>
@@ -446,7 +446,7 @@ export default function Employees() {
 
       {/* ── Attendance report — MONTHLY ───────────────────────── */}
       {attendanceEmp && currentMonth && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setAttendanceEmp(null)}>
           <div className="w-full max-w-lg rounded-t-2xl bg-white"
             style={{ maxHeight: "92vh", overflowY: "auto", paddingBottom: 32 }}
@@ -659,7 +659,7 @@ export default function Employees() {
       )}
 
       {attendanceEmp && !currentMonth && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setAttendanceEmp(null)}>
           <div className="w-full max-w-lg rounded-t-2xl bg-white p-6 text-center" onClick={e => e.stopPropagation()}>
             <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "#C4C2B8" }} />
@@ -676,7 +676,7 @@ export default function Employees() {
 
       {/* ── Add employee sheet ─────────────────────────────────── */}
       {addOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-[60] flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setAddOpen(false)}>
           <div className="w-full max-w-lg rounded-t-2xl p-4" style={{ background: "var(--gray-bg)", maxHeight: "80vh", overflowY: "auto", paddingBottom: 24 }}
             onClick={e => e.stopPropagation()}>

@@ -538,7 +538,7 @@ export default function Settings() {
 
       {/* ── Permissions popup ───────────────────────────────── */}
       {permPopupRole && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-[60] flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setPermPopupRole(null)}>
           <div className="w-full max-w-lg rounded-t-2xl bg-white pb-8" onClick={e => e.stopPropagation()}>
             <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-3" style={{ background: "#C4C2B8" }} />
@@ -588,7 +588,7 @@ export default function Settings() {
 
       {/* ── Save scope modal ─────────────────────────────────── */}
       {saveModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center pb-[60px]"
+        <div className="fixed inset-0 z-[60] flex items-end justify-center pb-[60px]"
           style={{ background: "rgba(0,0,0,0.55)" }}
           onClick={() => setSaveModal(false)}>
           <div className="w-full max-w-lg rounded-t-2xl pb-8 bg-white" onClick={e => e.stopPropagation()}>
@@ -633,7 +633,7 @@ export default function Settings() {
 
       {/* ── Customer support sheet ─────────────────────────── */}
       {supportOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-[60] flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setSupportOpen(false)}>
           <div className="w-full max-w-lg rounded-t-2xl p-4 pb-6 bg-white"
             onClick={e => e.stopPropagation()}>

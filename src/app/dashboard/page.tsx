@@ -510,7 +510,7 @@ export default function Dashboard() {
 
       {/* ── Announcement add/edit sheet ────────────────────── */}
       {(announcementSheet === "add" || announcementSheet === "edit") && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setAnnouncementSheet(null)}>
           <div className="w-full max-w-lg rounded-t-2xl p-4 pb-10 bg-white"
             onClick={e => e.stopPropagation()}>
@@ -556,7 +556,7 @@ export default function Dashboard() {
 
       {/* ── Who confirmed sheet ────────────────────────────── */}
       {announcementSheet === "viewers" && editingAnn && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setAnnouncementSheet(null)}>
           <div className="w-full max-w-lg rounded-t-2xl bg-white"
             style={{ maxHeight: "75vh", overflowY: "auto", paddingBottom: 24 }}
@@ -640,7 +640,7 @@ export default function Dashboard() {
 
       {/* ── Delete confirm dialog ─────────────────────────── */}
       {deleteConfirm !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-6" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setDeleteConfirm(null)}>
           <div className="bg-white rounded-2xl p-5 w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
             <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"

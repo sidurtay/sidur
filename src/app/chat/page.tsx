@@ -261,7 +261,7 @@ export default function Chat() {
 
         {/* Rename modal */}
         {editingName && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: "rgba(0,0,0,0.5)" }}
+          <div className="fixed inset-0 z-[60] flex items-center justify-center px-6" style={{ background: "rgba(0,0,0,0.5)" }}
             onClick={() => setEditingName(false)}>
             <div className="bg-white rounded-2xl p-4 w-full max-w-sm" onClick={e => e.stopPropagation()}>
               <p className="text-base font-semibold text-right mb-3">שנה שם קבוצה</p>
@@ -282,7 +282,7 @@ export default function Chat() {
 
         {/* Emoji picker modal */}
         {editingEmoji && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
+          <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
             onClick={() => setEditingEmoji(false)}>
             <div className="w-full max-w-lg rounded-t-2xl pb-8 bg-white" onClick={e => e.stopPropagation()}>
               <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-4" style={{ background: "#C4C2B8" }} />
@@ -329,7 +329,7 @@ export default function Chat() {
 
         {/* Delete confirm */}
         {deleteConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: "rgba(0,0,0,0.5)" }}
+          <div className="fixed inset-0 z-[60] flex items-center justify-center px-6" style={{ background: "rgba(0,0,0,0.5)" }}
             onClick={() => setDeleteConfirm(false)}>
             <div className="bg-white rounded-2xl p-5 w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
               <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3"
@@ -488,7 +488,7 @@ export default function Chat() {
 
       {/* New group wizard */}
       {showWizard && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setShowWizard(false)}>
           <div className="w-full max-w-lg rounded-t-2xl bg-white" style={{ maxHeight: "90vh", overflowY: "auto", paddingBottom: 88 }}
             onClick={e => e.stopPropagation()}>
