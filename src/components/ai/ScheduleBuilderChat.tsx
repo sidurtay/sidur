@@ -435,7 +435,7 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
 
     setTimeout(() => {
       if (missingConstraints.length > 0) {
-        addMsg({ from: "ai", text: `⚠️ ${missingConstraints.map(e => e.name).join(", ")} לא שלחו אילוצים עדיין — אניח שהם זמינים בכל המשמרות`, status: "warn" });
+        addMsg({ from: "ai", text: `⚠️ אילוצים לא התקבלו מ: ${missingConstraints.map(e => e.name).join(", ")} — אניח שהם זמינים בכל המשמרות`, status: "warn" });
       } else {
         addMsg({ from: "ai", text: "✓ כל העובדים שלחו אילוצים", status: "success" });
       }
@@ -449,7 +449,7 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
       persistScheduleToDb(schedule);
       const totalShifts = Object.values(schedule).reduce((s, d) => s + d.length, 0);
       if (warnings.length > 0) {
-        addMsg({ from: "ai", text: `⚠️ שים לב:\n${warnings.join("\n")}`, status: "warn" });
+        addMsg({ from: "ai", text: `⚠️ שים לב:\n${warnings.map(w => `• ${w}`).join("\n")}`, status: "warn" });
       }
       addMsg({
         from: "ai",
