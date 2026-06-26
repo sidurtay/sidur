@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Phone, Calendar, Lock, Download, ChevronRight, ChevronLeft, Clock, TrendingUp, FileSpreadsheet, Mail, User, IdCard, Briefcase, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, X, Phone, Calendar, Lock, Download, ChevronRight, ChevronLeft, Clock, TrendingUp, FileSpreadsheet, Mail, User, IdCard, Briefcase, Trash2, AlertTriangle, Wallet, Check } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import {
@@ -10,7 +10,7 @@ import {
   type AttendanceMonth, type ComparedShift,
 } from "@/lib/shiftData";
 
-type Employee = { id?: string; name: string; initials: string; role: string; phone: string; email?: string; since: string; cat: string; color: string; textColor: string };
+type Employee = { id?: string; name: string; initials: string; role: string; phone: string; email?: string; since: string; cat: string; color: string; textColor: string; hourlyWage?: number };
 
 const DEFAULT_JOB_ROLES = ["מלצרים", "מטבח", "בר", "שטיפה"];
 
@@ -54,6 +54,10 @@ export default function Employees() {
   const [deleteError, setDeleteError] = useState("");
   const [currentWeekAssignments, setCurrentWeekAssignments] = useState<{ dayOfWeek: number; timeIn: string; timeOut: string }[]>([]);
   const [exportingAll, setExportingAll] = useState(false);
+  const [wageInput, setWageInput] = useState("");
+  const [savingWage, setSavingWage] = useState(false);
+  const [wageError, setWageError] = useState("");
+  const [wageSaved, setWageSaved] = useState(false);
 
   const cats = ["הכל", ...jobRoles];
 
@@ -136,6 +140,33 @@ export default function Employees() {
       setRoleChangeError("שגיאת רשת — נסה שוב");
     } finally {
       setChangingRole(false);
+    }
+  }
+
+  // Foundation for future cost-related reporting (overtime cost in ₪, labor
+  // cost vs. revenue) — purely informational for now, optional per employee.
+  async function saveWage(emp: Employee) {
+    if (!emp.id || !businessId) return;
+    setSavingWage(true);
+    setWageError("");
+    try {
+      const res = await fetch("/api/employees", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: emp.id, businessId, action: "update_wage", hourlyWage: wageInput }),
+      }).then(r => r.json());
+      if (res.success) {
+        const wage = res.employee.hourlyWage;
+        setEmployees(prev => prev.map(e => e.id === emp.id ? { ...e, hourlyWage: wage } : e));
+        setSelected(prev => prev && prev.id === emp.id ? { ...prev, hourlyWage: wage } : prev);
+        setWageSaved(true);
+        setTimeout(() => setWageSaved(false), 2000);
+      } else {
+        setWageError(res.error || "עדכון השכר נכשל");
+      }
+    } catch {
+      setWageError("שגיאת רשת — נסה שוב");
+    } finally {
+      setSavingWage(false);
     }
   }
 
@@ -305,7 +336,7 @@ export default function Employees() {
         {filtered.map(emp => (
           <div key={emp.id || emp.name} className="bg-white rounded-xl px-3 py-3 flex items-center gap-2 flex-row cursor-pointer"
             style={{ border: "1px solid var(--border)" }}
-            onClick={() => { setSelected(emp); setResetResult(null); setRoleChangeError(""); setDeleteConfirm(false); setDeleteError(""); }}>
+            onClick={() => { setSelected(emp); setResetResult(null); setRoleChangeError(""); setDeleteConfirm(false); setDeleteError(""); setWageInput(emp.hourlyWage != null ? String(emp.hourlyWage) : ""); setWageError(""); }}>
             <span className="text-xs px-2 py-0.5 rounded-md flex-shrink-0"
               style={{ background: "var(--gray-bg)", color: "var(--text-secondary)" }}>{emp.role}</span>
             <span className="flex-1 text-center text-sm font-medium">{emp.name}</span>
@@ -368,6 +399,31 @@ export default function Employees() {
                 )}
               </div>
             )}
+
+            {isManager && (
+              <div className="bg-white rounded-xl p-3 mb-3" style={{ border: "1px solid var(--border)" }}>
+                <div className="flex items-center gap-2 mb-2.5 flex-row justify-end">
+                  <p className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>שכר שעתי</p>
+                  <Wallet size={14} style={{ color: "var(--text-secondary)" }} />
+                </div>
+                <div className="flex items-center gap-2 flex-row">
+                  <button onClick={() => saveWage(selected)} disabled={savingWage}
+                    className="px-4 py-2 rounded-lg text-xs font-bold flex-shrink-0 flex items-center gap-1 flex-row"
+                    style={{ background: wageSaved ? "var(--green)" : "var(--navy)", color: "#fff" }}>
+                    {wageSaved ? <><Check size={12} /> נשמר</> : savingWage ? "שומר..." : "שמור"}
+                  </button>
+                  <input type="number" inputMode="decimal" value={wageInput} onChange={e => setWageInput(e.target.value)}
+                    placeholder="לדוגמה: 35"
+                    className="flex-1 text-sm text-center px-3 py-2 rounded-lg outline-none"
+                    style={{ background: "var(--gray-bg)", border: "1px solid var(--border)" }} />
+                  <span className="text-xs flex-shrink-0" style={{ color: "var(--text-secondary)" }}>₪ / שעה</span>
+                </div>
+                {wageError && (
+                  <p className="text-xs mt-2 text-right" style={{ color: "var(--red)" }}>{wageError}</p>
+                )}
+              </div>
+            )}
+
             <button className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 mb-2"
               style={{ background: "var(--green-light)", color: "var(--green)" }}>
               <Phone size={14} /> חייג

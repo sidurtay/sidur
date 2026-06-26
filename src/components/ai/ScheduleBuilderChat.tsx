@@ -184,6 +184,14 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
     const warnings: string[] = [];
     const weeklyHours: Record<string, number> = {};
 
+    // Flags a person whose next shift starts less than this many minutes after
+    // their previous one ended — a practical rest-between-shifts safety margin,
+    // not a precise legal citation (Israeli law sets weekly rest, not a fixed
+    // inter-shift gap), but a sane floor most workplaces and union agreements use.
+    const MIN_REST_MINUTES = 8 * 60;
+    const personLastShiftEnd: Record<string, number> = {};
+    const restWarned = new Set<string>();
+
     function isAvailable(personId: string, dayIndex: number, part: "morning" | "evening"): boolean {
       const status = constraintsMap[personId]?.availability?.[dayIndex] ?? "all";
       if (status === "off") return false;
@@ -192,11 +200,23 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
       return true;
     }
 
-    function addHours(e: { name: string }, timeIn: string, timeOut: string) {
+    function addHours(e: { name: string }, dayIndex: number, timeIn: string, timeOut: string) {
       const [hi] = timeIn.split(":").map(Number);
       let [ho] = timeOut.split(":").map(Number);
       if (ho <= hi) ho += 24;
       weeklyHours[e.name] = (weeklyHours[e.name] || 0) + (ho - hi);
+
+      const startAbs = dayIndex * 24 * 60 + hi * 60;
+      const endAbs = dayIndex * 24 * 60 + ho * 60;
+      const lastEnd = personLastShiftEnd[e.name];
+      if (lastEnd !== undefined) {
+        const gap = startAbs - lastEnd;
+        if (gap >= 0 && gap < MIN_REST_MINUTES && !restWarned.has(e.name)) {
+          warnings.push(`${e.name}: פחות מ-8 שעות מנוחה בין משמרות (מומלץ לבדוק)`);
+          restWarned.add(e.name);
+        }
+      }
+      personLastShiftEnd[e.name] = Math.max(lastEnd ?? -Infinity, endAbs);
     }
 
     nextWeekDays.forEach(day => {
@@ -223,19 +243,19 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
 
       morningWaiterPool.slice(0, wantMw).forEach((e, i) => {
         dayList.push({ id: `${day.d}-mw-${i}`, ...e, timeIn: bh.from, timeOut: midStr });
-        addHours(e, bh.from, midStr);
+        addHours(e, day.d, bh.from, midStr);
       });
       eveningWaiterPool.filter(e => !dayList.find(d => d.personId === e.personId)).slice(0, wantEw).forEach((e, i) => {
         dayList.push({ id: `${day.d}-ew-${i}`, ...e, timeIn: midStr, timeOut: bh.to || "00:00" });
-        addHours(e, midStr, bh.to || "00:00");
+        addHours(e, day.d, midStr, bh.to || "00:00");
       });
       morningKitchenPool.slice(0, wantMk).forEach((e, i) => {
         dayList.push({ id: `${day.d}-mk-${i}`, ...e, timeIn: bh.from, timeOut: midStr });
-        addHours(e, bh.from, midStr);
+        addHours(e, day.d, bh.from, midStr);
       });
       eveningKitchenPool.filter(e => !dayList.find(d => d.personId === e.personId)).slice(0, wantEk).forEach((e, i) => {
         dayList.push({ id: `${day.d}-ek-${i}`, ...e, timeIn: midStr, timeOut: bh.to || "00:00" });
-        addHours(e, midStr, bh.to || "00:00");
+        addHours(e, day.d, midStr, bh.to || "00:00");
       });
 
       const dayLabel = `${day.label} ${day.date}`;
@@ -258,12 +278,12 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
       if (eveningBarPool.length > 0) {
         const e = eveningBarPool[0];
         dayList.push({ id: `${day.d}-bar-0`, ...e, timeIn: midStr, timeOut: bh.to || "02:00" });
-        addHours(e, midStr, bh.to || "02:00");
+        addHours(e, day.d, midStr, bh.to || "02:00");
       }
       if (morningWashPool.length > 0) {
         const e = morningWashPool[0];
         dayList.push({ id: `${day.d}-wash-0`, ...e, timeIn: bh.from, timeOut: midStr });
-        addHours(e, bh.from, midStr);
+        addHours(e, day.d, bh.from, midStr);
       }
 
       schedule[day.d] = dayList;

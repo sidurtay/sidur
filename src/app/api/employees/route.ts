@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("people")
-    .select("id, name, phone, email, role_key, initials, color, text_color, since_label, created_at")
+    .select("id, name, phone, email, role_key, initials, color, text_color, since_label, created_at, hourly_wage")
     .eq("business_id", businessId)
     .eq("role_type", "employee")
     .order("created_at");
@@ -51,6 +51,7 @@ export async function GET(req: NextRequest) {
     color: e.color,
     textColor: e.text_color,
     since: e.since_label || sinceLabel(e.created_at),
+    hourlyWage: e.hourly_wage != null ? Number(e.hourly_wage) : undefined,
   }));
 
   return NextResponse.json({ success: true, employees });
@@ -130,7 +131,7 @@ export async function POST(req: NextRequest) {
 // employee gets) and clears the old hashed password so it stops working.
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, businessId, action, businessName, roleKey } = await req.json();
+    const { id, businessId, action, businessName, roleKey, hourlyWage } = await req.json();
     if (!id || !businessId || !action) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
@@ -150,6 +151,20 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: error?.message || "עדכון התפקיד נכשל" }, { status: 500 });
       }
       return NextResponse.json({ success: true, employee: data });
+    }
+
+    if (action === "update_wage") {
+      const { data, error } = await supabase
+        .from("people")
+        .update({ hourly_wage: hourlyWage === "" || hourlyWage == null ? null : Number(hourlyWage) })
+        .eq("id", id)
+        .eq("business_id", businessId)
+        .select("id, name, hourly_wage")
+        .single();
+      if (error || !data) {
+        return NextResponse.json({ error: error?.message || "עדכון השכר נכשל" }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, employee: { ...data, hourlyWage: data.hourly_wage != null ? Number(data.hourly_wage) : undefined } });
     }
 
     if (action !== "reset_password") {
