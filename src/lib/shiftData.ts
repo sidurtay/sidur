@@ -97,6 +97,79 @@ export function formatHours(h: number): string {
   return mins > 0 ? `${hrs}:${String(mins).padStart(2, "0")}` : `${hrs}:00`;
 }
 
+// Hours beyond an 8-hour shift count as overtime (Israeli labor law's daily
+// threshold) — kept separate from total hours so managers can see exposure
+// without having to do the subtraction themselves.
+const DAILY_OVERTIME_THRESHOLD = 8;
+export function calcOvertimeHours(timeIn: string, timeOut: string): number {
+  return Math.max(0, calcHours(timeIn, timeOut) - DAILY_OVERTIME_THRESHOLD);
+}
+
+export type ComparisonStatus = "ok" | "late" | "early-leave" | "no-show" | "unscheduled";
+export type ComparedShift = ShiftEntry & { plannedIn?: string; plannedOut?: string; status: ComparisonStatus };
+
+const LATE_GRACE_MINUTES = 10;
+function toMinutes(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+// Cross-references a week's actual clock-in/out shifts against that same
+// week's planned schedule_assignments (matched by weekday) to flag lateness
+// and early leaving — the "planned vs. actual" comparison managers don't
+// currently have any view into.
+export function compareWeekToSchedule(
+  shifts: ShiftEntry[],
+  assignments: { dayOfWeek: number; timeIn: string; timeOut: string }[]
+): ComparedShift[] {
+  const byDay: Record<number, { timeIn: string; timeOut: string }> = {};
+  assignments.forEach(a => { byDay[a.dayOfWeek] = a; });
+
+  return shifts.map(s => {
+    const dayIdx = HEBREW_DAYS.indexOf(s.day);
+    const planned = byDay[dayIdx];
+    if (!planned) return { ...s, status: "unscheduled" as const };
+
+    let status: ComparisonStatus = "ok";
+    if (toMinutes(s.timeIn) > toMinutes(planned.timeIn) + LATE_GRACE_MINUTES) status = "late";
+    else if (s.timeOut !== "--:--" && toMinutes(s.timeOut) < toMinutes(planned.timeOut) - LATE_GRACE_MINUTES) status = "early-leave";
+    return { ...s, plannedIn: planned.timeIn, plannedOut: planned.timeOut, status };
+  });
+}
+
+// Days with a planned shift but no matching clock-in at all — these never show
+// up in `shifts` (which is built only from real clock_requests), so they have
+// to be derived from the schedule side instead.
+export function findNoShows(
+  assignments: { dayOfWeek: number; timeIn: string; timeOut: string }[],
+  shifts: ShiftEntry[]
+): { day: string; plannedIn: string; plannedOut: string }[] {
+  const workedDays = new Set(shifts.map(s => HEBREW_DAYS.indexOf(s.day)));
+  return assignments
+    .filter(a => !workedDays.has(a.dayOfWeek))
+    .map(a => ({ day: HEBREW_DAYS[a.dayOfWeek], plannedIn: a.timeIn, plannedOut: a.timeOut }));
+}
+
+// One combined payroll-ready CSV across every employee, instead of having to
+// download and re-merge N separate per-employee files by hand.
+export function exportAllToCSV(rows: { name: string; role: string; day: string; date: string; timeIn: string; timeOut: string }[], filename: string) {
+  const BOM    = "﻿";
+  const header = ["שם עובד","תפקיד","יום","תאריך","שעת כניסה","שעת יציאה","סה\"כ שעות","שעות נוספות"].join(",");
+  const csvRows = rows.map(s => {
+    const h  = calcHours(s.timeIn, s.timeOut);
+    const ot = calcOvertimeHours(s.timeIn, s.timeOut);
+    return [s.name, s.role, s.day, s.date, s.timeIn, s.timeOut, formatHours(h), formatHours(ot)].join(",");
+  });
+  const csv  = BOM + [header, ...csvRows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function exportMonthToCSV(emp: { name: string; role: string }, month: AttendanceMonth) {
   const BOM    = "﻿";
   const header = ["שם עובד","תפקיד","יום","תאריך","שעת כניסה","שעת יציאה","סה\"כ שעות","הערות"].join(",");

@@ -4,11 +4,28 @@ import { useRouter } from "next/navigation";
 import { Plus, X, Phone, Calendar, Lock, Download, ChevronRight, ChevronLeft, Clock, TrendingUp, FileSpreadsheet, Mail, User, IdCard, Briefcase, Trash2, AlertTriangle } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import { calcHours, formatHours, exportMonthToCSV, buildRealAttendance, type AttendanceMonth } from "@/lib/shiftData";
+import {
+  calcHours, formatHours, calcOvertimeHours, exportMonthToCSV, exportAllToCSV,
+  buildRealAttendance, compareWeekToSchedule, findNoShows,
+  type AttendanceMonth, type ComparedShift,
+} from "@/lib/shiftData";
 
 type Employee = { id?: string; name: string; initials: string; role: string; phone: string; email?: string; since: string; cat: string; color: string; textColor: string };
 
 const DEFAULT_JOB_ROLES = ["מלצרים", "מטבח", "בר", "שטיפה"];
+
+// The only week with real schedule_assignments backing it in this frozen-date
+// demo — matches CURRENT_WEEK_START used elsewhere across the app.
+const CURRENT_WEEK_START = "2026-06-21";
+const CURRENT_WEEK_RANGE = "21.6–27.6";
+
+const STATUS_LABEL: Record<ComparedShift["status"], { label: string; bg: string; color: string }> = {
+  ok:           { label: "תקין",      bg: "var(--green-light)", color: "var(--green)" },
+  late:         { label: "איחור",     bg: "var(--red-light)",   color: "var(--red)"   },
+  "early-leave":{ label: "יציאה מוקדמת", bg: "var(--amber-light)", color: "var(--amber)" },
+  "no-show":    { label: "לא הגיע/ה", bg: "var(--red-light)",   color: "var(--red)"   },
+  unscheduled:  { label: "לא היה מתוכנן", bg: "var(--gray-bg)", color: "var(--text-secondary)" },
+};
 
 export default function Employees() {
   const router = useRouter();
@@ -35,6 +52,8 @@ export default function Employees() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [currentWeekAssignments, setCurrentWeekAssignments] = useState<{ dayOfWeek: number; timeIn: string; timeOut: string }[]>([]);
+  const [exportingAll, setExportingAll] = useState(false);
 
   const cats = ["הכל", ...jobRoles];
 
@@ -140,9 +159,34 @@ export default function Employees() {
     }
   }
 
+  // One payroll-ready CSV across every employee's current-month attendance,
+  // instead of having to download and merge N separate per-employee files.
+  async function exportAllEmployees() {
+    if (!businessId || employees.length === 0) return;
+    setExportingAll(true);
+    try {
+      const rows: { name: string; role: string; day: string; date: string; timeIn: string; timeOut: string }[] = [];
+      await Promise.all(employees.map(async emp => {
+        if (!emp.id) return;
+        const res = await fetch(`/api/clock-requests?businessId=${businessId}&personId=${emp.id}`).then(r => r.json());
+        if (!res.success) return;
+        const months = buildRealAttendance(res.requests);
+        const current = months[0];
+        if (!current) return;
+        current.weeks.flatMap(w => w.shifts).forEach(s => {
+          rows.push({ name: emp.name, role: emp.role, day: s.day, date: s.date, timeIn: s.timeIn, timeOut: s.timeOut });
+        });
+      }));
+      exportAllToCSV(rows, `דוח_שכר_כל_העובדים_${new Date().toLocaleDateString("he-IL", { month: "long", year: "numeric" })}.csv`);
+    } finally {
+      setExportingAll(false);
+    }
+  }
+
   function openAttendance(emp: Employee) {
     setAttendanceEmp(emp);
     setAttendanceData([]);
+    setCurrentWeekAssignments([]);
     setMonthIdx(0);
     setExpandedWeek(0);
     setSelected(null);
@@ -150,6 +194,18 @@ export default function Employees() {
       fetch(`/api/clock-requests?businessId=${businessId}&personId=${emp.id}`)
         .then(r => r.json())
         .then(res => { if (res.success) setAttendanceData(buildRealAttendance(res.requests)); })
+        .catch(() => {});
+      fetch(`/api/schedule?businessId=${businessId}&weekStart=${CURRENT_WEEK_START}`)
+        .then(r => r.json())
+        .then(res => {
+          if (res.success) {
+            setCurrentWeekAssignments(
+              res.assignments
+                .filter((a: { personId: string }) => a.personId === emp.id)
+                .map((a: { dayOfWeek: number; timeIn: string; timeOut: string }) => ({ dayOfWeek: a.dayOfWeek, timeIn: a.timeIn, timeOut: a.timeOut }))
+            );
+          }
+        })
         .catch(() => {});
     }
   }
@@ -207,10 +263,18 @@ export default function Employees() {
         <div className="absolute top-3 left-4"><Logo size={22} /></div>
         <div className="flex items-center justify-between flex-row">
           {isManager ? (
-            <div className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
-              style={{ background: "var(--blue-light)", color: "var(--blue)" }}
-              onClick={() => setAddOpen(true)}>
-              <Plus size={16} />
+            <div className="flex items-center gap-2 flex-row">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+                style={{ background: "var(--blue-light)", color: "var(--blue)" }}
+                onClick={() => setAddOpen(true)}>
+                <Plus size={16} />
+              </div>
+              <button onClick={exportAllEmployees} disabled={exportingAll}
+                className="w-8 h-8 rounded-full flex items-center justify-center"
+                style={{ background: "var(--green-light)", color: "var(--green)", opacity: exportingAll ? 0.5 : 1 }}
+                title="ייצוא לשכר — כל העובדים">
+                <FileSpreadsheet size={15} />
+              </button>
             </div>
           ) : <div className="w-8 h-8" />}
           <p className="text-base font-semibold">עובדים</p>
@@ -442,8 +506,12 @@ export default function Employees() {
             {/* Weekly accordion */}
             <div className="px-4 flex flex-col gap-2 mb-3">
               {currentMonth.weeks.map((week, wi) => {
-                const weekHours  = week.shifts.reduce((s, sh) => s + calcHours(sh.timeIn, sh.timeOut), 0);
-                const isExpanded = expandedWeek === wi;
+                const weekHours    = week.shifts.reduce((s, sh) => s + calcHours(sh.timeIn, sh.timeOut), 0);
+                const weekOvertime = week.shifts.reduce((s, sh) => s + calcOvertimeHours(sh.timeIn, sh.timeOut), 0);
+                const isExpanded   = expandedWeek === wi;
+                const isCurrentWeek = week.range === CURRENT_WEEK_RANGE && currentWeekAssignments.length > 0;
+                const compared = isCurrentWeek ? compareWeekToSchedule(week.shifts, currentWeekAssignments) : null;
+                const noShows  = isCurrentWeek ? findNoShows(currentWeekAssignments, week.shifts) : [];
                 return (
                   <div key={wi} className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
                     {/* Week header — tap to expand */}
@@ -462,6 +530,12 @@ export default function Employees() {
                         <span className="text-xs" style={{ color: isExpanded ? "rgba(255,255,255,0.7)" : "var(--text-secondary)" }}>
                           {week.shifts.length} משמרות
                         </span>
+                        {weekOvertime > 0 && (
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                            style={{ background: isExpanded ? "rgba(255,255,255,0.2)" : "var(--amber-light)", color: isExpanded ? "#fff" : "var(--amber)" }}>
+                            {formatHours(weekOvertime)} נוספות
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 flex-row">
                         <p className="text-sm font-semibold" style={{ color: isExpanded ? "#fff" : "var(--text-main)" }}>
@@ -490,6 +564,8 @@ export default function Employees() {
                         {week.shifts.map((shift, si) => {
                           const h      = calcHours(shift.timeIn, shift.timeOut);
                           const isLong = h > 9;
+                          const status = compared?.[si]?.status;
+                          const statusInfo = status ? STATUS_LABEL[status] : null;
                           return (
                             <div key={si} className="grid grid-cols-4 px-3 py-2.5 items-center"
                               style={{
@@ -508,10 +584,30 @@ export default function Employees() {
                                 <p className="text-sm font-medium">{shift.day}</p>
                                 <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>{shift.date}</p>
                                 {shift.note && <p className="text-[9px] mt-0.5" style={{ color: "var(--blue)" }}>{shift.note}</p>}
+                                {statusInfo && status !== "ok" && (
+                                  <span className="inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded-full mt-0.5"
+                                    style={{ background: statusInfo.bg, color: statusInfo.color }}>
+                                    {statusInfo.label}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           );
                         })}
+                        {noShows.map((ns, ni) => (
+                          <div key={`noshow-${ni}`} className="grid grid-cols-4 px-3 py-2.5 items-center"
+                            style={{ borderBottom: "1px solid var(--border)", background: "var(--red-light)" }}>
+                            <div className="text-left">
+                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "var(--red)", color: "#fff" }}>לא הגיע/ה</span>
+                            </div>
+                            <p className="text-sm text-center font-medium" style={{ direction: "ltr", color: "var(--text-secondary)" }}>{ns.plannedOut}</p>
+                            <p className="text-sm text-center font-medium" style={{ direction: "ltr", color: "var(--text-secondary)" }}>{ns.plannedIn}</p>
+                            <div className="text-right">
+                              <p className="text-sm font-medium">{ns.day}</p>
+                              <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>תוכנן ולא נדווח</p>
+                            </div>
+                          </div>
+                        ))}
                         {/* Week total row */}
                         <div className="grid grid-cols-4 px-3 py-2 items-center"
                           style={{ borderTop: "1px solid var(--border)", background: "var(--gray-bg)" }}>
