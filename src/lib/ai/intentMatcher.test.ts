@@ -130,6 +130,9 @@ describe("matchIntent — build_schedule (manager-only AI scheduler handoff)", (
     expect(matchIntent("תכין לי משמרות לשבוע הבא", true).intent).toBe("build_schedule");
     expect(matchIntent("אפשר לבנות לי את הסידור?", true).intent).toBe("build_schedule");
     expect(matchIntent("build me a schedule", true).intent).toBe("build_schedule");
+    // "how do I prepare a schedule" — present-tense/question phrasing, not just imperatives
+    expect(matchIntent("איך אני מכין סידור עם ה-AI", true).intent).toBe("build_schedule");
+    expect(matchIntent("איך מכינים סידור", true).intent).toBe("build_schedule");
   });
 
   it("is manager-only", () => {

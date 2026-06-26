@@ -135,7 +135,7 @@ const PATTERNS: { intent: Intent; test: RegExp }[] = [
     // Manager-only: hand off to the full AI schedule-builder wizard at /schedule/ai
     // instead of trying to run that whole multi-step flow inside this lightweight chat.
     intent: "build_schedule",
-    test: /(בנה|תבנה|לבנות|תכין|להכין|תעשה|לעשות|תסדר|לסדר|תזמן)\s*(לי\s*)?(את\s*)?(ה)?(סידור|משמרות|עובדים)|בניית\s*סידור|בונה\s*(ה)?סידור|build.*schedule|auto.*schedule|schedule\s*builder/,
+    test: /(בנה|תבנה|לבנות|תכין|להכין|מכין|מכינה|מכינים|תעשה|לעשות|עושה|עושים|תסדר|לסדר|מסדר|מסדרים|תזמן)\s*(לי\s*)?(את\s*)?(ה)?(סידור|משמרות|עובדים)|בניית\s*סידור|בונה\s*(ה)?סידור|build.*schedule|auto.*schedule|schedule\s*builder/,
   },
   {
     intent: "create_absence",

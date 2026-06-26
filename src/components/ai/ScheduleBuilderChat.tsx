@@ -61,7 +61,7 @@ type Config = {
 type Step =
   | "use-last" | "morning-waiters" | "morning-kitchen"
   | "evening-waiters" | "evening-kitchen"
-  | "max-hours" | "special-event" | "friday-extra"
+  | "special-event" | "friday-extra"
   | "free-chat" | "generating" | "done";
 
 const LAST_CONFIG_KEY = "shiftpro_last_ai_config";
@@ -301,7 +301,6 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
       "morning-kitchen": { text: "כמה עובדי מטבח בבוקר?", chips: NUM_CHIPS, showCustomInput: true },
       "evening-waiters": { text: "משמרת ערב (16:00–00:00) — כמה מלצרים?", chips: NUM_CHIPS, showCustomInput: true },
       "evening-kitchen": { text: "כמה עובדי מטבח בערב?", chips: NUM_CHIPS, showCustomInput: true },
-      "max-hours": { text: "כמה שעות מקסימום לעובד בשבוע?", chips: ["40", "48", "56"], showCustomInput: true },
       "special-event": { text: "האם יש אירוע מיוחד השבוע? (מסיבה, אירוע גדול, אשכנז ידוע...)", chips: ["לא, שגרה רגילה", "כן, יש אירוע"] },
       "friday-extra": { text: "ביום שישי — להוסיף מלצר נוסף?", chips: ["כן, תוסיף", "לא, מספיק"] },
     };
@@ -320,8 +319,7 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
       "morning-waiters": "morning-kitchen",
       "morning-kitchen": "evening-waiters",
       "evening-waiters": "evening-kitchen",
-      "evening-kitchen": "max-hours",
-      "max-hours": "special-event",
+      "evening-kitchen": "special-event",
     };
 
     const configKeyMap: Partial<Record<Step, keyof Config>> = {
@@ -329,7 +327,6 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
       "morning-kitchen": "morningKitchen",
       "evening-waiters": "eveningWaiters",
       "evening-kitchen": "eveningKitchen",
-      "max-hours": "maxHours",
     };
 
     const key = configKeyMap[currentStep];
@@ -347,7 +344,7 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
       return;
     }
 
-    const numSteps: Step[] = ["morning-waiters", "morning-kitchen", "evening-waiters", "evening-kitchen", "max-hours"];
+    const numSteps: Step[] = ["morning-waiters", "morning-kitchen", "evening-waiters", "evening-kitchen"];
     if (numSteps.includes(step) && /^\d+$/.test(chip)) {
       handleNumber(chip, step);
       return;
@@ -444,11 +441,7 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
       }
     }, 1100);
 
-    setTimeout(() => {
-      addMsg({ from: "ai", text: `✓ מגבלת שעות: ${finalConfig.maxHours || 48} שעות לעובד בשבוע`, status: "success" });
-    }, 1600);
-
-    setTimeout(() => addMsg({ from: "ai", text: "מייצר סידור..." }), 2300);
+    setTimeout(() => addMsg({ from: "ai", text: "מייצר סידור..." }), 1700);
 
     setTimeout(() => {
       const { schedule, warnings } = generateSchedule(finalConfig);
@@ -468,7 +461,7 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
     }, 3500);
   }
 
-  const isNumStep = ["morning-waiters", "morning-kitchen", "evening-waiters", "evening-kitchen", "max-hours"].includes(step);
+  const isNumStep = ["morning-waiters", "morning-kitchen", "evening-waiters", "evening-kitchen"].includes(step);
   const isThinking = step === "generating";
 
   return (
