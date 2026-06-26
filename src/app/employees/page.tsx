@@ -5,7 +5,7 @@ import { Plus, X, Phone, Calendar, Lock, Download, ChevronRight, ChevronLeft, Cl
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import {
-  calcHours, formatHours, calcOvertimeHours, exportMonthToCSV, exportAllToCSV,
+  calcHours, formatHours, calcOvertimeHours, exportMonthToExcel, exportAllToExcel,
   buildRealAttendance, compareWeekToSchedule, findNoShows,
   type AttendanceMonth, type ComparedShift,
 } from "@/lib/shiftData";
@@ -177,7 +177,7 @@ export default function Employees() {
           rows.push({ name: emp.name, role: emp.role, day: s.day, date: s.date, timeIn: s.timeIn, timeOut: s.timeOut });
         });
       }));
-      exportAllToCSV(rows, `דוח_שכר_כל_העובדים_${new Date().toLocaleDateString("he-IL", { month: "long", year: "numeric" })}.csv`);
+      await exportAllToExcel(rows, bizName, `דוח_שכר_כל_העובדים_${new Date().toLocaleDateString("he-IL", { month: "long", year: "numeric" })}.xlsx`);
     } finally {
       setExportingAll(false);
     }
@@ -631,13 +631,13 @@ export default function Employees() {
 
             {/* Export */}
             <div className="px-4 flex flex-col gap-2">
-              <button onClick={() => exportMonthToCSV(attendanceEmp, currentMonth)}
+              <button onClick={() => exportMonthToExcel(attendanceEmp, currentMonth, bizName)}
                 className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
                 style={{ background: "var(--green)", color: "#fff" }}>
                 <FileSpreadsheet size={16} />
                 ייצא לאקסל — {currentMonth.label}
               </button>
-              <button onClick={() => monthData.forEach(m => exportMonthToCSV(attendanceEmp, m))}
+              <button onClick={() => monthData.forEach(m => exportMonthToExcel(attendanceEmp, m, bizName))}
                 className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
                 style={{ background: "var(--gray-bg)", color: "var(--text-main)", border: "1px solid var(--border)" }}>
                 <Download size={15} />

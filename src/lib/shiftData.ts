@@ -1,8 +1,84 @@
+import ExcelJS from "exceljs";
+
 export type Employee = {
   name: string; initials: string; role: string;
   phone: string; since: string; cat: string;
   color: string; textColor: string;
 };
+
+// Brand colors (see globals.css) — kept in ARGB since ExcelJS fills don't
+// understand CSS variables or hex shorthand.
+const XLSX_NAVY   = "FF14181F";
+const XLSX_ORANGE = "FFF97316";
+const XLSX_GREEN  = "FF15803D";
+const XLSX_GRAY   = "FFF7F8F9";
+const XLSX_BORDER = "FFE5E7EB";
+const XLSX_WHITE  = "FFFFFFFF";
+
+function styleWorkbook() {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Sidur";
+  wb.created = new Date();
+  return wb;
+}
+
+function addBrandHeader(sheet: ExcelJS.Worksheet, title: string, subtitle: string, colSpan: number) {
+  sheet.views = [{ rightToLeft: true }];
+
+  sheet.mergeCells(1, 1, 1, colSpan);
+  const titleCell = sheet.getCell(1, 1);
+  titleCell.value = `Sidur · ${title}`;
+  titleCell.font = { bold: true, size: 14, color: { argb: XLSX_WHITE } };
+  titleCell.alignment = { horizontal: "center", vertical: "middle" };
+  titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: XLSX_NAVY } };
+  sheet.getRow(1).height = 26;
+
+  sheet.mergeCells(2, 1, 2, colSpan);
+  const subCell = sheet.getCell(2, 1);
+  subCell.value = subtitle;
+  subCell.font = { bold: true, size: 11, color: { argb: XLSX_NAVY } };
+  subCell.alignment = { horizontal: "center", vertical: "middle" };
+  subCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF7ED" } };
+  sheet.getRow(2).height = 20;
+}
+
+function styleHeaderRow(row: ExcelJS.Row) {
+  row.eachCell(cell => {
+    cell.font = { bold: true, color: { argb: XLSX_WHITE }, size: 10 };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: XLSX_ORANGE } };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.border = { top: { style: "thin", color: { argb: XLSX_BORDER } }, bottom: { style: "thin", color: { argb: XLSX_BORDER } }, left: { style: "thin", color: { argb: XLSX_BORDER } }, right: { style: "thin", color: { argb: XLSX_BORDER } } };
+  });
+  row.height = 20;
+}
+
+function styleDataRow(row: ExcelJS.Row, striped: boolean) {
+  row.eachCell(cell => {
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.border = { top: { style: "thin", color: { argb: XLSX_BORDER } }, bottom: { style: "thin", color: { argb: XLSX_BORDER } }, left: { style: "thin", color: { argb: XLSX_BORDER } }, right: { style: "thin", color: { argb: XLSX_BORDER } } };
+    if (striped) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: XLSX_GRAY } };
+  });
+}
+
+function styleTotalRow(row: ExcelJS.Row) {
+  row.eachCell(cell => {
+    cell.font = { bold: true, color: { argb: XLSX_WHITE } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: XLSX_GREEN } };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+  });
+  row.height = 20;
+}
+
+async function downloadWorkbook(wb: ExcelJS.Workbook, filename: string) {
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 const UPCOMING_DAY_DEFS = [
   { dayOfWeek: 3, day: "רביעי", date: "24.6" },
@@ -150,42 +226,65 @@ export function findNoShows(
     .map(a => ({ day: HEBREW_DAYS[a.dayOfWeek], plannedIn: a.timeIn, plannedOut: a.timeOut }));
 }
 
-// One combined payroll-ready CSV across every employee, instead of having to
-// download and re-merge N separate per-employee files by hand.
-export function exportAllToCSV(rows: { name: string; role: string; day: string; date: string; timeIn: string; timeOut: string }[], filename: string) {
-  const BOM    = "﻿";
-  const header = ["שם עובד","תפקיד","יום","תאריך","שעת כניסה","שעת יציאה","סה\"כ שעות","שעות נוספות"].join(",");
-  const csvRows = rows.map(s => {
+// One combined, branded payroll-ready Excel sheet across every employee,
+// instead of having to download and re-merge N separate per-employee files.
+export async function exportAllToExcel(
+  rows: { name: string; role: string; day: string; date: string; timeIn: string; timeOut: string }[],
+  businessName: string,
+  filename: string
+) {
+  const wb = styleWorkbook();
+  const sheet = wb.addWorksheet("דוח שכר");
+  const cols = 8;
+  addBrandHeader(sheet, "דוח שעות לשכר", `${businessName} — כל העובדים`, cols);
+
+  sheet.columns = [
+    { width: 18 }, { width: 12 }, { width: 10 }, { width: 10 },
+    { width: 10 }, { width: 10 }, { width: 12 }, { width: 12 },
+  ];
+
+  const headerRow = sheet.addRow(["שם עובד", "תפקיד", "יום", "תאריך", "שעת כניסה", "שעת יציאה", "סה\"כ שעות", "שעות נוספות"]);
+  styleHeaderRow(headerRow);
+
+  rows.forEach((s, i) => {
     const h  = calcHours(s.timeIn, s.timeOut);
     const ot = calcOvertimeHours(s.timeIn, s.timeOut);
-    return [s.name, s.role, s.day, s.date, s.timeIn, s.timeOut, formatHours(h), formatHours(ot)].join(",");
+    const row = sheet.addRow([s.name, s.role, s.day, s.date, s.timeIn, s.timeOut, formatHours(h), ot > 0 ? formatHours(ot) : "—"]);
+    styleDataRow(row, i % 2 === 1);
   });
-  const csv  = BOM + [header, ...csvRows].join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+
+  const totalHours = rows.reduce((sum, s) => sum + calcHours(s.timeIn, s.timeOut), 0);
+  const totalRow = sheet.addRow(["", "", "", "", "", "סה\"כ:", formatHours(totalHours), ""]);
+  sheet.mergeCells(totalRow.number, 1, totalRow.number, 5);
+  styleTotalRow(totalRow);
+
+  await downloadWorkbook(wb, filename);
 }
 
-export function exportMonthToCSV(emp: { name: string; role: string }, month: AttendanceMonth) {
-  const BOM    = "﻿";
-  const header = ["שם עובד","תפקיד","יום","תאריך","שעת כניסה","שעת יציאה","סה\"כ שעות","הערות"].join(",");
+export async function exportMonthToExcel(emp: { name: string; role: string }, month: AttendanceMonth, businessName: string) {
+  const wb = styleWorkbook();
+  const sheet = wb.addWorksheet("דוח נוכחות");
+  const cols = 6;
+  addBrandHeader(sheet, "דוח שעות עבודה", `${emp.name} · ${emp.role} · ${businessName} — ${month.label}`, cols);
+
+  sheet.columns = [
+    { width: 14 }, { width: 10 }, { width: 10 }, { width: 10 }, { width: 12 }, { width: 14 },
+  ];
+
+  const headerRow = sheet.addRow(["יום", "תאריך", "שעת כניסה", "שעת יציאה", "סה\"כ שעות", "הערות"]);
+  styleHeaderRow(headerRow);
+
   const allShifts = month.weeks.flatMap(w => w.shifts);
-  const rows = allShifts.map(s => {
+  allShifts.forEach((s, i) => {
     const h = calcHours(s.timeIn, s.timeOut);
-    return [emp.name, emp.role, s.day, s.date, s.timeIn, s.timeOut, formatHours(h), s.note || ""].join(",");
+    const row = sheet.addRow([s.day, s.date, s.timeIn, s.timeOut, formatHours(h), s.note || ""]);
+    styleDataRow(row, i % 2 === 1);
   });
+
   const total = allShifts.reduce((sum, s) => sum + calcHours(s.timeIn, s.timeOut), 0);
-  rows.push(["","","","","","סה\"כ:", formatHours(total), ""].join(","));
-  const csv  = BOM + [header, ...rows].join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = `דוח_נוכחות_${emp.name}_${month.label}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const totalRow = sheet.addRow(["", "", "", "סה\"כ:", formatHours(total), ""]);
+  sheet.mergeCells(totalRow.number, 1, totalRow.number, 3);
+  styleTotalRow(totalRow);
+
+  await downloadWorkbook(wb, `דוח_נוכחות_${emp.name}_${month.label}.xlsx`);
 }

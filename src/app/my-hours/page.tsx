@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { ChevronRight, ChevronLeft, Download, FileSpreadsheet, TrendingUp, ArrowRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import { calcHours, formatHours, exportMonthToCSV, buildRealAttendance, type AttendanceMonth } from "@/lib/shiftData";
+import { calcHours, formatHours, exportMonthToExcel, buildRealAttendance, type AttendanceMonth } from "@/lib/shiftData";
 
 type RealEmp = { name: string; role: string; initials: string; color: string; textColor: string };
 
@@ -14,12 +14,14 @@ export default function MyHours() {
   const [expandedWeek, setExpandedWeek] = useState<number | null>(0);
   const [realMonthData, setRealMonthData] = useState<AttendanceMonth[]>([]);
   const [realEmp, setRealEmp] = useState<RealEmp | null>(null);
+  const [bizName, setBizName] = useState("Sidur");
 
   useEffect(() => {
     let biz = "", person = "";
     try {
       const s = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
       biz = s.businessId || ""; person = s.personId || "";
+      if (s.businessName) setBizName(s.businessName);
     } catch {}
     if (!biz || !person) { router.replace("/login"); return; }
 
@@ -202,13 +204,13 @@ export default function MyHours() {
 
       {/* Export */}
       <div className="px-4 flex flex-col gap-2">
-        <button onClick={() => exportMonthToCSV(emp, currentMonth)}
+        <button onClick={() => exportMonthToExcel(emp, currentMonth, bizName)}
           className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
           style={{ background: "var(--green)", color: "#fff" }}>
           <FileSpreadsheet size={16} />
           ייצא לאקסל — {currentMonth.label}
         </button>
-        <button onClick={() => monthData.forEach(m => exportMonthToCSV(emp, m))}
+        <button onClick={() => monthData.forEach(m => exportMonthToExcel(emp, m, bizName))}
           className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
           style={{ background: "var(--surface)", color: "var(--text-main)", border: "1px solid var(--border)" }}>
           <Download size={15} />
