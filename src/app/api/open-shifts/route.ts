@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { sendPushToBusiness } from "@/lib/push";
 
 function mapRow(row: { id: string; day_of_week: number; role_key: string; time_in: string; time_out: string }) {
   return {
@@ -50,6 +51,13 @@ export async function POST(req: NextRequest) {
     if (error || !data) {
       return NextResponse.json({ error: error?.message || "פרסום המשמרת נכשל" }, { status: 500 });
     }
+
+    sendPushToBusiness(businessId, {
+      title: "משמרת פתוחה חדשה",
+      body: `יש משמרת פנויה ב${roleKey} (${timeIn}–${timeOut}) — מי שזמין יכול לתפוס אותה`,
+      url: "/schedule",
+    }).catch(() => {});
+
     return NextResponse.json({ success: true, openShift: mapRow(data) });
   } catch (err) {
     console.error("create open shift error:", err);

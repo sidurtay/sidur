@@ -5,6 +5,7 @@ import { LogOut } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import PasskeyCard from "@/components/PasskeyCard";
+import PushNotificationCard from "@/components/PushNotificationCard";
 import FaqAccordion from "@/components/FaqAccordion";
 
 export default function EmployeeSettings() {
@@ -43,6 +44,7 @@ export default function EmployeeSettings() {
         </div>
 
         {businessId && personId && <PasskeyCard businessId={businessId} personId={personId} />}
+        {businessId && personId && <PushNotificationCard businessId={businessId} personId={personId} />}
 
         <FaqAccordion isManager={false} />
 

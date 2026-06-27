@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { sendPushToManagers, sendPushToPerson } from "@/lib/push";
 
 type Row = {
   id: string; status: string; created_at: string;
@@ -71,7 +72,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error?.message || "הבקשה נכשלה" }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, request: mapRow(data as unknown as Row) });
+    const mapped = mapRow(data as unknown as Row);
+    sendPushToManagers(businessId, {
+      title: "בקשת החלפת משמרת חדשה",
+      body: `${mapped.requesterName} מבקש/ת להחליף משמרת`,
+      url: "/schedule",
+    }).catch(() => {});
+
+    return NextResponse.json({ success: true, request: mapped });
   } catch (err) {
     console.error("create swap request error:", err);
     return NextResponse.json({ error: "שגיאת שרת" }, { status: 500 });
@@ -88,7 +96,7 @@ export async function PATCH(req: NextRequest) {
     const supabase = createServiceRoleClient();
     const { data: existing, error: fetchError } = await supabase
       .from("swap_requests")
-      .select("id, assignment_id, proposed_person")
+      .select("id, assignment_id, proposed_person, requested_by")
       .eq("id", id)
       .single();
     if (fetchError || !existing) {
@@ -117,6 +125,12 @@ export async function PATCH(req: NextRequest) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    sendPushToPerson(existing.requested_by, {
+      title: approve ? "בקשת ההחלפה אושרה ✅" : "בקשת ההחלפה נדחתה",
+      body: approve ? "המנהל אישר את בקשת ההחלפה שלך" : "המנהל דחה את בקשת ההחלפה שלך",
+      url: "/schedule",
+    }).catch(() => {});
 
     return NextResponse.json({ success: true });
   } catch (err) {

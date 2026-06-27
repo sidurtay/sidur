@@ -6,6 +6,7 @@ import InstagramIcon from "@/components/InstagramIcon";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import PasskeyCard from "@/components/PasskeyCard";
+import PushNotificationCard from "@/components/PushNotificationCard";
 import FaqAccordion from "@/components/FaqAccordion";
 import EmployeeSettings from "./EmployeeSettings";
 import {
@@ -450,6 +451,9 @@ export default function Settings() {
 
         {/* Fingerprint / Face ID login for this device */}
         {businessId && personId && <PasskeyCard businessId={businessId} personId={personId} />}
+
+        {/* Real push notifications outside the app */}
+        {businessId && personId && <PushNotificationCard businessId={businessId} personId={personId} />}
 
         {/* Clock in/out via app */}
         <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>

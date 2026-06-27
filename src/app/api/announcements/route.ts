@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { sendPushToBusiness } from "@/lib/push";
 
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
@@ -51,6 +52,8 @@ export async function POST(req: NextRequest) {
     if (error || !data) {
       return NextResponse.json({ error: error?.message || "השמירה נכשלה" }, { status: 500 });
     }
+
+    sendPushToBusiness(businessId, { title: data.title, body: data.body || "הודעה חדשה מהמנהל", url: "/dashboard" }, createdBy || undefined).catch(() => {});
 
     return NextResponse.json({ success: true, announcement: { id: data.id, title: data.title, text: data.body, createdAt: data.created_at, confirmedBy: [] } });
   } catch (err) {
