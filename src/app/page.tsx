@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Users, Coins, BarChart3, Check, Zap, Rocket, Crown, ShieldCheck } from "lucide-react";
+import { CalendarDays, Users, Coins, BarChart3, Check, Zap, Rocket, Crown, ShieldCheck, Sparkles } from "lucide-react";
 import InstagramIcon from "@/components/InstagramIcon";
 import LogoMark from "@/components/Logo";
 import { PLANS } from "@/lib/plans";
@@ -30,24 +30,29 @@ export default function Splash() {
       <div className="flex flex-col items-center pt-16 pb-10 px-6 text-center"
         style={{ background: "var(--navy)" }}>
 
+        {/* Eyebrow */}
+        <span className="px-3 py-1 rounded-full text-[11px] font-bold tracking-wide mb-5"
+          style={{ background: "rgba(249,115,22,0.15)", color: "var(--blue)", border: "1px solid rgba(249,115,22,0.3)" }}>
+          ✦ הסידור הראשון שבנוי עם AI מהיסוד
+        </span>
+
         {/* Logo mark */}
         <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 overflow-hidden"
           style={{ boxShadow: "0 8px 24px rgba(249,115,22,0.35)" }}>
           <LogoMark size={64} />
         </div>
-        <p className="text-white text-2xl font-bold tracking-tight mb-1">Sidur</p>
-        <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>ניהול עובדים חכם למסעדות</p>
 
-        <h1 className="text-white text-xl font-bold leading-relaxed mb-2">
-          סידור עבודה, טיפים ונוכחות<br />במקום אחד
+        <h1 className="text-white text-2xl font-bold leading-tight mb-3">
+          תפסיק לבנות סידור.<br />תתחיל לאשר אותו.
         </h1>
-        <p className="text-sm leading-relaxed mb-8" style={{ color: "rgba(255,255,255,0.55)", maxWidth: 280 }}>
-          התוכנה שבנויה במיוחד עבור מסעדות ובתי קפה בישראל
+        <p className="text-sm leading-relaxed mb-8" style={{ color: "rgba(255,255,255,0.55)", maxWidth: 300 }}>
+          ה-AI של Sidur בונה לך סידור עבודה שלם לפי האילוצים של הצוות, מחלק טיפים אוטומטית, ומתריע לפני שמשהו ידלוף לך בין הידיים
         </p>
 
         {/* Feature pills */}
         <div className="flex flex-row flex-wrap justify-center gap-2 mb-8">
           {[
+            { icon: <Sparkles size={11} />,     label: "AI בונה סידור" },
             { icon: <CalendarDays size={11} />, label: "סידור עבודה" },
             { icon: <Coins size={11} />,        label: "חישוב טיפים" },
             { icon: <Users size={11} />,        label: "ניהול עובדים" },
@@ -65,7 +70,7 @@ export default function Splash() {
           <button onClick={() => router.push("/register")}
             className="w-full py-4 rounded-2xl text-base font-bold"
             style={{ background: "#fff", color: "var(--navy)" }}>
-            צור עסק חדש — חינם
+            התחל בחינם — בלי כרטיס אשראי
           </button>
           <button onClick={() => router.push("/login")}
             className="w-full py-3.5 rounded-2xl text-sm font-semibold"
@@ -113,12 +118,12 @@ export default function Splash() {
         <div className="flex justify-center mb-3">
           <span className="px-3 py-1 rounded-full text-[11px] font-bold tracking-wide"
             style={{ background: "rgba(249,115,22,0.15)", color: "var(--blue)", border: "1px solid rgba(249,115,22,0.3)" }}>
-            תמחור
+            בלי סיבוכים
           </span>
         </div>
-        <p className="text-center text-white text-xl font-bold mb-1.5">מחיר שקוף, בלי הפתעות</p>
+        <p className="text-center text-white text-xl font-bold mb-1.5">תוכנית לכל שלב בעסק שלך</p>
         <p className="text-center text-xs mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>
-          בוחרים תוכנית ומתחילים מיד — בלי &quot;השאר פרטים ונחזור אליך&quot;
+          מתחילים בחינם, משלמים רק כשגדלים — בלי איש מכירות, בלי &quot;נחזור אליך&quot;
         </p>
 
         <div className="flex flex-col gap-4">
