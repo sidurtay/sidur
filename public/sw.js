@@ -9,6 +9,8 @@ self.addEventListener("push", (event) => {
   const options = {
     body: data.body || "",
     dir: "rtl",
+    icon: "/icon.svg",
+    badge: "/icon.svg",
     data: { url: data.url || "/dashboard" },
   };
   event.waitUntil(self.registration.showNotification(title, options));

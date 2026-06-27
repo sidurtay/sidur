@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Users, Coins, BarChart3, Check, Zap, Rocket, Crown, ShieldCheck } from "lucide-react";
 import InstagramIcon from "@/components/InstagramIcon";
+import LogoMark from "@/components/Logo";
 import { PLANS } from "@/lib/plans";
 
 const PLAN_ICONS: Record<string, typeof Zap> = { starter: Zap, plus: Rocket, business: Crown };
@@ -30,9 +31,9 @@ export default function Splash() {
         style={{ background: "var(--navy)" }}>
 
         {/* Logo mark */}
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
-          style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)" }}>
-          <CalendarDays size={30} color="white" />
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 overflow-hidden"
+          style={{ boxShadow: "0 8px 24px rgba(249,115,22,0.35)" }}>
+          <LogoMark size={64} />
         </div>
         <p className="text-white text-2xl font-bold tracking-tight mb-1">Sidur</p>
         <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>ניהול עובדים חכם למסעדות</p>
