@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Users, Coins, BarChart3, Check, X } from "lucide-react";
+import { CalendarDays, Users, Coins, BarChart3, Check, Zap, Rocket, Crown, ShieldCheck } from "lucide-react";
 import InstagramIcon from "@/components/InstagramIcon";
 import { PLANS } from "@/lib/plans";
+
+const PLAN_ICONS: Record<string, typeof Zap> = { starter: Zap, plus: Rocket, business: Crown };
 
 export default function Splash() {
   const router = useRouter();
@@ -106,49 +108,82 @@ export default function Splash() {
 
       {/* Pricing — visible to anyone before they ever start registering,
           unlike the "contact us" pricing model most Israeli competitors use */}
-      <div className="px-4 mb-4">
-        <p className="text-center text-lg font-bold mb-1">מחירים שקופים, בלי הפתעות</p>
-        <p className="text-center text-xs mb-4" style={{ color: "var(--text-secondary)" }}>
-          בוחרים תוכנית, נרשמים, ומתחילים — אין &quot;השאר פרטים ונחזור אליך&quot;
+      <div className="px-4 pt-2 pb-6" style={{ background: "var(--navy)" }}>
+        <div className="flex justify-center mb-3">
+          <span className="px-3 py-1 rounded-full text-[11px] font-bold tracking-wide"
+            style={{ background: "rgba(249,115,22,0.15)", color: "var(--blue)", border: "1px solid rgba(249,115,22,0.3)" }}>
+            תמחור
+          </span>
+        </div>
+        <p className="text-center text-white text-xl font-bold mb-1.5">מחיר שקוף, בלי הפתעות</p>
+        <p className="text-center text-xs mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>
+          בוחרים תוכנית ומתחילים מיד — בלי &quot;השאר פרטים ונחזור אליך&quot;
         </p>
-        <div className="flex flex-col gap-3">
-          {PLANS.map(p => (
-            <div key={p.key} className="rounded-2xl p-4 relative"
-              style={{ background: p.bg, border: `2px solid ${p.border}` }}>
-              {p.badge && (
-                <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white"
-                  style={{ background: p.color }}>
-                  {p.badge}
-                </span>
-              )}
-              <div className="flex items-center justify-between flex-row mb-3">
-                <div className="flex items-end gap-1 flex-row" style={{ direction: "ltr" }}>
-                  <span className="text-xl font-bold" style={{ color: p.color }}>{p.price}</span>
-                  <span className="text-xs mb-0.5" style={{ color: "var(--text-secondary)" }}>{p.priceNote}</span>
+
+        <div className="flex flex-col gap-4">
+          {PLANS.map(p => {
+            const Icon = PLAN_ICONS[p.key] || Zap;
+            const popular = !!p.badge;
+            return (
+              <div key={p.key} className="rounded-3xl relative"
+                style={{
+                  background: popular ? "linear-gradient(165deg, #1F2937, #14181F)" : "#1B202B",
+                  border: popular ? "1px solid rgba(249,115,22,0.5)" : "1px solid rgba(255,255,255,0.08)",
+                  boxShadow: popular ? "0 12px 40px rgba(249,115,22,0.18)" : "none",
+                  transform: popular ? "scale(1.02)" : "none",
+                }}>
+                {popular && (
+                  <div className="absolute -top-3 left-0 right-0 flex justify-center">
+                    <span className="flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold text-white flex-row"
+                      style={{ background: "var(--blue)", boxShadow: "0 4px 12px rgba(249,115,22,0.4)" }}>
+                      <Crown size={11} /> {p.badge}
+                    </span>
+                  </div>
+                )}
+                <div className="p-5 pt-6">
+                  <div className="flex items-center justify-between flex-row mb-4">
+                    <div className="flex items-center gap-2.5 flex-row">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: popular ? "rgba(249,115,22,0.18)" : "rgba(255,255,255,0.06)" }}>
+                        <Icon size={16} style={{ color: popular ? "var(--blue)" : "rgba(255,255,255,0.7)" }} />
+                      </div>
+                      <p className="text-base font-bold text-white">{p.name}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-end gap-1.5 flex-row mb-5" style={{ direction: "ltr" }}>
+                    <span className="text-3xl font-bold text-white tracking-tight">{p.price}</span>
+                    <span className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.4)" }}>{p.priceNote}</span>
+                  </div>
+
+                  <div className="flex flex-col gap-2.5 mb-5">
+                    {p.features.map(f => (
+                      <div key={f} className="flex items-center gap-2 flex-row justify-end">
+                        <p className="text-xs" style={{ color: "rgba(255,255,255,0.85)" }}>{f}</p>
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={{ background: "rgba(34,197,94,0.15)" }}>
+                          <Check size={10} style={{ color: "#4ADE80" }} strokeWidth={3} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button onClick={() => router.push(`/register?plan=${p.key}`)}
+                    className="w-full py-3 rounded-xl text-sm font-bold"
+                    style={{ background: popular ? "var(--blue)" : "rgba(255,255,255,0.08)", color: "#fff", border: popular ? "none" : "1px solid rgba(255,255,255,0.15)" }}>
+                    {p.price === "חינם" ? "התחל בחינם" : `בחר ${p.name}`}
+                  </button>
                 </div>
-                <p className="text-sm font-bold">{p.name}</p>
               </div>
-              <div className="flex flex-col gap-1.5 mb-4">
-                {p.features.map(f => (
-                  <div key={f} className="flex items-center gap-1.5 flex-row justify-end">
-                    <p className="text-xs">{f}</p>
-                    <Check size={12} style={{ color: "var(--green)" }} />
-                  </div>
-                ))}
-                {p.missing.map(f => (
-                  <div key={f} className="flex items-center gap-1.5 flex-row justify-end" style={{ opacity: 0.5 }}>
-                    <p className="text-xs">{f}</p>
-                    <X size={12} style={{ color: "var(--text-secondary)" }} />
-                  </div>
-                ))}
-              </div>
-              <button onClick={() => router.push(`/register?plan=${p.key}`)}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: p.badge ? p.color : "var(--navy)", color: "#fff" }}>
-                בחר {p.name}
-              </button>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+
+        <div className="flex items-center justify-center gap-1.5 flex-row mt-5">
+          <ShieldCheck size={13} style={{ color: "rgba(255,255,255,0.4)" }} />
+          <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>
+            בלי כרטיס אשראי בהרשמה · אפשר לשנות תוכנית בכל עת
+          </p>
         </div>
       </div>
 
