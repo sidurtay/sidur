@@ -23,6 +23,8 @@ type Assignment = {
   actualOut?: ClockEvent;                 // actual clock-out
 };
 
+type OpenShift = { id: string; dayOfWeek: number; role: string; timeIn: string; timeOut: string };
+
 function inColor(src?: ClockSource)  { return src === "manual" ? "var(--amber)" : "var(--green)"; }
 function outColor(src?: ClockSource) { return src === "manual" ? "var(--amber)" : "var(--red)"; }
 
@@ -88,15 +90,21 @@ function Schedule() {
   const [searchTerm, setSearchTerm] = useState("");
   const [shiftSplit, setShiftSplitState] = useState<ShiftSplit>("none");
   const [selectedShift, setSelectedShift] = useState<"morning" | "evening" | "night">("morning");
+  const [myPersonId, setMyPersonId] = useState("");
+  const [openShifts, setOpenShifts] = useState<OpenShift[]>([]);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [openShiftError, setOpenShiftError] = useState("");
 
   async function loadWeek(biz: string, weekStart: string) {
     try {
-      const [schedRes, swapRes] = await Promise.all([
+      const [schedRes, swapRes, openRes] = await Promise.all([
         fetch(`/api/schedule?businessId=${biz}&weekStart=${weekStart}`).then(r => r.json()),
         fetch(`/api/swap-requests?businessId=${biz}`).then(r => r.json()),
+        fetch(`/api/open-shifts?businessId=${biz}&weekStart=${weekStart}`).then(r => r.json()),
       ]);
       if (schedRes.success) setAssignments(schedRes.assignments);
       if (swapRes.success) setPendingSwaps(swapRes.requests.filter((r: { status: string }) => r.status === "pending"));
+      if (openRes.success) setOpenShifts(openRes.openShifts);
     } catch {}
   }
 
@@ -105,6 +113,7 @@ function Schedule() {
     try {
       const s = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
       biz = s.businessId || "";
+      setMyPersonId(s.personId || "");
     } catch {}
     setBusinessId(biz);
 
@@ -134,6 +143,7 @@ function Schedule() {
 
   const week = getWeekInfo(weekOffset);
   const dayAssignments: Assignment[] = assignments.filter(a => a.dayOfWeek === activeDay);
+  const dayOpenShifts: OpenShift[] = openShifts.filter(s => s.dayOfWeek === activeDay);
 
   function goToWeek(offset: number) {
     setWeekOffset(offset);
@@ -228,6 +238,49 @@ function Schedule() {
   async function removeEmployee(id: string) {
     try { await fetch(`/api/schedule?id=${id}`, { method: "DELETE" }); } catch {}
     setAssignments(prev => prev.filter(a => a.id !== id));
+  }
+
+  // Publishes an unassigned shift for a role — any eligible employee can
+  // claim it themselves later instead of the manager having to pick someone.
+  async function publishOpenShift(roleKey: string) {
+    const { timeIn, timeOut } = shiftSplit !== "none" ? SHIFT_DEFAULT_TIMES[selectedShift] : { timeIn: "09:00", timeOut: "17:00" };
+    try {
+      const res = await fetch("/api/open-shifts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId, weekStart: week.weekStart, dayOfWeek: activeDay, roleKey, timeIn, timeOut }),
+      }).then(r => r.json());
+      if (res.success) setOpenShifts(prev => [...prev, res.openShift]);
+    } catch {}
+  }
+
+  async function claimOpenShift(shift: OpenShift) {
+    if (!myPersonId) return;
+    setClaimingId(shift.id);
+    setOpenShiftError("");
+    try {
+      const res = await fetch("/api/open-shifts", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: shift.id, businessId, personId: myPersonId }),
+      }).then(r => r.json());
+      if (res.success) {
+        setAssignments(prev => [...prev, res.assignment]);
+        setOpenShifts(prev => prev.filter(s => s.id !== shift.id));
+      } else {
+        setOpenShiftError(res.error || "תפיסת המשמרת נכשלה");
+        setOpenShifts(prev => prev.filter(s => s.id !== shift.id));
+      }
+    } catch {
+      setOpenShiftError("שגיאת רשת — נסה שוב");
+    } finally {
+      setClaimingId(null);
+    }
+  }
+
+  async function cancelOpenShift(id: string) {
+    try { await fetch(`/api/open-shifts?id=${id}`, { method: "DELETE" }); } catch {}
+    setOpenShifts(prev => prev.filter(s => s.id !== id));
   }
 
   async function swapEmployee(replacement: EmployeeRow) {
@@ -427,6 +480,10 @@ function Schedule() {
           />
         </div>
 
+        {openShiftError && (
+          <p className="text-xs text-center font-medium py-1" style={{ color: "var(--red)" }}>{openShiftError}</p>
+        )}
+
         {/* Role tables */}
         {jobRoles.map(({ key, label }) => {
           const allAssigned = getByRole(key);
@@ -457,6 +514,30 @@ function Schedule() {
                 </div>
               )}
 
+              {dayOpenShifts.filter(s => s.role === key).length > 0 && (
+                <div className="grid grid-cols-2 gap-2 mb-2" style={{ gridAutoRows: "1fr" }}>
+                  {dayOpenShifts.filter(s => s.role === key).map(shift => (
+                    <div key={shift.id} className="relative rounded-lg px-2 py-1.5 flex flex-col gap-0.5"
+                      style={{ background: "var(--green-light)", border: "1px dashed #A8D9BB" }}>
+                      <div className="flex items-center justify-between gap-1 flex-row">
+                        <button onClick={() => cancelOpenShift(shift.id)}>
+                          <X size={10} style={{ color: "var(--text-secondary)", opacity: 0.6 }} />
+                        </button>
+                        <p className="text-[10px] font-bold" style={{ color: "var(--green)" }}>משמרת פתוחה</p>
+                      </div>
+                      <p className="text-[11px] font-semibold text-center" style={{ direction: "ltr", color: "var(--text-main)" }}>
+                        {shift.timeIn}–{shift.timeOut}
+                      </p>
+                      <button onClick={() => claimOpenShift(shift)} disabled={claimingId === shift.id}
+                        className="text-[10px] font-bold py-1 rounded-md text-white text-center"
+                        style={{ background: "var(--green)", opacity: claimingId === shift.id ? 0.5 : 1 }}>
+                        {claimingId === shift.id ? "תופס..." : "תפוס משמרת"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {anyAddable && (
                 <button onClick={() => setAddRole(key)}
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl flex-row"
@@ -465,6 +546,13 @@ function Schedule() {
                   <span className="text-xs font-semibold" style={{ color: "var(--blue)" }}>הוסף ל{label}</span>
                 </button>
               )}
+
+              <button onClick={() => publishOpenShift(key)}
+                className="w-full flex items-center justify-center gap-2 py-2 mt-1.5 rounded-xl flex-row"
+                style={{ border: "1.5px dashed #A8D9BB", background: "var(--green-light)" }}>
+                <Plus size={12} style={{ color: "var(--green)" }} />
+                <span className="text-[11px] font-semibold" style={{ color: "var(--green)" }}>פרסם משמרת פתוחה</span>
+              </button>
 
               {!anyAddable && assigned.length === 0 && (
                 <div className="flex items-center justify-center px-4 py-3 rounded-xl bg-white" style={{ border: "1px solid var(--border)" }}>
