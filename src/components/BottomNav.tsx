@@ -36,10 +36,10 @@ export default function BottomNav() {
     <nav
       className="fixed bottom-3 right-3 left-3 z-50 flex"
       style={{
-        background: "rgba(255,255,255,0.72)",
+        background: "var(--nav-glass-bg)",
         backdropFilter: "blur(20px) saturate(180%)",
         WebkitBackdropFilter: "blur(20px) saturate(180%)",
-        border: "1px solid rgba(255,255,255,0.6)",
+        border: "1px solid var(--nav-glass-border)",
         borderRadius: 22,
         boxShadow: "0 8px 28px rgba(31,41,55,0.12), 0 1px 2px rgba(31,41,55,0.06)",
         padding: 6,

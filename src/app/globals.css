@@ -18,6 +18,41 @@
   --text-main: #1F2937;
   --text-secondary: #6B7280;
   --surface: #FFFFFF;
+  --nav-glass-bg: rgba(255, 255, 255, 0.72);
+  --nav-glass-border: rgba(255, 255, 255, 0.6);
+}
+
+/* Dark mode — only the "page/content" tokens flip (background, surface,
+   border, text, status tints). --blue is the brand accent and stays
+   identical in both themes on purpose, the same way Stripe/Linear keep
+   their accent color constant across themes. --navy DOES need to lighten
+   here though: it's used ~60 places as the "selected/active" fill (toggles,
+   chosen pills, primary buttons), and the page itself is now dark too — at
+   its light-mode value it nearly disappears against the new dark surfaces. */
+[data-theme="dark"] {
+  --navy: #323A48;
+  --blue-light: #2A2F3A;
+  --blue-border: #4A3826;
+  --green: #4ADE80;
+  --green-light: rgba(74, 222, 128, 0.14);
+  --amber: #FBBF24;
+  --amber-light: rgba(251, 191, 36, 0.14);
+  --red: #F87171;
+  --red-light: rgba(248, 113, 113, 0.14);
+  --gray-bg: #0F1115;
+  --border: #2A2F3A;
+  --text-main: #F3F4F6;
+  --text-secondary: #9CA3AF;
+  --surface: #1B1F27;
+  --nav-glass-bg: rgba(27, 31, 39, 0.78);
+  --nav-glass-border: rgba(255, 255, 255, 0.08);
+}
+
+/* Same trick covers every screen still using the raw Tailwind "bg-white"
+   utility (mostly bottom sheets/modals) instead of var(--surface) — higher
+   specificity than the plain .bg-white rule, no per-file changes needed. */
+[data-theme="dark"] .bg-white {
+  background-color: var(--surface);
 }
 
 * {

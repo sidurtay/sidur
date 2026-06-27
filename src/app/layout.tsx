@@ -14,6 +14,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="he" dir="rtl" className="h-full">
+      <head>
+        {/* Applies the theme before first paint — avoids a flash of the
+            wrong theme that a useEffect (runs after render) couldn't prevent. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=localStorage.getItem("shiftpro_theme")||"system";var d=m==="system"?(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):m;document.documentElement.setAttribute("data-theme",d);}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         {children}
         <AIAssistant />

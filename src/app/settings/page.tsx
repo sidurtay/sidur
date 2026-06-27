@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Store, Clock, Users, Plus, X, AlertTriangle, Check, Receipt, ShieldCheck, Mail, Send, Lock, Fingerprint, ChevronLeft, Sparkles, Layers, Crown } from "lucide-react";
+import { Store, Clock, Users, Plus, X, AlertTriangle, Check, Receipt, ShieldCheck, Mail, Send, Lock, Fingerprint, ChevronLeft, Sparkles, Layers, Crown, Sun, Moon, Monitor } from "lucide-react";
 import InstagramIcon from "@/components/InstagramIcon";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
@@ -17,6 +17,7 @@ import {
   type BusinessConfig, type DayConfig, type ShiftSplit,
 } from "@/lib/businessConfig";
 import { requiresClockOutApproval, setRequiresClockOutApproval } from "@/lib/clockRequests";
+import { getStoredTheme, setTheme as applyThemeChoice, watchSystemTheme, type ThemeMode } from "@/lib/theme";
 
 type SaveScope = "permanent" | "week";
 type TipsMode  = "daily" | "per-shift";
@@ -76,6 +77,17 @@ export default function Settings() {
   const [personId, setPersonId] = useState("");
   const [plan, setPlan] = useState("starter");
   const [shiftSplit, setShiftSplit] = useState<ShiftSplit>("none");
+  const [theme, setThemeState] = useState<ThemeMode>("system");
+
+  useEffect(() => {
+    setThemeState(getStoredTheme());
+    return watchSystemTheme(() => applyThemeChoice("system"));
+  }, []);
+
+  function chooseTheme(mode: ThemeMode) {
+    setThemeState(mode);
+    applyThemeChoice(mode);
+  }
 
   useEffect(() => {
     const stored = getStoredConfig();
@@ -252,6 +264,29 @@ export default function Settings() {
       </div>
 
       <div className="px-3 py-3 flex flex-col gap-4">
+
+        {/* Appearance — light / dark / follow device */}
+        <div>
+          <SectionHeader icon={theme === "dark" ? Moon : theme === "light" ? Sun : Monitor} title="מצב תצוגה" />
+          <Card padded={false}>
+            <div className="flex flex-row gap-2 p-3">
+              {([
+                ["light",  "בהיר",        Sun],
+                ["dark",   "כהה",         Moon],
+                ["system", "לפי המכשיר",  Monitor],
+              ] as [ThemeMode, string, typeof Sun][]).map(([mode, label, Icon]) => (
+                <button key={mode} onClick={() => chooseTheme(mode)}
+                  className="flex-1 rounded-xl p-3 flex flex-col items-center gap-1.5"
+                  style={theme === mode
+                    ? { background: "var(--navy)", border: "2px solid var(--navy)" }
+                    : { background: "var(--gray-bg)", border: "1.5px solid var(--border)" }}>
+                  <Icon size={18} style={{ color: theme === mode ? "#fff" : "var(--text-secondary)" }} />
+                  <p className="text-xs font-semibold" style={{ color: theme === mode ? "#fff" : "var(--text-main)" }}>{label}</p>
+                </button>
+              ))}
+            </div>
+          </Card>
+        </div>
 
         {/* Business details */}
         <div>
