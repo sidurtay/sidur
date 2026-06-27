@@ -112,6 +112,12 @@ describe("calcPay", () => {
     const pay = calcPay("08:00", "20:00", 40);
     expect(pay).toBeGreaterThanOrEqual(totalHours * 40);
   });
+
+  it("pays overtime at flat 100% when the role has the bonus disabled", () => {
+    // 10h shift: 8 regular + 2 overtime, no 125% premium
+    const expected = 8 * 40 + 2 * 40;
+    expect(calcPay("08:00", "18:00", 40, false)).toBeCloseTo(expected, 5);
+  });
 });
 
 describe("formatCurrency", () => {

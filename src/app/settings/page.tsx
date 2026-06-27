@@ -27,6 +27,11 @@ const PERMISSIONS = [
   { key: "manageAnnouncements", label: "ניהול הודעות לצוות"    },
 ];
 
+// A separate, inverted flag: ON means the 125% overtime bonus is *disabled*
+// for that role — kept apart from PERMISSIONS since it's a pay rule, not an
+// app capability, and defaults to "bonus applies normally" when unset.
+const DISABLE_OVERTIME_KEY = "disableOvertimeBonus";
+
 type PermMap = Record<string, boolean>;
 const DEFAULT_PERMS: Record<string, PermMap> = {
   "אחמ\"ש": { editSchedule: true,  approveSwaps: true,  publishTips: true,  addEmployee: false, manageAnnouncements: false },
@@ -579,6 +584,33 @@ export default function Settings() {
                 );
               })}
             </div>
+
+            <p className="text-xs px-4 mt-4 mb-2 text-right" style={{ color: "var(--text-secondary)" }}>כלל שכר</p>
+            <div className="mx-4 rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+              {(() => {
+                const disabled = !!(perms[permPopupRole]?.[DISABLE_OVERTIME_KEY]);
+                return (
+                  <button onClick={() => togglePerm(permPopupRole, DISABLE_OVERTIME_KEY)}
+                    className="w-full flex items-center justify-between px-4 py-3.5 flex-row"
+                    style={{ background: disabled ? "var(--amber-light)" : "var(--surface)" }}>
+                    <div className="w-10 h-5 rounded-full relative flex-shrink-0"
+                      style={{ background: disabled ? "var(--amber)" : "#C4C2B8", transition: "background 0.2s" }}>
+                      <span className="absolute top-0.5 rounded-full bg-white"
+                        style={{ width: 16, height: 16, right: disabled ? 2 : 20, transition: "right 0.2s", position: "absolute" }} />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium" style={{ color: disabled ? "var(--amber)" : "var(--text-main)" }}>
+                        ביטול 125% על שעות נוספות
+                      </p>
+                      <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                        {disabled ? "השכר המשוער יחושב לפי 100% גם על שעות נוספות" : "התעריף הרגיל — 125% על שעות נוספות"}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })()}
+            </div>
+
             <div className="px-4 mt-3">
               <button onClick={() => setPermPopupRole(null)}
                 className="w-full py-3 rounded-xl text-sm font-semibold text-white"

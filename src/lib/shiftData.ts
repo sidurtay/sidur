@@ -188,11 +188,12 @@ export function calcOvertimeHours(timeIn: string, timeOut: string): number {
 // *overstates* what's owed, so it's safe to show as an estimate, just not a
 // substitute for a real payroll calculation.
 const OVERTIME_MULTIPLIER = 1.25;
-export function calcPay(timeIn: string, timeOut: string, hourlyWage: number): number {
+export function calcPay(timeIn: string, timeOut: string, hourlyWage: number, overtimeEnabled = true): number {
   const totalHours = calcHours(timeIn, timeOut);
   const overtimeHours = calcOvertimeHours(timeIn, timeOut);
   const regularHours = totalHours - overtimeHours;
-  return regularHours * hourlyWage + overtimeHours * hourlyWage * OVERTIME_MULTIPLIER;
+  const multiplier = overtimeEnabled ? OVERTIME_MULTIPLIER : 1;
+  return regularHours * hourlyWage + overtimeHours * hourlyWage * multiplier;
 }
 
 export function formatCurrency(amount: number): string {
@@ -247,7 +248,7 @@ export function findNoShows(
 // One combined, branded payroll-ready Excel sheet across every employee,
 // instead of having to download and re-merge N separate per-employee files.
 export async function exportAllToExcel(
-  rows: { name: string; role: string; day: string; date: string; timeIn: string; timeOut: string; hourlyWage?: number }[],
+  rows: { name: string; role: string; day: string; date: string; timeIn: string; timeOut: string; hourlyWage?: number; overtimeEnabled?: boolean }[],
   businessName: string,
   filename: string
 ) {
@@ -267,13 +268,13 @@ export async function exportAllToExcel(
   rows.forEach((s, i) => {
     const h  = calcHours(s.timeIn, s.timeOut);
     const ot = calcOvertimeHours(s.timeIn, s.timeOut);
-    const pay = s.hourlyWage != null ? formatCurrency(calcPay(s.timeIn, s.timeOut, s.hourlyWage)) : "—";
+    const pay = s.hourlyWage != null ? formatCurrency(calcPay(s.timeIn, s.timeOut, s.hourlyWage, s.overtimeEnabled)) : "—";
     const row = sheet.addRow([s.name, s.role, s.day, s.date, s.timeIn, s.timeOut, formatHours(h), ot > 0 ? formatHours(ot) : "—", pay]);
     styleDataRow(row, i % 2 === 1);
   });
 
   const totalHours = rows.reduce((sum, s) => sum + calcHours(s.timeIn, s.timeOut), 0);
-  const totalPay = rows.reduce((sum, s) => sum + (s.hourlyWage != null ? calcPay(s.timeIn, s.timeOut, s.hourlyWage) : 0), 0);
+  const totalPay = rows.reduce((sum, s) => sum + (s.hourlyWage != null ? calcPay(s.timeIn, s.timeOut, s.hourlyWage, s.overtimeEnabled) : 0), 0);
   const totalRow = sheet.addRow(["", "", "", "", "", "סה\"כ:", formatHours(totalHours), "", totalPay > 0 ? formatCurrency(totalPay) : ""]);
   sheet.mergeCells(totalRow.number, 1, totalRow.number, 5);
   styleTotalRow(totalRow);
@@ -281,7 +282,7 @@ export async function exportAllToExcel(
   await downloadWorkbook(wb, filename);
 }
 
-export async function exportMonthToExcel(emp: { name: string; role: string; hourlyWage?: number }, month: AttendanceMonth, businessName: string) {
+export async function exportMonthToExcel(emp: { name: string; role: string; hourlyWage?: number; overtimeEnabled?: boolean }, month: AttendanceMonth, businessName: string) {
   const wb = styleWorkbook();
   const sheet = wb.addWorksheet("דוח נוכחות");
   const hasWage = emp.hourlyWage != null;
@@ -301,7 +302,7 @@ export async function exportMonthToExcel(emp: { name: string; role: string; hour
   allShifts.forEach((s, i) => {
     const h = calcHours(s.timeIn, s.timeOut);
     const cells = [s.day, s.date, s.timeIn, s.timeOut, formatHours(h)];
-    if (hasWage) cells.push(formatCurrency(calcPay(s.timeIn, s.timeOut, emp.hourlyWage!)));
+    if (hasWage) cells.push(formatCurrency(calcPay(s.timeIn, s.timeOut, emp.hourlyWage!, emp.overtimeEnabled)));
     cells.push(s.note || "");
     const row = sheet.addRow(cells);
     styleDataRow(row, i % 2 === 1);
@@ -310,7 +311,7 @@ export async function exportMonthToExcel(emp: { name: string; role: string; hour
   const total = allShifts.reduce((sum, s) => sum + calcHours(s.timeIn, s.timeOut), 0);
   const totalRowCells = ["", "", "", "סה\"כ:", formatHours(total)];
   if (hasWage) {
-    const totalPay = allShifts.reduce((sum, s) => sum + calcPay(s.timeIn, s.timeOut, emp.hourlyWage!), 0);
+    const totalPay = allShifts.reduce((sum, s) => sum + calcPay(s.timeIn, s.timeOut, emp.hourlyWage!, emp.overtimeEnabled), 0);
     totalRowCells.push(formatCurrency(totalPay));
   }
   totalRowCells.push("");

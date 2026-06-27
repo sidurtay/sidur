@@ -33,6 +33,7 @@ export default function Employees() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [jobRoles, setJobRoles] = useState<string[]>(DEFAULT_JOB_ROLES);
+  const [rolePerms, setRolePerms] = useState<Record<string, Record<string, boolean>>>({});
   const [activeCat, setActiveCat] = useState("הכל");
   const [selected,  setSelected]  = useState<Employee | null>(null);
   const [addOpen,   setAddOpen]   = useState(false);
@@ -79,9 +80,10 @@ export default function Employees() {
 
     (async () => {
       try {
-        const [rolesRes, empRes] = await Promise.all([
+        const [rolesRes, empRes, permsRes] = await Promise.all([
           fetch(`/api/roles?businessId=${bizId}`).then(r => r.json()),
           fetch(`/api/employees?businessId=${bizId}`).then(r => r.json()),
+          fetch(`/api/role-permissions?businessId=${bizId}`).then(r => r.json()),
         ]);
         if (rolesRes.success) {
           const labels: string[] = rolesRes.roles.map((r: { label: string }) => r.label);
@@ -89,12 +91,17 @@ export default function Employees() {
           setNewRole(labels[0] || DEFAULT_JOB_ROLES[0]);
         }
         if (empRes.success) setEmployees(empRes.employees);
+        if (permsRes.success) setRolePerms(permsRes.perms || {});
       } catch {
       } finally {
         setLoadingList(false);
       }
     })();
   }, []);
+
+  function overtimeEnabledFor(role: string) {
+    return !rolePerms[role]?.disableOvertimeBonus;
+  }
 
   // Attendance — now monthly
   const [attendanceEmp, setAttendanceEmp] = useState<Employee | null>(null);
@@ -201,7 +208,7 @@ export default function Employees() {
     if (!businessId || employees.length === 0) return;
     setExportingAll(true);
     try {
-      const rows: { name: string; role: string; day: string; date: string; timeIn: string; timeOut: string; hourlyWage?: number }[] = [];
+      const rows: { name: string; role: string; day: string; date: string; timeIn: string; timeOut: string; hourlyWage?: number; overtimeEnabled?: boolean }[] = [];
       await Promise.all(employees.map(async emp => {
         if (!emp.id) return;
         const res = await fetch(`/api/clock-requests?businessId=${businessId}&personId=${emp.id}`).then(r => r.json());
@@ -210,7 +217,7 @@ export default function Employees() {
         const current = months[0];
         if (!current) return;
         current.weeks.flatMap(w => w.shifts).forEach(s => {
-          rows.push({ name: emp.name, role: emp.role, day: s.day, date: s.date, timeIn: s.timeIn, timeOut: s.timeOut, hourlyWage: emp.hourlyWage });
+          rows.push({ name: emp.name, role: emp.role, day: s.day, date: s.date, timeIn: s.timeIn, timeOut: s.timeOut, hourlyWage: emp.hourlyWage, overtimeEnabled: overtimeEnabledFor(emp.role) });
         });
       }));
       await exportAllToExcel(rows, bizName, `דוח_שכר_כל_העובדים_${new Date().toLocaleDateString("he-IL", { month: "long", year: "numeric" })}.xlsx`);
@@ -292,7 +299,7 @@ export default function Employees() {
   const totalShifts      = allShiftsInMonth.length;
   const avgPerShift      = totalShifts > 0 ? totalMonthHours / totalShifts : 0;
   const totalMonthPay    = attendanceEmp?.hourlyWage != null
-    ? allShiftsInMonth.reduce((sum, s) => sum + calcPay(s.timeIn, s.timeOut, attendanceEmp.hourlyWage!), 0)
+    ? allShiftsInMonth.reduce((sum, s) => sum + calcPay(s.timeIn, s.timeOut, attendanceEmp.hourlyWage!, overtimeEnabledFor(attendanceEmp.role)), 0)
     : null;
 
   return (
@@ -585,7 +592,9 @@ export default function Employees() {
                 style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)" }}>
                 <span className="text-lg font-bold" style={{ color: "var(--blue)" }}>{formatCurrency(totalMonthPay)}</span>
                 <p className="text-xs font-semibold text-right" style={{ color: "var(--blue)" }}>
-                  שכר משוער לחודש <span className="font-normal">(לפי ₪{attendanceEmp?.hourlyWage}/שעה, כולל 125% על שעות נוספות)</span>
+                  שכר משוער לחודש <span className="font-normal">
+                    (לפי ₪{attendanceEmp?.hourlyWage}/שעה, {attendanceEmp && overtimeEnabledFor(attendanceEmp.role) ? "כולל 125% על שעות נוספות" : "ללא תוספת על שעות נוספות"})
+                  </span>
                 </p>
               </div>
             )}
@@ -718,13 +727,13 @@ export default function Employees() {
 
             {/* Export */}
             <div className="px-4 flex flex-col gap-2">
-              <button onClick={() => exportMonthToExcel(attendanceEmp, currentMonth, bizName)}
+              <button onClick={() => exportMonthToExcel({ ...attendanceEmp, overtimeEnabled: overtimeEnabledFor(attendanceEmp.role) }, currentMonth, bizName)}
                 className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
                 style={{ background: "var(--green)", color: "#fff" }}>
                 <FileSpreadsheet size={16} />
                 ייצא לאקסל — {currentMonth.label}
               </button>
-              <button onClick={() => monthData.forEach(m => exportMonthToExcel(attendanceEmp, m, bizName))}
+              <button onClick={() => monthData.forEach(m => exportMonthToExcel({ ...attendanceEmp, overtimeEnabled: overtimeEnabledFor(attendanceEmp.role) }, m, bizName))}
                 className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
                 style={{ background: "var(--gray-bg)", color: "var(--text-main)", border: "1px solid var(--border)" }}>
                 <Download size={15} />
