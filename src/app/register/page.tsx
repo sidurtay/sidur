@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarDays, ArrowRight, Check, ChevronLeft, Store, Coffee, Utensils, Beer, X, Sparkles } from "lucide-react";
 import { DEFAULT_CONFIG } from "@/lib/businessConfig";
+import { PLANS } from "@/lib/plans";
 
 const BUSINESS_TYPES = [
   { key: "cafe",       label: "בית קפה",  icon: <Coffee size={20} /> },
@@ -11,64 +12,15 @@ const BUSINESS_TYPES = [
   { key: "other",      label: "אחר",      icon: <Store size={20} /> },
 ];
 
-const PLANS = [
-  {
-    key: "starter",
-    name: "Sidur Starter",
-    price: "חינם",
-    priceNote: "לתמיד",
-    color: "var(--text-secondary)",
-    bg: "var(--gray-bg)",
-    border: "var(--border)",
-    features: [
-      "עד 10 עובדים",
-      "סידור עבודה",
-      "נוכחות ידנית",
-      "צ'אט פנימי",
-    ],
-    missing: ["AI לסידור", "חישוב טיפים", "דוחות מתקדמים"],
-  },
-  {
-    key: "plus",
-    name: "Sidur Plus",
-    price: "₪99",
-    priceNote: "לחודש",
-    color: "var(--text-secondary)",
-    bg: "var(--gray-bg)",
-    border: "var(--border)",
-    features: [
-      "עד 20 עובדים",
-      "כל יכולות ה-Starter",
-      "AI לבניית סידור",
-      "חישוב טיפים",
-      "דוחות חודשיים",
-    ],
-    missing: ["מולטי-סניף"],
-  },
-  {
-    key: "business",
-    name: "Sidur Business",
-    price: "₪199",
-    priceNote: "לחודש",
-    color: "var(--blue)",
-    bg: "var(--blue-light)",
-    border: "var(--blue-border)",
-    badge: "הכי פופולרי",
-    features: [
-      "עובדים ללא הגבלה",
-      "כל יכולות ה-Plus",
-      "מולטי-סניף",
-      "API גישה",
-      "תמיכה עדיפה",
-    ],
-    missing: [],
-  },
-];
-
 type Step = 1 | 2 | 3 | 4;
 
-export default function Register() {
+export default function RegisterPage() {
+  return <Suspense><Register /></Suspense>;
+}
+
+function Register() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>(1);
 
   // Step 1 — Business
@@ -82,8 +34,14 @@ export default function Register() {
   const [email,       setEmail]       = useState("");
   const [password,    setPassword]    = useState("");
 
-  // Step 3 — Plan
-  const [plan, setPlan] = useState("business");
+  // Step 3 — Plan, pre-selected from the landing page's pricing section
+  // (?plan=starter|plus|business) when the visitor arrives via a "בחר תוכנית"
+  // CTA there, so the choice they already made carries through instead of
+  // forcing them to re-pick it.
+  const requestedPlan = searchParams.get("plan");
+  const [plan, setPlan] = useState(
+    PLANS.some(p => p.key === requestedPlan) ? requestedPlan! : "business"
+  );
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Users, Coins, BarChart3 } from "lucide-react";
+import { CalendarDays, Users, Coins, BarChart3, Check, X } from "lucide-react";
 import InstagramIcon from "@/components/InstagramIcon";
+import { PLANS } from "@/lib/plans";
 
 export default function Splash() {
   const router = useRouter();
@@ -101,6 +102,54 @@ export default function Splash() {
             <span className="text-2xl w-9 text-center flex-shrink-0">{f.emoji}</span>
           </div>
         ))}
+      </div>
+
+      {/* Pricing — visible to anyone before they ever start registering,
+          unlike the "contact us" pricing model most Israeli competitors use */}
+      <div className="px-4 mb-4">
+        <p className="text-center text-lg font-bold mb-1">מחירים שקופים, בלי הפתעות</p>
+        <p className="text-center text-xs mb-4" style={{ color: "var(--text-secondary)" }}>
+          בוחרים תוכנית, נרשמים, ומתחילים — אין &quot;השאר פרטים ונחזור אליך&quot;
+        </p>
+        <div className="flex flex-col gap-3">
+          {PLANS.map(p => (
+            <div key={p.key} className="rounded-2xl p-4 relative"
+              style={{ background: p.bg, border: `2px solid ${p.border}` }}>
+              {p.badge && (
+                <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white"
+                  style={{ background: p.color }}>
+                  {p.badge}
+                </span>
+              )}
+              <div className="flex items-center justify-between flex-row mb-3">
+                <div className="flex items-end gap-1 flex-row" style={{ direction: "ltr" }}>
+                  <span className="text-xl font-bold" style={{ color: p.color }}>{p.price}</span>
+                  <span className="text-xs mb-0.5" style={{ color: "var(--text-secondary)" }}>{p.priceNote}</span>
+                </div>
+                <p className="text-sm font-bold">{p.name}</p>
+              </div>
+              <div className="flex flex-col gap-1.5 mb-4">
+                {p.features.map(f => (
+                  <div key={f} className="flex items-center gap-1.5 flex-row justify-end">
+                    <p className="text-xs">{f}</p>
+                    <Check size={12} style={{ color: "var(--green)" }} />
+                  </div>
+                ))}
+                {p.missing.map(f => (
+                  <div key={f} className="flex items-center gap-1.5 flex-row justify-end" style={{ opacity: 0.5 }}>
+                    <p className="text-xs">{f}</p>
+                    <X size={12} style={{ color: "var(--text-secondary)" }} />
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => router.push(`/register?plan=${p.key}`)}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold"
+                style={{ background: p.badge ? p.color : "var(--navy)", color: "#fff" }}>
+                בחר {p.name}
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
 
       <a href="https://instagram.com/sidur.app" target="_blank" rel="noopener noreferrer"
