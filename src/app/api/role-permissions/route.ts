@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { isManager } from "@/lib/auth/permissions";
 
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
@@ -28,16 +29,22 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { businessId, roleKey, perms } = await req.json();
-    if (!businessId || !roleKey || !perms) {
+    const { businessId, roleKey, perms, callerId } = await req.json();
+    if (!businessId || !roleKey || !perms || !callerId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
+    }
+
+    const supabase = createServiceRoleClient();
+    // Only managers may grant/revoke permissions — otherwise a role with editSchedule
+    // could escalate itself (or any other role) to addEmployee/approveSwaps/etc.
+    if (!(await isManager(supabase, businessId, callerId))) {
+      return NextResponse.json({ error: "אין הרשאה לעדכן הרשאות" }, { status: 403 });
     }
 
     const rows = Object.entries(perms).map(([permissionKey, enabled]) => ({
       business_id: businessId, role_key: roleKey, permission_key: permissionKey, enabled: !!enabled,
     }));
 
-    const supabase = createServiceRoleClient();
     const { error } = await supabase.from("role_permissions").upsert(rows, { onConflict: "business_id,role_key,permission_key" });
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

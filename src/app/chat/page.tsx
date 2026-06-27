@@ -119,7 +119,7 @@ export default function Chat() {
     try {
       const res = await fetch("/api/chat/messages", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channelId: openChannel.id, senderId: personId, body: text }),
+        body: JSON.stringify({ channelId: openChannel.id, senderId: personId, body: text, callerId: personId }),
       }).then(r => r.json());
       if (res.success) {
         setLiveMessages(prev => [...prev, { id: res.message.id, from: res.message.from, text: res.message.text, time: res.message.time, isMine: true, senderId: personId }]);
@@ -130,7 +130,7 @@ export default function Chat() {
 
   function deleteMsg(msgId: string | number) {
     if (!openChannel) return;
-    fetch(`/api/chat/messages?id=${msgId}`, { method: "DELETE" }).catch(() => {});
+    fetch(`/api/chat/messages?id=${msgId}&callerId=${personId}`, { method: "DELETE" }).catch(() => {});
     setLiveMessages(prev => prev.filter(m => m.id !== msgId));
     setLongPressId(null);
   }
@@ -139,7 +139,7 @@ export default function Chat() {
     if (!openChannel || !nameInput.trim()) return;
     fetch("/api/chat/channels", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: openChannel.id, name: nameInput.trim() }),
+      body: JSON.stringify({ id: openChannel.id, name: nameInput.trim(), callerId: personId }),
     }).catch(() => {});
     setChannels(prev => prev.map(c => c.id === openChannel.id ? { ...c, name: nameInput.trim() } : c));
     setEditingName(false);
@@ -150,7 +150,7 @@ export default function Chat() {
     if (!openChannel) return;
     fetch("/api/chat/channels", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: openChannel.id, emoji }),
+      body: JSON.stringify({ id: openChannel.id, emoji, callerId: personId }),
     }).catch(() => {});
     setChannels(prev => prev.map(c => c.id === openChannel.id ? { ...c, emoji } : c));
     setEditingEmoji(false);
@@ -161,14 +161,14 @@ export default function Chat() {
     if (!openChannel) return;
     fetch("/api/chat/channels", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: openChannel.id, color: p.bg, iconColor: p.icon }),
+      body: JSON.stringify({ id: openChannel.id, color: p.bg, iconColor: p.icon, callerId: personId }),
     }).catch(() => {});
     setChannels(prev => prev.map(c => c.id === openChannel.id ? { ...c, color: p.bg, iconColor: p.icon } : c));
   }
 
   function deleteChannel() {
     if (!openChannel) return;
-    fetch(`/api/chat/channels?id=${openChannel.id}`, { method: "DELETE" }).catch(() => {});
+    fetch(`/api/chat/channels?id=${openChannel.id}&callerId=${personId}`, { method: "DELETE" }).catch(() => {});
     setChannels(prev => prev.filter(c => c.id !== openChannel.id));
     setOpenChannelId(null);
     setDeleteConfirm(false);
@@ -180,7 +180,7 @@ export default function Chat() {
     try {
       const res = await fetch("/api/chat/channels", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, name: newName.trim(), emoji: newEmoji, color: newColor.bg, iconColor: newColor.icon, memberIds: newMembers }),
+        body: JSON.stringify({ businessId, name: newName.trim(), emoji: newEmoji, color: newColor.bg, iconColor: newColor.icon, memberIds: newMembers, callerId: personId }),
       }).then(r => r.json());
       if (res.success) {
         setChannels(prev => [...prev, {

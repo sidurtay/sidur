@@ -117,7 +117,7 @@ export default function Dashboard() {
   function respond(id: string, approve: boolean) {
     fetch("/api/clock-requests", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, approve }),
+      body: JSON.stringify({ id, approve, callerId: myPersonId }),
     }).then(r => r.json()).then(res => {
       if (res.success) setClockRequests(prev => prev.map(r => r.id === id ? res.request : r));
     }).catch(() => {});
@@ -126,7 +126,7 @@ export default function Dashboard() {
   function respondSwap(id: string, approve: boolean) {
     fetch("/api/swap-requests", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, approve }),
+      body: JSON.stringify({ id, approve, callerId: myPersonId }),
     }).then(r => r.json()).then(res => {
       if (res.success) setSwapRequests(prev => (prev || []).map(r => r.id === id ? { ...r, status: approve ? "approved" : "denied" } : r));
     }).catch(() => {});
@@ -164,14 +164,14 @@ export default function Dashboard() {
       try {
         const res = await fetch("/api/announcements", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ businessId, title: annTitle.trim(), body: annText.trim(), createdBy: myPersonId || null }),
+          body: JSON.stringify({ businessId, title: annTitle.trim(), body: annText.trim(), createdBy: myPersonId }),
         }).then(r => r.json());
         if (res.success) setAnnouncements(prev => [res.announcement, ...prev]);
       } catch {}
     } else if (editingAnn) {
       fetch("/api/announcements", {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingAnn.id, title: annTitle.trim(), body: annText.trim() }),
+        body: JSON.stringify({ id: editingAnn.id, title: annTitle.trim(), body: annText.trim(), callerId: myPersonId }),
       }).catch(() => {});
       setAnnouncements(prev => prev.map(a =>
         a.id === editingAnn.id ? { ...a, title: annTitle.trim(), text: annText.trim() } : a
@@ -180,7 +180,7 @@ export default function Dashboard() {
     setAnnouncementSheet(null);
   }
   function deleteAnnouncement(id: number | string) {
-    fetch(`/api/announcements?id=${id}`, { method: "DELETE" }).catch(() => {});
+    fetch(`/api/announcements?id=${id}&callerId=${myPersonId}`, { method: "DELETE" }).catch(() => {});
     setAnnouncements(prev => prev.filter(a => a.id !== id));
     setDeleteConfirm(null);
   }
@@ -602,7 +602,7 @@ export default function Dashboard() {
                       if (businessId && emp.id) {
                         fetch("/api/announcements/confirm", {
                           method: "POST", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ announcementId: editingAnn.id, personId: emp.id }),
+                          body: JSON.stringify({ announcementId: editingAnn.id, personId: emp.id, callerId: myPersonId, businessId }),
                         }).catch(() => {});
                       }
                       setAnnouncements(prev => prev.map(a =>

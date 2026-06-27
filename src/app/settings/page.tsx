@@ -143,7 +143,7 @@ export default function Settings() {
     setRequiresClockOutApproval(next);
     fetch("/api/business", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ businessId, clockoutRequiresApproval: next }),
+      body: JSON.stringify({ businessId, clockoutRequiresApproval: next, callerId: personId }),
     }).catch(() => {});
   }
 
@@ -202,18 +202,18 @@ export default function Settings() {
 
     fetch("/api/business", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ businessId, name: bizName, businessIdNum: bizId, tipsMode, clockoutRequiresApproval: clockOutApproval, shiftSplit: plan === "starter" ? "none" : shiftSplit }),
+      body: JSON.stringify({ businessId, name: bizName, businessIdNum: bizId, tipsMode, clockoutRequiresApproval: clockOutApproval, shiftSplit: plan === "starter" ? "none" : shiftSplit, callerId: personId }),
     }).catch(() => {});
     if (scope === "permanent") {
       fetch("/api/business-hours", {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, days }),
+        body: JSON.stringify({ businessId, days, callerId: personId }),
       }).catch(() => {});
     }
     roles.forEach(r => {
       fetch("/api/role-permissions", {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, roleKey: r, perms: perms[r] || {} }),
+        body: JSON.stringify({ businessId, roleKey: r, perms: perms[r] || {}, callerId: personId }),
       }).catch(() => {});
     });
 
@@ -235,7 +235,7 @@ export default function Settings() {
   }
   function removeRole(r: string) {
     setRoles(prev => prev.filter(x => x !== r));
-    fetch(`/api/roles?businessId=${businessId}&key=${encodeURIComponent(r)}`, { method: "DELETE" }).catch(() => {});
+    fetch(`/api/roles?businessId=${businessId}&key=${encodeURIComponent(r)}&callerId=${personId}`, { method: "DELETE" }).catch(() => {});
   }
   function addRoleFn() {
     if (!newRole.trim()) return;
@@ -245,7 +245,7 @@ export default function Settings() {
     setNewRole(""); setAddingRole(false);
     fetch("/api/roles", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ businessId, name: r }),
+      body: JSON.stringify({ businessId, name: r, callerId: personId }),
     }).catch(() => {});
   }
   function togglePerm(role: string, perm: string) {

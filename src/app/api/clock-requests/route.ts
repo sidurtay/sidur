@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { isManager } from "@/lib/auth/permissions";
 
 // Matches the app-wide frozen "today" used across schedule/dashboard/AI assistant.
 const CURRENT_WEEK_START = "2026-06-21";
@@ -73,9 +74,13 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, personId, type, autoApprove } = await req.json();
-    if (!businessId || !personId || !type) {
+    const { businessId, personId, type, autoApprove, callerId } = await req.json();
+    if (!businessId || !personId || !type || !callerId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
+    }
+    // A clock-in/out request can only be submitted for yourself.
+    if (personId !== callerId) {
+      return NextResponse.json({ error: "אין הרשאה לדווח נוכחות בשם עובד אחר" }, { status: 403 });
     }
 
     const supabase = createServiceRoleClient();
@@ -105,12 +110,24 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, approve } = await req.json();
-    if (!id || approve === undefined) {
+    const { id, approve, callerId } = await req.json();
+    if (!id || approve === undefined || !callerId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
 
     const supabase = createServiceRoleClient();
+    const { data: existing } = await supabase
+      .from("clock_requests")
+      .select("business_id")
+      .eq("id", id)
+      .maybeSingle();
+    if (!existing) {
+      return NextResponse.json({ error: "הבקשה לא נמצאה" }, { status: 404 });
+    }
+    if (!(await isManager(supabase, existing.business_id, callerId))) {
+      return NextResponse.json({ error: "אין הרשאה לאשר/לדחות בקשת נוכחות" }, { status: 403 });
+    }
+
     const { data, error } = await supabase
       .from("clock_requests")
       .update({ status: approve ? "approved" : "denied", resolved_at: new Date().toISOString() })

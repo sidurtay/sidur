@@ -3,6 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { paletteFor, initialsFor, sinceLabel } from "@/lib/avatarPalette";
 import { sendMail } from "@/lib/mailer";
 import { MINIMUM_WAGE_HOURLY } from "@/lib/minimumWage";
+import { isManager, canAddEmployee } from "@/lib/auth/permissions";
 
 function credentialsEmailHtml(employeeName: string, businessName: string, phone: string, tempPassword: string) {
   return `
@@ -60,12 +61,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, name, phone, email, roleKey, businessName } = await req.json();
-    if (!businessId || !name?.trim() || !phone?.trim() || !email?.trim() || !roleKey) {
+    const { businessId, name, phone, email, roleKey, businessName, callerId } = await req.json();
+    if (!businessId || !name?.trim() || !phone?.trim() || !email?.trim() || !roleKey || !callerId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
 
     const supabase = createServiceRoleClient();
+    if (!(await canAddEmployee(supabase, businessId, callerId))) {
+      return NextResponse.json({ error: "אין הרשאה להוסיף עובד" }, { status: 403 });
+    }
 
     const { count } = await supabase
       .from("people")
@@ -132,12 +136,15 @@ export async function POST(req: NextRequest) {
 // employee gets) and clears the old hashed password so it stops working.
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, businessId, action, businessName, roleKey, hourlyWage } = await req.json();
-    if (!id || !businessId || !action) {
+    const { id, businessId, action, businessName, roleKey, hourlyWage, callerId } = await req.json();
+    if (!id || !businessId || !action || !callerId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
 
     const supabase = createServiceRoleClient();
+    if (!(await isManager(supabase, businessId, callerId))) {
+      return NextResponse.json({ error: "אין הרשאה לעדכן עובד" }, { status: 403 });
+    }
 
     if (action === "update_role") {
       if (!roleKey) return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
@@ -209,11 +216,15 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   const businessId = req.nextUrl.searchParams.get("businessId");
-  if (!id || !businessId) {
+  const callerId = req.nextUrl.searchParams.get("callerId");
+  if (!id || !businessId || !callerId) {
     return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
   }
 
   const supabase = createServiceRoleClient();
+  if (!(await isManager(supabase, businessId, callerId))) {
+    return NextResponse.json({ error: "אין הרשאה למחוק עובד" }, { status: 403 });
+  }
 
   // Most person_id foreign keys cascade-delete automatically (schedule_assignments,
   // clock_requests, ai_conversations, chat memberships...), but swap_requests.proposed_person

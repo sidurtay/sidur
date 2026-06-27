@@ -79,6 +79,7 @@ export default function Tips() {
   const [dayIdx,   setDayIdx]   = useState(TODAY_IDX);
   const [tipsMode, setTipsMode] = useState<TipsMode>("per-shift");
   const [businessId, setBusinessId] = useState("");
+  const [myPersonId, setMyPersonId] = useState("");
   const [managerName, setManagerName] = useState("מנהל");
   const [days, setDays] = useState<DayData[]>([]);
   const [tipsData, setTipsData] = useState<Record<string, DayTips>>({});
@@ -92,6 +93,7 @@ export default function Tips() {
       const s = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
       biz = s.businessId || "";
       if (s.name) setManagerName(s.name);
+      setMyPersonId(s.personId || "");
     } catch {}
     setBusinessId(biz);
     if (!biz) { router.replace("/login"); return; }
@@ -146,6 +148,7 @@ export default function Tips() {
           published: next.published, locked: next.locked,
           lockedBy: next.locked ? next.lockedBy : null,
           lockedAt: next.locked ? new Date().toISOString() : null,
+          callerId: myPersonId,
         }),
       });
     } catch {}
@@ -178,7 +181,7 @@ export default function Tips() {
     fetch("/api/tips", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ businessId, date: REAL_DAY_DEFS.find(d => d.date === day.date)?.iso, ...next, notify }),
+      body: JSON.stringify({ businessId, date: REAL_DAY_DEFS.find(d => d.date === day.date)?.iso, ...next, notify, callerId: myPersonId }),
     }).catch(() => {});
 
     try {

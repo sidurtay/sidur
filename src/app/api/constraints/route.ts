@@ -49,9 +49,13 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, personId, weekStart, availability, weekNote } = await req.json();
-    if (!businessId || !personId || !weekStart || !availability) {
+    const { businessId, personId, weekStart, availability, weekNote, callerId } = await req.json();
+    if (!businessId || !personId || !weekStart || !availability || !callerId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
+    }
+    // You can only set your own availability.
+    if (personId !== callerId) {
+      return NextResponse.json({ error: "אין הרשאה לקבוע אילוצים בשם עובד אחר" }, { status: 403 });
     }
 
     const supabase = createServiceRoleClient();

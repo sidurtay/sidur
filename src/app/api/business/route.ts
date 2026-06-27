@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { isManager } from "@/lib/auth/permissions";
 
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
@@ -30,9 +31,14 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { businessId, name, businessIdNum, tipsMode, clockoutRequiresApproval, shiftSplit } = await req.json();
-    if (!businessId) {
-      return NextResponse.json({ error: "businessId חסר" }, { status: 400 });
+    const { businessId, name, businessIdNum, tipsMode, clockoutRequiresApproval, shiftSplit, callerId } = await req.json();
+    if (!businessId || !callerId) {
+      return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
+    }
+
+    const supabase = createServiceRoleClient();
+    if (!(await isManager(supabase, businessId, callerId))) {
+      return NextResponse.json({ error: "אין הרשאה לעדכן את העסק" }, { status: 403 });
     }
 
     const update: Record<string, unknown> = {};
@@ -40,8 +46,6 @@ export async function PATCH(req: NextRequest) {
     if (businessIdNum !== undefined) update.business_id_num = businessIdNum;
     if (tipsMode !== undefined) update.tips_mode = tipsMode;
     if (clockoutRequiresApproval !== undefined) update.clockout_requires_approval = clockoutRequiresApproval;
-
-    const supabase = createServiceRoleClient();
 
     // Shift-split is a paid-plan feature — enforce that server-side too, not just
     // in the settings UI, so a starter-plan business can't enable it by calling

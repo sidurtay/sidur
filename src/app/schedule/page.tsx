@@ -94,6 +94,11 @@ function Schedule() {
   const [openShifts, setOpenShifts] = useState<OpenShift[]>([]);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [openShiftError, setOpenShiftError] = useState("");
+  const [isManager, setIsManager] = useState(false);
+  const [rolePerms, setRolePerms] = useState<Record<string, Record<string, boolean>>>({});
+
+  const myRoleKey = employees.find(e => e.id === myPersonId)?.role || "";
+  const canEditSchedule = isManager || !!rolePerms[myRoleKey]?.editSchedule;
 
   async function loadWeek(biz: string, weekStart: string) {
     try {
@@ -114,6 +119,7 @@ function Schedule() {
       const s = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
       biz = s.businessId || "";
       setMyPersonId(s.personId || "");
+      setIsManager(s.role === "manager");
     } catch {}
     setBusinessId(biz);
 
@@ -121,14 +127,16 @@ function Schedule() {
 
     (async () => {
       try {
-        const [rolesRes, empRes, bizRes] = await Promise.all([
+        const [rolesRes, empRes, bizRes, permsRes] = await Promise.all([
           fetch(`/api/roles?businessId=${biz}`).then(r => r.json()),
           fetch(`/api/employees?businessId=${biz}`).then(r => r.json()),
           fetch(`/api/business?businessId=${biz}`).then(r => r.json()),
+          fetch(`/api/role-permissions?businessId=${biz}`).then(r => r.json()),
         ]);
         if (rolesRes.success) setJobRoles(rolesRes.roles);
         if (empRes.success) setEmployees(empRes.employees);
         if (bizRes.success) setShiftSplitState(bizRes.business.shiftSplit || "none");
+        if (permsRes.success) setRolePerms(permsRes.perms || {});
         const initialOffset = searchParams.get("week") === "next" ? 1 : 0;
         setWeekOffset(initialOffset);
         setActiveDay(initialOffset === 0 ? TODAY_DAY_OF_WEEK : 0);
@@ -169,22 +177,25 @@ function Schedule() {
         }}>
         {/* Top row — name + tiny remove/swap icons, no separate header band */}
         <div className="flex items-center justify-between gap-1 flex-row">
-          <div className="flex items-center gap-1 flex-row flex-shrink-0">
-            <button onClick={() => removeEmployee(emp.id)}>
-              <X size={10} style={{ color: "var(--text-secondary)", opacity: 0.6 }} />
-            </button>
-            <button onClick={() => setSwapTarget(emp)} className="relative">
-              {hasPendingSwap && (
-                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full" style={{ background: "var(--amber)" }} title="בקשת החלפה ממתינה לאישור" />
-              )}
-              <ArrowLeftRight size={10} style={{ color: "var(--blue)" }} />
-            </button>
-          </div>
+          {canEditSchedule && (
+            <div className="flex items-center gap-1 flex-row flex-shrink-0">
+              <button onClick={() => removeEmployee(emp.id)}>
+                <X size={10} style={{ color: "var(--text-secondary)", opacity: 0.6 }} />
+              </button>
+              <button onClick={() => setSwapTarget(emp)} className="relative">
+                {hasPendingSwap && (
+                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full" style={{ background: "var(--amber)" }} title="בקשת החלפה ממתינה לאישור" />
+                )}
+                <ArrowLeftRight size={10} style={{ color: "var(--blue)" }} />
+              </button>
+            </div>
+          )}
           <p className="text-[11px] font-bold truncate" style={{ color: "var(--navy)" }}>{emp.name}</p>
         </div>
 
-        {/* Time row — click to edit */}
-        <button onClick={() => openEdit(emp)} className="flex items-center justify-center gap-1 flex-row" style={{ direction: "ltr" }}>
+        {/* Time row — click to edit (manager/permitted only) */}
+        <button onClick={() => openEdit(emp)} disabled={!canEditSchedule}
+          className="flex items-center justify-center gap-1 flex-row" style={{ direction: "ltr", cursor: canEditSchedule ? "pointer" : "default" }}>
           <span className="text-[11px] font-semibold" style={{ color: hasIn ? inColor(inSrc) : "var(--text-secondary)" }}>
             {inTime}
           </span>
@@ -217,6 +228,7 @@ function Schedule() {
   }
 
   async function addEmployee(emp: EmployeeRow, targetRole: string) {
+    if (!canEditSchedule) return;
     const homeRole = targetRole !== emp.role ? emp.role : undefined;
     const { timeIn, timeOut } = shiftSplit !== "none" ? SHIFT_DEFAULT_TIMES[selectedShift] : { timeIn: "09:00", timeOut: "17:00" };
     try {
@@ -226,7 +238,7 @@ function Schedule() {
         body: JSON.stringify({
           businessId, weekStart: week.weekStart, dayOfWeek: activeDay,
           personId: emp.id, roleKey: targetRole, homeRoleKey: homeRole || null,
-          timeIn, timeOut,
+          timeIn, timeOut, callerId: myPersonId,
         }),
       });
       const data = await res.json();
@@ -236,19 +248,21 @@ function Schedule() {
   }
 
   async function removeEmployee(id: string) {
-    try { await fetch(`/api/schedule?id=${id}`, { method: "DELETE" }); } catch {}
+    if (!canEditSchedule) return;
+    try { await fetch(`/api/schedule?id=${id}&callerId=${myPersonId}`, { method: "DELETE" }); } catch {}
     setAssignments(prev => prev.filter(a => a.id !== id));
   }
 
   // Publishes an unassigned shift for a role — any eligible employee can
   // claim it themselves later instead of the manager having to pick someone.
   async function publishOpenShift(roleKey: string) {
+    if (!canEditSchedule) return;
     const { timeIn, timeOut } = shiftSplit !== "none" ? SHIFT_DEFAULT_TIMES[selectedShift] : { timeIn: "09:00", timeOut: "17:00" };
     try {
       const res = await fetch("/api/open-shifts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, weekStart: week.weekStart, dayOfWeek: activeDay, roleKey, timeIn, timeOut }),
+        body: JSON.stringify({ businessId, weekStart: week.weekStart, dayOfWeek: activeDay, roleKey, timeIn, timeOut, callerId: myPersonId }),
       }).then(r => r.json());
       if (res.success) setOpenShifts(prev => [...prev, res.openShift]);
     } catch {}
@@ -262,7 +276,7 @@ function Schedule() {
       const res = await fetch("/api/open-shifts", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: shift.id, businessId, personId: myPersonId }),
+        body: JSON.stringify({ id: shift.id, businessId, personId: myPersonId, callerId: myPersonId }),
       }).then(r => r.json());
       if (res.success) {
         setAssignments(prev => [...prev, res.assignment]);
@@ -279,18 +293,20 @@ function Schedule() {
   }
 
   async function cancelOpenShift(id: string) {
-    try { await fetch(`/api/open-shifts?id=${id}`, { method: "DELETE" }); } catch {}
+    if (!canEditSchedule) return;
+    try { await fetch(`/api/open-shifts?id=${id}&businessId=${businessId}&callerId=${myPersonId}`, { method: "DELETE" }); } catch {}
     setOpenShifts(prev => prev.filter(s => s.id !== id));
   }
 
   async function swapEmployee(replacement: EmployeeRow) {
+    if (!canEditSchedule) return;
     if (!swapTarget) return;
     const homeRole = replacement.role !== swapTarget.role ? replacement.role : undefined;
     try {
       const res = await fetch("/api/schedule", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: swapTarget.id, personId: replacement.id, roleKey: swapTarget.role, homeRoleKey: homeRole || null }),
+        body: JSON.stringify({ id: swapTarget.id, callerId: myPersonId, personId: replacement.id, roleKey: swapTarget.role, homeRoleKey: homeRole || null }),
       });
       const data = await res.json();
       if (data.success) setAssignments(prev => prev.map(a => a.id === swapTarget.id ? data.assignment : a));
@@ -299,19 +315,21 @@ function Schedule() {
   }
 
   function openEdit(emp: Assignment) {
+    if (!canEditSchedule) return;
     setEditTarget(emp);
     setEditIn(emp.actualIn?.time  || emp.timeIn);
     setEditOut(emp.actualOut?.time || emp.timeOut);
   }
 
   async function saveTime() {
+    if (!canEditSchedule) return;
     if (!editTarget) return;
     try {
       const res = await fetch("/api/schedule", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: editTarget.id, timeIn: editIn, timeOut: editOut,
+          id: editTarget.id, callerId: myPersonId, timeIn: editIn, timeOut: editOut,
           actualInTime: editIn, actualInSource: "manual",
           actualOutTime: editOut, actualOutSource: "manual",
         }),
@@ -323,6 +341,7 @@ function Schedule() {
   }
 
   async function addCustomRole() {
+    if (!canEditSchedule) return;
     const name = newRoleName.trim();
     if (!name || jobRoles.some(r => r.key === name)) { setNewRoleName(""); setAddingCustomRole(false); return; }
 
@@ -330,7 +349,7 @@ function Schedule() {
       const res = await fetch("/api/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, name }),
+        body: JSON.stringify({ businessId, name, callerId: myPersonId }),
       });
       const data = await res.json();
       if (data.success) {
@@ -346,7 +365,7 @@ function Schedule() {
       await fetch("/api/roles", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, key: role, recurring }),
+        body: JSON.stringify({ businessId, key: role, recurring, callerId: myPersonId }),
       });
     } catch {}
     setRecurrencePrompt(null);
@@ -520,9 +539,11 @@ function Schedule() {
                     <div key={shift.id} className="relative rounded-lg px-2 py-1.5 flex flex-col gap-0.5"
                       style={{ background: "var(--green-light)", border: "1px dashed #A8D9BB" }}>
                       <div className="flex items-center justify-between gap-1 flex-row">
-                        <button onClick={() => cancelOpenShift(shift.id)}>
-                          <X size={10} style={{ color: "var(--text-secondary)", opacity: 0.6 }} />
-                        </button>
+                        {canEditSchedule && (
+                          <button onClick={() => cancelOpenShift(shift.id)}>
+                            <X size={10} style={{ color: "var(--text-secondary)", opacity: 0.6 }} />
+                          </button>
+                        )}
                         <p className="text-[10px] font-bold" style={{ color: "var(--green)" }}>משמרת פתוחה</p>
                       </div>
                       <p className="text-[11px] font-semibold text-center" style={{ direction: "ltr", color: "var(--text-main)" }}>
@@ -538,7 +559,7 @@ function Schedule() {
                 </div>
               )}
 
-              {anyAddable && (
+              {anyAddable && canEditSchedule && (
                 <button onClick={() => setAddRole(key)}
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl flex-row"
                   style={{ border: "1.5px dashed var(--blue-border)", background: "var(--blue-light)" }}>
@@ -547,12 +568,14 @@ function Schedule() {
                 </button>
               )}
 
-              <button onClick={() => publishOpenShift(key)}
-                className="w-full flex items-center justify-center gap-2 py-2 mt-1.5 rounded-xl flex-row"
-                style={{ border: "1.5px dashed #A8D9BB", background: "var(--green-light)" }}>
-                <Plus size={12} style={{ color: "var(--green)" }} />
-                <span className="text-[11px] font-semibold" style={{ color: "var(--green)" }}>פרסם משמרת פתוחה</span>
-              </button>
+              {canEditSchedule && (
+                <button onClick={() => publishOpenShift(key)}
+                  className="w-full flex items-center justify-center gap-2 py-2 mt-1.5 rounded-xl flex-row"
+                  style={{ border: "1.5px dashed #A8D9BB", background: "var(--green-light)" }}>
+                  <Plus size={12} style={{ color: "var(--green)" }} />
+                  <span className="text-[11px] font-semibold" style={{ color: "var(--green)" }}>פרסם משמרת פתוחה</span>
+                </button>
+              )}
 
               {!anyAddable && assigned.length === 0 && (
                 <div className="flex items-center justify-center px-4 py-3 rounded-xl bg-white" style={{ border: "1px solid var(--border)" }}>
@@ -582,7 +605,7 @@ function Schedule() {
         })}
 
         {/* Add custom role */}
-        {addingCustomRole ? (
+        {canEditSchedule && (addingCustomRole ? (
           <div className="bg-white rounded-xl p-3 flex items-center gap-2 flex-row" style={{ border: "1px solid var(--blue)" }}>
             <button onClick={addCustomRole} className="text-xs font-semibold flex-shrink-0" style={{ color: "var(--blue)" }}>הוסף</button>
             <button onClick={() => { setAddingCustomRole(false); setNewRoleName(""); }} className="flex-shrink-0">
@@ -600,7 +623,7 @@ function Schedule() {
             style={{ border: "1.5px dashed var(--border)", color: "var(--blue)" }}>
             <Plus size={14} /> הוסף תפקיד לסידור
           </button>
-        )}
+        ))}
 
         {/* Save */}
         <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2000); }}
@@ -613,7 +636,7 @@ function Schedule() {
       </div>
 
       {/* Add popup */}
-      {addRole && (() => {
+      {canEditSchedule && addRole && (() => {
         const primary   = getAvailable(addRole);
         const assignedIds = new Set(dayAssignments.map(a => a.personId));
         const emergency = employees.filter(e => e.role !== addRole && !assignedIds.has(e.id));
@@ -678,7 +701,7 @@ function Schedule() {
       })()}
 
       {/* Swap popup */}
-      {swapTarget && (() => {
+      {canEditSchedule && swapTarget && (() => {
         const assignedIds = new Set(dayAssignments.map(a => a.personId));
         const sameRole  = employees.filter(e => e.role === swapTarget.role && e.id !== swapTarget.personId && !assignedIds.has(e.id));
         const emergency = employees.filter(e => e.role !== swapTarget.role && e.id !== swapTarget.personId && !assignedIds.has(e.id));
@@ -738,7 +761,7 @@ function Schedule() {
       })()}
 
       {/* Edit time popup — saves both as manual (orange) */}
-      {editTarget && (
+      {canEditSchedule && editTarget && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setEditTarget(null)}>
           <div className="w-full max-w-lg rounded-t-2xl p-4 pb-8" style={{ background: "var(--gray-bg)" }}

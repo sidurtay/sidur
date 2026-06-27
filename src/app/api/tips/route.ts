@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { canPublishTips } from "@/lib/auth/permissions";
 
 function mapRow(row: {
   date: string; morning_total: number | null; evening_total: number | null; daily_total: number | null;
@@ -38,12 +39,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, date, morningTotal, eveningTotal, dailyTotal, published, locked, lockedBy, lockedAt, notify } = await req.json();
-    if (!businessId || !date) {
+    const { businessId, date, morningTotal, eveningTotal, dailyTotal, published, locked, lockedBy, lockedAt, notify, callerId } = await req.json();
+    if (!businessId || !date || !callerId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
 
     const supabase = createServiceRoleClient();
+    if (!(await canPublishTips(supabase, businessId, callerId))) {
+      return NextResponse.json({ error: "אין הרשאה לפרסם טיפים" }, { status: 403 });
+    }
 
     if (Array.isArray(notify) && notify.length > 0) {
       await supabase.from("tips_notifications").insert(

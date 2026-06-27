@@ -54,14 +54,14 @@ export default function ClockInOutCard({ businessId, personId }: { businessId: s
   async function handleClockIn() {
     await fetch("/api/clock-requests", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ businessId, personId, type: "in" }),
+      body: JSON.stringify({ businessId, personId, type: "in", callerId: personId }),
     }).catch(() => {});
     refreshClockState();
   }
   async function handleClockOut() {
     await fetch("/api/clock-requests", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ businessId, personId, type: "out", autoApprove: !outNeedsApproval }),
+      body: JSON.stringify({ businessId, personId, type: "out", autoApprove: !outNeedsApproval, callerId: personId }),
     }).catch(() => {});
     refreshClockState();
   }

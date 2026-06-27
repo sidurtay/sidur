@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { isManager } from "@/lib/auth/permissions";
 
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
@@ -47,12 +48,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, name, emoji, color, iconColor, memberIds } = await req.json();
-    if (!businessId || !name?.trim()) {
+    const { businessId, name, emoji, color, iconColor, memberIds, callerId } = await req.json();
+    if (!businessId || !name?.trim() || !callerId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
 
     const supabase = createServiceRoleClient();
+    if (!(await isManager(supabase, businessId, callerId))) {
+      return NextResponse.json({ error: "אין הרשאה ליצור קבוצה" }, { status: 403 });
+    }
     const { data: channel, error } = await supabase
       .from("chat_channels")
       .insert({ business_id: businessId, name: name.trim(), emoji, color, icon_color: iconColor })
@@ -79,11 +83,23 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, name, emoji, color, iconColor } = await req.json();
-    if (!id) {
-      return NextResponse.json({ error: "id חסר" }, { status: 400 });
+    const { id, name, emoji, color, iconColor, callerId } = await req.json();
+    if (!id || !callerId) {
+      return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
     const supabase = createServiceRoleClient();
+    const { data: existing } = await supabase
+      .from("chat_channels")
+      .select("business_id")
+      .eq("id", id)
+      .maybeSingle();
+    if (!existing) {
+      return NextResponse.json({ error: "הקבוצה לא נמצאה" }, { status: 404 });
+    }
+    if (!(await isManager(supabase, existing.business_id, callerId))) {
+      return NextResponse.json({ error: "אין הרשאה לעדכן קבוצה" }, { status: 403 });
+    }
+
     const update: Record<string, string> = {};
     if (name !== undefined) update.name = name.trim();
     if (emoji !== undefined) update.emoji = emoji;
@@ -103,10 +119,22 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
-  if (!id) {
-    return NextResponse.json({ error: "id חסר" }, { status: 400 });
+  const callerId = req.nextUrl.searchParams.get("callerId");
+  if (!id || !callerId) {
+    return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
   }
   const supabase = createServiceRoleClient();
+  const { data: existing } = await supabase
+    .from("chat_channels")
+    .select("business_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!existing) {
+    return NextResponse.json({ error: "הקבוצה לא נמצאה" }, { status: 404 });
+  }
+  if (!(await isManager(supabase, existing.business_id, callerId))) {
+    return NextResponse.json({ error: "אין הרשאה למחוק קבוצה" }, { status: 403 });
+  }
   const { error } = await supabase.from("chat_channels").delete().eq("id", id);
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

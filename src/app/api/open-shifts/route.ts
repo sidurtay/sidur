@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendPushToBusiness } from "@/lib/push";
+import { canEditSchedule } from "@/lib/auth/permissions";
 
 function mapRow(row: { id: string; day_of_week: number; role_key: string; time_in: string; time_out: string }) {
   return {
@@ -36,12 +37,16 @@ export async function GET(req: NextRequest) {
 // can claim it later via PATCH.
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, weekStart, dayOfWeek, roleKey, timeIn, timeOut } = await req.json();
-    if (!businessId || !weekStart || dayOfWeek === undefined || !roleKey || !timeIn || !timeOut) {
+    const { businessId, weekStart, dayOfWeek, roleKey, timeIn, timeOut, callerId } = await req.json();
+    if (!businessId || !weekStart || dayOfWeek === undefined || !roleKey || !timeIn || !timeOut || !callerId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
 
     const supabase = createServiceRoleClient();
+    if (!(await canEditSchedule(supabase, businessId, callerId))) {
+      return NextResponse.json({ error: "אין הרשאה לפרסם משמרת פתוחה" }, { status: 403 });
+    }
+
     const { data, error } = await supabase
       .from("open_shifts")
       .insert({ business_id: businessId, week_start: weekStart, day_of_week: dayOfWeek, role_key: roleKey, time_in: timeIn, time_out: timeOut })
@@ -70,9 +75,13 @@ export async function POST(req: NextRequest) {
 // fails, the open shift stays up for someone else to try).
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, businessId, personId } = await req.json();
-    if (!id || !businessId || !personId) {
+    const { id, businessId, personId, callerId } = await req.json();
+    if (!id || !businessId || !personId || !callerId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
+    }
+    // You can only claim an open shift for yourself.
+    if (personId !== callerId) {
+      return NextResponse.json({ error: "אין הרשאה לתפוס משמרת בשם עובד אחר" }, { status: 403 });
     }
 
     const supabase = createServiceRoleClient();
@@ -120,10 +129,15 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
-  if (!id) {
-    return NextResponse.json({ error: "id חסר" }, { status: 400 });
+  const businessId = req.nextUrl.searchParams.get("businessId");
+  const callerId = req.nextUrl.searchParams.get("callerId");
+  if (!id || !businessId || !callerId) {
+    return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
   }
   const supabase = createServiceRoleClient();
+  if (!(await canEditSchedule(supabase, businessId, callerId))) {
+    return NextResponse.json({ error: "אין הרשאה לבטל משמרת פתוחה" }, { status: 403 });
+  }
   const { error } = await supabase.from("open_shifts").delete().eq("id", id);
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

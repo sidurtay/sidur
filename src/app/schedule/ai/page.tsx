@@ -93,6 +93,7 @@ export default function AISchedule() {
   const [weekHolidays, setWeekHolidays] = useState<(typeof ALL_NEXT_WEEK_DAYS[0] & { name: string })[]>([]);
   const [constraintsMap, setConstraintsMap] = useState<ConstraintsMap>({});
   const [businessId, setBusinessId] = useState("");
+  const [myPersonId, setMyPersonId] = useState("");
   const [employees, setEmployees] = useState<EmployeeRow[]>([]);
   const missingConstraints = employees.filter(e => !constraintsMap[e.personId]);
 
@@ -112,6 +113,8 @@ export default function AISchedule() {
     try {
       const s = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
       biz = s.businessId || "";
+      if (s.role !== "manager") { router.replace("/schedule"); return; }
+      setMyPersonId(s.personId || "");
     } catch {}
     setBusinessId(biz);
 
@@ -142,7 +145,7 @@ export default function AISchedule() {
       const existing = await fetch(`/api/schedule?businessId=${businessId}&weekStart=${AI_WEEK_START}`).then(r => r.json());
       if (existing.success) {
         await Promise.all(existing.assignments.map((a: { id: string }) =>
-          fetch(`/api/schedule?id=${a.id}`, { method: "DELETE" })
+          fetch(`/api/schedule?id=${a.id}&callerId=${myPersonId}`, { method: "DELETE" })
         ));
       }
       const posts: Promise<unknown>[] = [];
@@ -154,6 +157,7 @@ export default function AISchedule() {
             body: JSON.stringify({
               businessId, weekStart: AI_WEEK_START, dayOfWeek: Number(day),
               personId: entry.personId, roleKey: entry.role, timeIn: entry.timeIn, timeOut: entry.timeOut,
+              callerId: myPersonId,
             }),
           }));
         });

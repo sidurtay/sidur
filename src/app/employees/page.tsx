@@ -121,7 +121,7 @@ export default function Employees() {
     try {
       const res = await fetch("/api/employees", {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: emp.id, businessId, action: "reset_password", businessName: bizName }),
+        body: JSON.stringify({ id: emp.id, businessId, action: "reset_password", businessName: bizName, callerId: myPersonId }),
       }).then(r => r.json());
       if (res.success) setResetResult({ tempPassword: res.tempPassword, emailSent: res.emailSent });
       else setResetResult({ error: res.error || "איפוס הסיסמה נכשל" });
@@ -139,7 +139,7 @@ export default function Employees() {
     try {
       const res = await fetch("/api/employees", {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: emp.id, businessId, action: "update_role", roleKey }),
+        body: JSON.stringify({ id: emp.id, businessId, action: "update_role", roleKey, callerId: myPersonId }),
       }).then(r => r.json());
       if (res.success) {
         setEmployees(prev => prev.map(e => e.id === emp.id ? { ...e, role: roleKey, cat: roleKey } : e));
@@ -167,7 +167,7 @@ export default function Employees() {
     try {
       const res = await fetch("/api/employees", {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: emp.id, businessId, action: "update_wage", hourlyWage: wageInput }),
+        body: JSON.stringify({ id: emp.id, businessId, action: "update_wage", hourlyWage: wageInput, callerId: myPersonId }),
       }).then(r => r.json());
       if (res.success) {
         const wage = res.employee.hourlyWage;
@@ -190,7 +190,7 @@ export default function Employees() {
     setDeleting(true);
     setDeleteError("");
     try {
-      const res = await fetch(`/api/employees?id=${emp.id}&businessId=${businessId}`, { method: "DELETE" }).then(r => r.json());
+      const res = await fetch(`/api/employees?id=${emp.id}&businessId=${businessId}&callerId=${myPersonId}`, { method: "DELETE" }).then(r => r.json());
       if (res.success) {
         setEmployees(prev => prev.filter(e => e.id !== emp.id));
         setSelected(null);
@@ -273,7 +273,7 @@ export default function Employees() {
       const res = await fetch("/api/employees", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, name: newName.trim(), phone: newPhone, email: newEmail.trim() || undefined, roleKey: newRole, businessName: bizName }),
+        body: JSON.stringify({ businessId, name: newName.trim(), phone: newPhone, email: newEmail.trim() || undefined, roleKey: newRole, businessName: bizName, callerId: myPersonId }),
       });
       const data = await res.json();
       if (!data.success) {

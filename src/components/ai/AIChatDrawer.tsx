@@ -128,7 +128,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
           </div>
         </div>
 
-        {wizardActive ? (
+        {wizardActive && session.isManager ? (
           <ScheduleBuilderChat onDone={onClose} />
         ) : (
           <>
@@ -150,7 +150,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
                     >
                       {m.content}
                     </div>
-                    {m.action && (
+                    {m.action && session.isManager && (
                       <button
                         onClick={() => setWizardActive(true)}
                         className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold flex-row"

@@ -84,7 +84,7 @@ export default function EmployeeDashboard() {
     try {
       const res = await fetch("/api/swap-requests", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, assignmentId: myShift.id, requestedBy: personId, proposedPerson: proposedPersonId }),
+        body: JSON.stringify({ businessId, assignmentId: myShift.id, requestedBy: personId, proposedPerson: proposedPersonId, callerId: personId }),
       }).then(r => r.json());
       if (res.success) setMySwapRequest({ id: res.request.id, status: res.request.status, proposerName: res.request.proposerName });
     } catch {}
@@ -101,7 +101,7 @@ export default function EmployeeDashboard() {
   function confirmAnnouncement(id: number | string) {
     fetch("/api/announcements/confirm", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ announcementId: id, personId }),
+      body: JSON.stringify({ announcementId: id, personId, callerId: personId }),
     }).catch(() => {});
     setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, confirmed: true } : a));
   }

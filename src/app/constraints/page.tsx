@@ -100,7 +100,7 @@ function EmployeeConstraints() {
       await fetch("/api/constraints", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, personId, weekStart: WEEK_START, availability, weekNote }),
+        body: JSON.stringify({ businessId, personId, weekStart: WEEK_START, availability, weekNote, callerId: personId }),
       });
     } catch {}
     setSubmitting(false);

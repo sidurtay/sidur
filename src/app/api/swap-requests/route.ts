@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendPushToManagers, sendPushToPerson } from "@/lib/push";
+import { canApproveSwaps } from "@/lib/auth/permissions";
 
 type Row = {
   id: string; status: string; created_at: string;
@@ -51,9 +52,13 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, assignmentId, requestedBy, proposedPerson } = await req.json();
-    if (!businessId || !assignmentId || !requestedBy) {
+    const { businessId, assignmentId, requestedBy, proposedPerson, callerId } = await req.json();
+    if (!businessId || !assignmentId || !requestedBy || !callerId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
+    }
+    // You can only request a swap on your own behalf.
+    if (requestedBy !== callerId) {
+      return NextResponse.json({ error: "אין הרשאה לבקש החלפה בשם עובד אחר" }, { status: 403 });
     }
 
     const supabase = createServiceRoleClient();
@@ -88,19 +93,22 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, approve, proposedPerson } = await req.json();
-    if (!id || approve === undefined) {
+    const { id, approve, proposedPerson, callerId } = await req.json();
+    if (!id || approve === undefined || !callerId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
 
     const supabase = createServiceRoleClient();
     const { data: existing, error: fetchError } = await supabase
       .from("swap_requests")
-      .select("id, assignment_id, proposed_person, requested_by")
+      .select("id, business_id, assignment_id, proposed_person, requested_by")
       .eq("id", id)
       .single();
     if (fetchError || !existing) {
       return NextResponse.json({ error: fetchError?.message || "הבקשה לא נמצאה" }, { status: 404 });
+    }
+    if (!(await canApproveSwaps(supabase, existing.business_id, callerId))) {
+      return NextResponse.json({ error: "אין הרשאה לאשר/לדחות בקשות החלפה" }, { status: 403 });
     }
 
     const finalProposed = proposedPerson || existing.proposed_person;

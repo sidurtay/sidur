@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendPushToBusiness } from "@/lib/push";
+import { canManageAnnouncements } from "@/lib/auth/permissions";
 
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
@@ -38,11 +39,15 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { businessId, title, body, createdBy } = await req.json();
-    if (!businessId || !title?.trim()) {
+    if (!businessId || !title?.trim() || !createdBy) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
 
     const supabase = createServiceRoleClient();
+    if (!(await canManageAnnouncements(supabase, businessId, createdBy))) {
+      return NextResponse.json({ error: "אין הרשאה לפרסם הודעות" }, { status: 403 });
+    }
+
     const { data, error } = await supabase
       .from("announcements")
       .insert({ business_id: businessId, title: title.trim(), body: (body || "").trim(), created_by: createdBy || null })
@@ -64,11 +69,23 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, title, body } = await req.json();
-    if (!id) {
-      return NextResponse.json({ error: "id חסר" }, { status: 400 });
+    const { id, title, body, callerId } = await req.json();
+    if (!id || !callerId) {
+      return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
     const supabase = createServiceRoleClient();
+    const { data: existing } = await supabase
+      .from("announcements")
+      .select("business_id")
+      .eq("id", id)
+      .maybeSingle();
+    if (!existing) {
+      return NextResponse.json({ error: "ההודעה לא נמצאה" }, { status: 404 });
+    }
+    if (!(await canManageAnnouncements(supabase, existing.business_id, callerId))) {
+      return NextResponse.json({ error: "אין הרשאה לעדכן הודעות" }, { status: 403 });
+    }
+
     const update: Record<string, string> = {};
     if (title !== undefined) update.title = title.trim();
     if (body !== undefined) update.body = body.trim();
@@ -85,10 +102,23 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
-  if (!id) {
-    return NextResponse.json({ error: "id חסר" }, { status: 400 });
+  const callerId = req.nextUrl.searchParams.get("callerId");
+  if (!id || !callerId) {
+    return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
   }
   const supabase = createServiceRoleClient();
+  const { data: existing } = await supabase
+    .from("announcements")
+    .select("business_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!existing) {
+    return NextResponse.json({ error: "ההודעה לא נמצאה" }, { status: 404 });
+  }
+  if (!(await canManageAnnouncements(supabase, existing.business_id, callerId))) {
+    return NextResponse.json({ error: "אין הרשאה למחוק הודעות" }, { status: 403 });
+  }
+
   const { error } = await supabase.from("announcements").delete().eq("id", id);
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

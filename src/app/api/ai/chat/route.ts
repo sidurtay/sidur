@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { matchIntent, EXAMPLE_PROMPTS } from "@/lib/ai/intentMatcher";
 import * as tools from "@/lib/ai/tools";
+import { isManager as checkIsManager } from "@/lib/auth/permissions";
 
 const HISTORY_LIMIT = 16;
 
@@ -140,17 +141,19 @@ async function buildReply(message: string, ctx: Ctx, employeeName: string): Prom
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, personId, message, isManager, employeeName } = await req.json();
+    const { businessId, personId, message, employeeName } = await req.json();
     if (!businessId || !personId || !message?.trim()) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
 
-    const ctx: Ctx = { businessId, personId, isManager: !!isManager };
+    const supabase = createServiceRoleClient();
+    // isManager gates manager-only intents (approving swaps/absences, building the
+    // schedule) — must come from the DB, never trust a client-supplied flag here.
+    const ctx: Ctx = { businessId, personId, isManager: await checkIsManager(supabase, businessId, personId) };
     const result = await buildReply(message.trim(), ctx, employeeName || "");
     const reply = typeof result === "string" ? result : result.text;
     const action = typeof result === "string" ? undefined : result.action;
 
-    const supabase = createServiceRoleClient();
     await supabase.from("ai_conversations").insert([
       { business_id: businessId, person_id: personId, role: "user", content: message.trim() },
       { business_id: businessId, person_id: personId, role: "assistant", content: reply },

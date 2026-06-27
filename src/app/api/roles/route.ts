@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { canEditSchedule } from "@/lib/auth/permissions";
 
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
@@ -23,12 +24,16 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, name } = await req.json();
-    if (!businessId || !name?.trim()) {
+    const { businessId, name, callerId } = await req.json();
+    if (!businessId || !name?.trim() || !callerId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
 
     const supabase = createServiceRoleClient();
+    if (!(await canEditSchedule(supabase, businessId, callerId))) {
+      return NextResponse.json({ error: "אין הרשאה להוסיף תפקיד" }, { status: 403 });
+    }
+
     const { data, error } = await supabase
       .from("roles")
       .insert({ business_id: businessId, key: name.trim(), label: name.trim(), is_custom: true })
@@ -49,12 +54,16 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { businessId, key, recurring } = await req.json();
-    if (!businessId || !key || recurring === undefined) {
+    const { businessId, key, recurring, callerId } = await req.json();
+    if (!businessId || !key || recurring === undefined || !callerId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
 
     const supabase = createServiceRoleClient();
+    if (!(await canEditSchedule(supabase, businessId, callerId))) {
+      return NextResponse.json({ error: "אין הרשאה לעדכן תפקיד" }, { status: 403 });
+    }
+
     const { error } = await supabase
       .from("roles")
       .update({ recurring })
@@ -74,10 +83,14 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
   const key = req.nextUrl.searchParams.get("key");
-  if (!businessId || !key) {
+  const callerId = req.nextUrl.searchParams.get("callerId");
+  if (!businessId || !key || !callerId) {
     return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
   }
   const supabase = createServiceRoleClient();
+  if (!(await canEditSchedule(supabase, businessId, callerId))) {
+    return NextResponse.json({ error: "אין הרשאה למחוק תפקיד" }, { status: 403 });
+  }
   const { error } = await supabase.from("roles").delete().eq("business_id", businessId).eq("key", key);
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
