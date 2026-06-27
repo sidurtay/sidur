@@ -9,6 +9,16 @@ type LoginSuccessData = {
   businessConfig?: unknown;
 };
 
+// Digits only, dash-formatted after the area code — must match the exact
+// format register/employees store phone numbers in, or the lookup at login
+// silently fails to match (a manually-typed "0541234567" won't equal a
+// stored "054-1234567").
+function formatPhone(raw: string) {
+  const digits = raw.replace(/\D/g, "").slice(0, 10);
+  if (digits.length <= 3) return digits;
+  return digits.slice(0, 3) + "-" + digits.slice(3);
+}
+
 export default function Login() {
   const router = useRouter();
   const [phone,    setPhone]    = useState("");
@@ -18,6 +28,8 @@ export default function Login() {
   const [loading,  setLoading]  = useState(false);
   const [passkeyPhone, setPasskeyPhone] = useState("");
   const [passkeyBusy,  setPasskeyBusy]  = useState(false);
+  const [forgotBusy,   setForgotBusy]   = useState(false);
+  const [forgotSent,   setForgotSent]   = useState(false);
 
   useEffect(() => {
     const savedPhone = localStorage.getItem("shiftpro_webauthn_phone");
@@ -65,6 +77,20 @@ export default function Login() {
     } finally {
       setPasskeyBusy(false);
     }
+  }
+
+  async function handleForgotPassword() {
+    if (!phone.trim()) { setError("הזן/י מספר טלפון כדי לאפס סיסמה"); return; }
+    setForgotBusy(true);
+    setError("");
+    try {
+      await fetch("/api/auth/forgot-password", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+    } catch {}
+    setForgotBusy(false);
+    setForgotSent(true);
   }
 
   async function handleLogin() {
@@ -159,8 +185,8 @@ export default function Login() {
             <div className="relative flex items-center">
               <Phone size={15} className="absolute right-3.5" style={{ color: "var(--text-secondary)" }} />
               <input
-                type="tel" inputMode="numeric" placeholder="05X-XXXXXXX"
-                value={phone} onChange={e => setPhone(e.target.value)}
+                type="tel" inputMode="numeric" placeholder="05X-XXXXXXX" maxLength={11}
+                value={phone} onChange={e => setPhone(formatPhone(e.target.value))}
                 className="w-full pr-10 pl-4 py-3.5 rounded-2xl text-sm text-right outline-none transition-shadow"
                 style={{ background: "var(--gray-bg)", border: "1.5px solid var(--border)", direction: "ltr" }}
                 onFocus={e => e.currentTarget.style.borderColor = "var(--blue)"}
@@ -206,9 +232,16 @@ export default function Login() {
             {loading ? "מתחבר..." : "כניסה"}
           </button>
 
-          <button className="text-xs text-center" style={{ color: "var(--text-secondary)" }}>
-            שכחתי סיסמה
-          </button>
+          {forgotSent ? (
+            <p className="text-xs text-center" style={{ color: "var(--green)" }}>
+              אם הטלפון רשום במערכת, שלחנו אליו מייל עם סיסמה זמנית 📨
+            </p>
+          ) : (
+            <button onClick={handleForgotPassword} disabled={forgotBusy}
+              className="text-xs text-center" style={{ color: "var(--text-secondary)" }}>
+              {forgotBusy ? "שולח..." : "שכחתי סיסמה"}
+            </button>
+          )}
         </div>
 
         <button onClick={() => router.push("/register")}

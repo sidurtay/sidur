@@ -22,8 +22,8 @@ const DEFAULT_ROLES = [
 
 export async function POST(req: NextRequest) {
   try {
-    const { bizName, bizCity, bizType, managerName, phone, password, plan } = await req.json();
-    if (!bizName?.trim() || !phone?.trim() || !password || password.length < 6) {
+    const { bizName, bizCity, bizType, managerName, phone, email, password, plan } = await req.json();
+    if (!bizName?.trim() || !phone?.trim() || !email?.trim() || !password || password.length < 6) {
       return NextResponse.json({ error: "פרטים חסרים או לא תקינים" }, { status: 400 });
     }
 
@@ -58,13 +58,15 @@ export async function POST(req: NextRequest) {
         business_id: business.id,
         name: managerName?.trim() || "מנהל",
         phone: phone.trim(),
+        email: email.trim(),
         password_hash: hashPassword(password),
         role_type: "manager",
       })
       .select()
       .single();
     if (personError || !manager) {
-      return NextResponse.json({ error: personError?.message || "יצירת המנהל נכשלה" }, { status: 500 });
+      const message = personError?.code === "23505" ? "מספר הטלפון הזה כבר רשום במערכת" : personError?.message;
+      return NextResponse.json({ error: message || "יצירת המנהל נכשלה" }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -74,6 +76,7 @@ export async function POST(req: NextRequest) {
       personId: manager.id,
       name: manager.name,
       phone: manager.phone,
+      email: manager.email,
       role: "manager",
     });
   } catch (err) {

@@ -12,6 +12,7 @@ test.describe("registration → manager login → schedule", () => {
   const bizName = `בדיקה אוטומטית ${Date.now()}`;
   const managerName = "מנהל בדיקה";
   const phone = uniquePhone();
+  const email = `test.${Date.now()}@example.com`;
   const password = "test1234";
 
   test("a new manager can register, land on the dashboard, and see the schedule", async ({ page }) => {
@@ -26,6 +27,7 @@ test.describe("registration → manager login → schedule", () => {
     // Step 2 — manager details
     await page.getByPlaceholder("איתי כהן").fill(managerName);
     await page.getByPlaceholder("05X-XXXXXXX").fill(phone);
+    await page.getByPlaceholder("itay@example.com").fill(email);
     await page.getByPlaceholder("••••••••").fill(password);
     await page.getByRole("button", { name: "המשך" }).click();
 

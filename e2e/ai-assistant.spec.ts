@@ -21,6 +21,7 @@ test("manager can open the AI assistant and ask about pending requests", async (
 
   await page.getByPlaceholder("איתי כהן").fill("מנהל AI");
   await page.getByPlaceholder("05X-XXXXXXX").fill(phone);
+  await page.getByPlaceholder("itay@example.com").fill(`ai.${Date.now()}@example.com`);
   await page.getByPlaceholder("••••••••").fill(password);
   await page.getByRole("button", { name: "המשך" }).click();
 

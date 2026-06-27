@@ -6,6 +6,12 @@ function uniquePhone() {
   return `054${suffix}`;
 }
 
+// The app stores/returns phone numbers dash-formatted ("054-1234567") — the
+// raw uniquePhone() digits won't match what actually ends up in localStorage.
+function dashFormat(rawDigits: string) {
+  return `${rawDigits.slice(0, 3)}-${rawDigits.slice(3)}`;
+}
+
 // Drives the real WebAuthn ceremony end-to-end using a Chrome DevTools Protocol
 // virtual authenticator — there's no physical fingerprint sensor in CI/headless,
 // but the virtual authenticator implements the same browser-side WebAuthn API
@@ -42,6 +48,7 @@ test("manager can register a passkey and log back in with it", async ({ page }) 
 
   await page.getByPlaceholder("איתי כהן").fill("מנהל טביעת אצבע");
   await page.getByPlaceholder("05X-XXXXXXX").fill(phone);
+  await page.getByPlaceholder("itay@example.com").fill(`webauthn.${Date.now()}@example.com`);
   await page.getByPlaceholder("••••••••").fill(password);
   await page.getByRole("button", { name: "המשך" }).click();
 
@@ -59,7 +66,7 @@ test("manager can register a passkey and log back in with it", async ({ page }) 
 
   // Confirm the device-local flag the login page checks for is set
   const savedPhone = await page.evaluate(() => localStorage.getItem("shiftpro_webauthn_phone"));
-  expect(savedPhone).toBe(phone);
+  expect(savedPhone).toBe(dashFormat(phone));
 
   // Simulate a fresh login: clear the session but keep the device's passkey flag
   await page.evaluate(() => localStorage.removeItem("shiftpro_session"));
@@ -71,5 +78,5 @@ test("manager can register a passkey and log back in with it", async ({ page }) 
 
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
   const session = await page.evaluate(() => JSON.parse(localStorage.getItem("shiftpro_session") || "{}"));
-  expect(session.phone).toBe(phone);
+  expect(session.phone).toBe(dashFormat(phone));
 });

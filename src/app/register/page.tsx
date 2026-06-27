@@ -79,6 +79,7 @@ export default function Register() {
   // Step 2 — Manager
   const [managerName, setManagerName] = useState("");
   const [phone,       setPhone]       = useState("");
+  const [email,       setEmail]       = useState("");
   const [password,    setPassword]    = useState("");
 
   // Step 3 — Plan
@@ -94,9 +95,22 @@ export default function Register() {
     setStep(s => (s - 1) as Step);
   }
 
+  // Digits only, capped at 10 and dash-formatted after the area code — matches
+  // the same helper used for adding employees, so phone numbers look and
+  // validate consistently everywhere they're entered in the app.
+  function formatPhone(raw: string) {
+    const digits = raw.replace(/\D/g, "").slice(0, 10);
+    if (digits.length <= 3) return digits;
+    return digits.slice(0, 3) + "-" + digits.slice(3);
+  }
+
+  function isValidEmail(value: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  }
+
   function canNext() {
     if (step === 1) return bizName.trim() && bizCity.trim() && bizType;
-    if (step === 2) return managerName.trim() && phone.trim() && password.length >= 6;
+    if (step === 2) return managerName.trim() && phone.replace(/\D/g, "").length === 10 && isValidEmail(email) && password.length >= 6;
     if (step === 3) return !!plan;
     return false;
   }
@@ -108,7 +122,7 @@ export default function Register() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bizName, bizCity, bizType, managerName, phone, password, plan }),
+        body: JSON.stringify({ bizName, bizCity, bizType, managerName, phone, email, password, plan }),
       });
       const data = await res.json();
       if (!data.success) {
@@ -118,7 +132,7 @@ export default function Register() {
       }
       const session = {
         businessId: data.businessId, personId: data.personId,
-        businessName: data.businessName, name: data.name, phone: data.phone,
+        businessName: data.businessName, name: data.name, phone: data.phone, email,
         password, plan,
         loginAt: Date.now(),
         role: "manager",
@@ -251,10 +265,24 @@ export default function Register() {
               <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>
                 מספר טלפון
               </label>
-              <input type="tel" inputMode="numeric" placeholder="05X-XXXXXXX"
-                value={phone} onChange={e => setPhone(e.target.value)}
+              <input type="tel" inputMode="numeric" placeholder="05X-XXXXXXX" maxLength={11}
+                value={phone} onChange={e => setPhone(formatPhone(e.target.value))}
                 className="w-full px-4 py-3 rounded-xl text-sm text-right outline-none"
                 style={{ background: "var(--gray-bg)", border: "1px solid var(--border)", direction: "ltr" }} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>
+                אימייל <span className="font-normal">(לאיפוס סיסמה ועדכונים)</span>
+              </label>
+              <input type="email" placeholder="itay@example.com"
+                value={email} onChange={e => setEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl text-sm text-right outline-none"
+                style={{ background: "var(--gray-bg)", border: "1px solid var(--border)", direction: "ltr", textAlign: "right" }} />
+              {email.length > 0 && !isValidEmail(email) && (
+                <p className="text-xs text-right" style={{ color: "var(--red)" }}>
+                  כתובת אימייל לא תקינה
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>
