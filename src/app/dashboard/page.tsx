@@ -1,10 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Clock, ArrowLeftRight, X, CheckCheck, Plus, Pencil, Trash2, ChevronLeft, Users, Fingerprint, LogIn, LogOut } from "lucide-react";
+import { AlertTriangle, Clock, ArrowLeftRight, X, CheckCheck, Plus, Pencil, Trash2, ChevronLeft, Users, Fingerprint, LogIn, LogOut, CalendarClock, Megaphone } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import ClockInOutCard from "@/components/ClockInOutCard";
+import Card from "@/components/ui/Card";
+import SectionHeader from "@/components/ui/SectionHeader";
 import { buildUpcomingShifts, type Employee } from "@/lib/shiftData";
 import EmployeeDashboard from "./EmployeeDashboard";
 import { type ClockRequest } from "@/lib/clockRequests";
@@ -187,38 +189,32 @@ export default function Dashboard() {
     <div className="flex flex-col min-h-screen pb-28" style={{ background: "var(--gray-bg)" }}>
 
       {/* ── Header ────────────────────────────────────────── */}
-      <div style={{ background: "var(--navy)" }} className="px-4 pt-12 pb-4">
-        <div className="flex items-center justify-between flex-row">
+      <div style={{ background: "linear-gradient(160deg, #1B202B, #14181F)" }} className="px-4 pt-12 pb-5 rounded-b-[28px]">
+        <div className="flex items-center justify-between flex-row mb-5">
+          <Logo size={26} />
           <div className="text-right">
-            <p className="text-white text-base font-semibold">שלום, {managerName} 👋</p>
-            <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>{businessName}</p>
-          </div>
-          <div className="flex items-center gap-3 flex-row">
-            <span className="text-xs px-2.5 py-1 rounded-full font-medium"
-              style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>
-              {TODAY_LABEL}
-            </span>
-            <Logo size={22} />
+            <p className="text-white text-lg font-bold leading-tight">שלום, {managerName.split(" ")[0]} 👋</p>
+            <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>{businessName} · {TODAY_LABEL}</p>
           </div>
         </div>
 
         {/* Quick stats bar inside header */}
-        <div className="grid grid-cols-3 gap-2 mt-3">
+        <div className="grid grid-cols-3 gap-2.5">
           {[
             { val: todayWorkers.length, label: "בסידור היום", color: "#fff" },
-            { val: activeCount,  label: "נוכחים",    color: "#86EFAC" },
-            { val: lateCount,    label: "איחורים",   color: lateCount > 0 ? "#FCA5A5" : "#86EFAC" },
+            { val: activeCount,  label: "נוכחים",    color: "#4ADE80" },
+            { val: lateCount,    label: "איחורים",   color: lateCount > 0 ? "#F87171" : "#4ADE80" },
           ].map(s => (
-            <div key={s.label} className="rounded-xl py-2 px-3 text-center"
-              style={{ background: "rgba(255,255,255,0.1)" }}>
-              <p className="text-xl font-bold" style={{ color: s.color }}>{s.val}</p>
-              <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.6)" }}>{s.label}</p>
+            <div key={s.label} className="rounded-2xl py-3 px-3 text-center"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <p className="text-2xl font-bold tracking-tight" style={{ color: s.color }}>{s.val}</p>
+              <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>{s.label}</p>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="px-4 py-3 flex flex-col gap-4">
+      <div className="px-4 -mt-2 py-3 flex flex-col gap-4">
 
         {/* Manager / אחמ"ש also work shifts — same self clock-in flow as anyone else.
             Unlike employees, managers often aren't formally scheduled via schedule_assignments,
@@ -230,21 +226,18 @@ export default function Dashboard() {
         {/* ── Clock-in/out approval requests ──────────────────── */}
         {pendingClockRequests.length > 0 && (
           <div>
-            <div className="flex items-center justify-between flex-row mb-2">
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "var(--blue-light)", color: "var(--blue)" }}>
-                {pendingClockRequests.length} ממתינות
-              </span>
-              <div className="flex items-center gap-1.5 flex-row">
-                <Fingerprint size={13} style={{ color: "var(--blue)" }} />
-                <p className="text-xs font-semibold" style={{ color: "var(--text-main)" }}>בקשות כניסה/יציאה</p>
-              </div>
-            </div>
+            <SectionHeader icon={Fingerprint} title="בקשות כניסה/יציאה" tint="var(--blue)" tintBg="var(--blue-light)"
+              action={
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "var(--blue-light)", color: "var(--blue)" }}>
+                  {pendingClockRequests.length} ממתינות
+                </span>
+              } />
             <div className="flex flex-col gap-2">
               {pendingClockRequests.map(r => {
                 const emp = employees.find(e => e.name === r.employeeName);
                 const timeLabel = new Date(r.requestedAt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
                 return (
-                  <div key={r.id} className="bg-white rounded-xl p-3 flex items-center gap-3 flex-row" style={{ border: "1px solid var(--border)" }}>
+                  <Card key={r.id} padded={false} className="p-3 flex items-center gap-3 flex-row">
                     <div className="flex gap-1.5 flex-row flex-shrink-0">
                       <button onClick={() => respond(r.id, false)}
                         className="px-3 py-1.5 rounded-lg text-xs font-medium"
@@ -270,7 +263,7 @@ export default function Dashboard() {
                         {emp.initials}
                       </div>
                     )}
-                  </div>
+                  </Card>
                 );
               })}
             </div>
@@ -279,13 +272,13 @@ export default function Dashboard() {
 
         {/* ── Today's workers ───────────────────────────────── */}
         <div>
-          <div className="flex items-center justify-between flex-row mb-2">
-            <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-              {todayWorkers.length} עובדים · {pendingCount} טרם הגיעו
-            </span>
-            <p className="text-xs font-semibold" style={{ color: "var(--text-main)" }}>משמרת היום</p>
-          </div>
-          <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+          <SectionHeader icon={Clock} title="משמרת היום" tint="var(--blue)" tintBg="var(--blue-light)"
+            action={
+              <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+                {todayWorkers.length} עובדים · {pendingCount} טרם הגיעו
+              </span>
+            } />
+          <Card padded={false} className="overflow-hidden">
             {visible.map((emp, i) => {
               const s = statusLabel[emp.status];
               return (
@@ -315,16 +308,14 @@ export default function Dashboard() {
                 {showAll ? "הצג פחות" : `הצג עוד ${todayWorkers.length - 3} עובדים`}
               </button>
             )}
-          </div>
+          </Card>
         </div>
 
         {/* ── Upcoming shifts ───────────────────────────────── */}
         <div>
-          <div className="flex items-center justify-between flex-row mb-2">
-            <a href="/schedule" className="text-xs font-medium" style={{ color: "var(--blue)" }}>כל הסידור ←</a>
-            <p className="text-xs font-semibold" style={{ color: "var(--text-main)" }}>משמרות קרובות</p>
-          </div>
-          <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+          <SectionHeader icon={CalendarClock} title="משמרות קרובות" tint="var(--blue)" tintBg="var(--blue-light)"
+            action={<a href="/schedule" className="text-xs font-medium" style={{ color: "var(--blue)" }}>כל הסידור ←</a>} />
+          <Card padded={false} className="overflow-hidden">
             {upcomingShifts.map((s, i) => (
               <div key={i} className="flex items-center px-3 py-3 flex-row"
                 style={{ borderBottom: i < upcomingShifts.length - 1 ? "1px solid var(--border)" : "none" }}>
@@ -339,16 +330,14 @@ export default function Dashboard() {
                 <p className="text-xs flex-shrink-0 mr-2" style={{ color: "var(--text-secondary)" }}>{s.day} · {s.date}</p>
               </div>
             ))}
-          </div>
+          </Card>
         </div>
 
         {/* ── Team summary from employees ───────────────────── */}
         <div>
-          <div className="flex items-center justify-between flex-row mb-2">
-            <a href="/employees" className="text-xs font-medium" style={{ color: "var(--blue)" }}>כל העובדים ←</a>
-            <p className="text-xs font-semibold" style={{ color: "var(--text-main)" }}>הצוות — {employees.length} עובדים</p>
-          </div>
-          <div className="bg-white rounded-xl px-3 py-3" style={{ border: "1px solid var(--border)" }}>
+          <SectionHeader icon={Users} title={`הצוות — ${employees.length} עובדים`} tint="var(--blue)" tintBg="var(--blue-light)"
+            action={<a href="/employees" className="text-xs font-medium" style={{ color: "var(--blue)" }}>כל העובדים ←</a>} />
+          <Card>
             <div className="flex flex-row gap-2 flex-wrap">
               {jobRoleKeys.map(role => {
                 const count = employees.filter(e => e.cat === role).length;
@@ -362,16 +351,16 @@ export default function Dashboard() {
                 );
               })}
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* ── Swap requests ──────────────────────────────────── */}
         {(swapRequests || []).length > 0 && (
           <div>
-            <p className="text-xs font-semibold mb-2 text-right" style={{ color: "var(--text-main)" }}>בקשות החלפת משמרת</p>
+            <SectionHeader icon={ArrowLeftRight} title="בקשות החלפת משמרת" tint="var(--blue)" tintBg="var(--blue-light)" />
             <div className="flex flex-col gap-2">
               {(swapRequests || []).map(sr => (
-                <div key={sr.id} className="bg-white rounded-xl p-3" style={{ border: "1px solid var(--border)" }}>
+                <Card key={sr.id}>
                   <div className="flex items-center justify-between flex-row mb-2">
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                       style={sr.status === "pending"
@@ -422,7 +411,7 @@ export default function Dashboard() {
                       </button>
                     </div>
                   )}
-                </div>
+                </Card>
               ))}
             </div>
           </div>
@@ -430,19 +419,18 @@ export default function Dashboard() {
 
         {/* ── Announcements (full CRUD) ──────────────────────── */}
         <div>
-          <div className="flex items-center justify-between flex-row mb-2">
+          <SectionHeader icon={Megaphone} title="הודעות לצוות" tint="var(--blue)" tintBg="var(--blue-light)" action={
             <button onClick={openAdd}
               className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
               style={{ background: "var(--navy)", color: "#fff" }}>
               <Plus size={11} /> הודעה חדשה
             </button>
-            <p className="text-xs font-semibold" style={{ color: "var(--text-main)" }}>הודעות לצוות</p>
-          </div>
+          } />
 
           {announcements.length === 0 && (
-            <div className="bg-white rounded-xl p-6 text-center" style={{ border: "1px solid var(--border)" }}>
+            <Card className="text-center">
               <p className="text-sm" style={{ color: "var(--text-secondary)" }}>אין הודעות פעילות</p>
-            </div>
+            </Card>
           )}
 
           <div className="flex flex-col gap-2">
@@ -450,7 +438,7 @@ export default function Dashboard() {
               const pending = employees.length - a.confirmedBy.length;
               const pct     = Math.round((a.confirmedBy.length / employees.length) * 100);
               return (
-                <div key={a.id} className="bg-white rounded-xl p-3" style={{ border: "1px solid var(--border)" }}>
+                <Card key={a.id}>
                   {/* Title row */}
                   <div className="flex items-start justify-between flex-row gap-2 mb-1.5">
                     <div className="flex items-center gap-1.5 flex-row flex-shrink-0">
@@ -501,7 +489,7 @@ export default function Dashboard() {
                   </button>
 
                   <p className="text-[10px] mt-1.5 text-right" style={{ color: "#C4C2B8" }}>{a.createdAt}</p>
-                </div>
+                </Card>
               );
             })}
           </div>
