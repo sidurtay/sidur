@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Plus, X, Phone, Calendar, Lock, Download, ChevronRight, ChevronLeft, Clock, TrendingUp, FileSpreadsheet, Mail, User, IdCard, Briefcase, Trash2, AlertTriangle, Wallet, Check } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
+import Card from "@/components/ui/Card";
 import {
   calcHours, formatHours, calcOvertimeHours, calcPay, formatCurrency, exportMonthToExcel, exportAllToExcel,
   buildRealAttendance, compareWeekToSchedule, findNoShows,
@@ -46,6 +47,7 @@ export default function Employees() {
   const [sentResult, setSentResult] = useState<{ tempPassword: string; success: boolean; emailSent?: boolean; error?: string } | null>(null);
   const [bizName,    setBizName]    = useState("Sidur");
   const [businessId, setBusinessId] = useState("");
+  const [myPersonId, setMyPersonId] = useState("");
   const [isManager,  setIsManager]  = useState(true);
   const [resetting,  setResetting]  = useState(false);
   const [resetResult, setResetResult] = useState<{ tempPassword: string; emailSent?: boolean } | { error: string } | null>(null);
@@ -71,6 +73,7 @@ export default function Employees() {
         const p = JSON.parse(s);
         setBizName(p.businessName || "Sidur");
         setIsManager(p.role !== "employee");
+        setMyPersonId(p.personId || "");
         bizId = p.businessId || "";
         setBusinessId(bizId);
       }
@@ -310,9 +313,9 @@ export default function Employees() {
         <div className="flex items-center justify-between flex-row">
           {isManager ? (
             <div className="flex items-center gap-2 flex-row">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
-                style={{ background: "var(--blue-light)", color: "var(--blue)" }}
-                onClick={() => setAddOpen(true)}>
+              <div onClick={() => setAddOpen(true)}
+                className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+                style={{ background: "var(--blue-light)", color: "var(--blue)" }}>
                 <Plus size={16} />
               </div>
               <button onClick={exportAllEmployees} disabled={exportingAll}
@@ -323,7 +326,10 @@ export default function Employees() {
               </button>
             </div>
           ) : <div className="w-8 h-8" />}
-          <p className="text-base font-semibold">עובדים</p>
+          <div className="text-right">
+            <p className="text-base font-bold">עובדים</p>
+            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{employees.length} בצוות</p>
+          </div>
         </div>
       </div>
 
@@ -331,7 +337,7 @@ export default function Employees() {
       <div className="flex flex-row gap-2 px-3 pt-3 pb-1 overflow-x-auto">
         {cats.map(cat => (
           <button key={cat} onClick={() => setActiveCat(cat)}
-            className="text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 whitespace-nowrap"
+            className="text-xs font-semibold px-3.5 py-1.5 rounded-full flex-shrink-0 whitespace-nowrap transition-all"
             style={activeCat === cat
               ? { background: "var(--navy)", color: "#fff" }
               : { background: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
@@ -349,20 +355,24 @@ export default function Employees() {
           <p className="text-sm text-center py-6" style={{ color: "var(--text-secondary)" }}>אין עדיין עובדים — לחץ על + להוספה</p>
         )}
         {filtered.map(emp => (
-          <div key={emp.id || emp.name} className="bg-white rounded-xl px-3 py-3 flex items-center gap-2 flex-row cursor-pointer"
-            style={{ border: "1px solid var(--border)" }}
+          <Card key={emp.id || emp.name} padded={false}
+            className="px-3 py-3 flex items-center gap-3 flex-row cursor-pointer"
             onClick={() => { setSelected(emp); setResetResult(null); setRoleChangeError(""); setDeleteConfirm(false); setDeleteError(""); setWageInput(emp.hourlyWage != null ? String(emp.hourlyWage) : String(MINIMUM_WAGE_HOURLY)); setWageError(""); }}>
-            <span className="text-xs px-2 py-0.5 rounded-md flex-shrink-0"
-              style={{ background: "var(--gray-bg)", color: "var(--text-secondary)" }}>{emp.role}</span>
-            <span className="flex-1 text-center text-sm font-medium flex items-center gap-1 justify-center">
-              {isBelowMinimumWage(emp.hourlyWage) && (
-                <span title="מתחת לשכר המינימום"><AlertTriangle size={11} style={{ color: "var(--red)" }} /></span>
-              )}
-              {emp.name}
-            </span>
-            <span className="text-xs px-2 py-0.5 rounded-md flex-shrink-0"
-              style={{ background: "var(--gray-bg)", color: "var(--text-secondary)" }}>{emp.phone}</span>
-          </div>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+              style={{ background: emp.color, color: emp.textColor }}>
+              {emp.initials}
+            </div>
+            <div className="flex-1 text-right">
+              <p className="text-sm font-semibold flex items-center gap-1 justify-end">
+                {emp.name}
+                {isBelowMinimumWage(emp.hourlyWage) && (
+                  <span title="מתחת לשכר המינימום"><AlertTriangle size={11} style={{ color: "var(--red)" }} /></span>
+                )}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{emp.role}</p>
+            </div>
+            <p className="text-xs flex-shrink-0" style={{ color: "var(--text-secondary)", direction: "ltr" }}>{emp.phone}</p>
+          </Card>
         ))}
       </div>
 
