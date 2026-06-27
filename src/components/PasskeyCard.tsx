@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Fingerprint, Check } from "lucide-react";
+import Card from "@/components/ui/Card";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 // Fingerprint/Face ID passkey registration for this device — shared between
 // the manager settings page and the employee settings page, since both kinds
@@ -53,11 +55,9 @@ export default function PasskeyCard({ businessId, personId }: { businessId: stri
   if (!supported) return null;
 
   return (
-    <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-      <div className="flex items-center gap-2 px-3 py-2.5 flex-row" style={{ borderBottom: "1px solid var(--border)" }}>
-        <Fingerprint size={13} style={{ color: "var(--blue)" }} />
-        <p className="text-sm font-semibold">כניסה בטביעת אצבע</p>
-      </div>
+    <div>
+      <SectionHeader icon={Fingerprint} title="כניסה בטביעת אצבע" />
+      <Card padded={false}>
       <p className="text-xs px-3 pt-2.5 pb-2 text-right leading-relaxed" style={{ color: "var(--text-secondary)" }}>
         {registered
           ? "כניסה בטביעת אצבע / Face ID מופעלת במכשיר הזה."
@@ -80,6 +80,7 @@ export default function PasskeyCard({ businessId, personId }: { businessId: stri
           </button>
         )}
       </div>
+      </Card>
     </div>
   );
 }

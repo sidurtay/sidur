@@ -9,6 +9,8 @@ import PasskeyCard from "@/components/PasskeyCard";
 import PushNotificationCard from "@/components/PushNotificationCard";
 import FaqAccordion from "@/components/FaqAccordion";
 import EmployeeSettings from "./EmployeeSettings";
+import Card from "@/components/ui/Card";
+import SectionHeader from "@/components/ui/SectionHeader";
 import {
   getStoredConfig, savePermanent, saveWeekOverride,
   configChanged, DEFAULT_CONFIG,
@@ -246,44 +248,40 @@ export default function Settings() {
     <div className="flex flex-col min-h-screen pb-28" style={{ background: "var(--gray-bg)" }}>
       <div className="bg-white px-4 pt-12 pb-3 relative" style={{ borderBottom: "1px solid var(--border)" }}>
         <div className="absolute top-3 left-4"><Logo size={22} /></div>
-        <p className="text-base font-semibold text-right">הגדרות עסק</p>
+        <p className="text-base font-bold text-right">הגדרות עסק</p>
       </div>
 
       <div className="px-3 py-3 flex flex-col gap-4">
 
         {/* Business details */}
-        <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-          <div className="flex items-center gap-2 px-3 py-2.5 flex-row" style={{ borderBottom: "1px solid var(--border)" }}>
-            <Store size={13} style={{ color: "var(--blue)" }} />
-            <p className="text-sm font-semibold">פרטי העסק</p>
-          </div>
-          {[
-            { label: "שם העסק",          value: bizName, onChange: setBizName },
-            { label: "ח.פ / עוסק מורשה", value: bizId,   onChange: setBizId   },
-          ].map((f, i) => (
-            <div key={f.label} className="px-3 py-2.5"
-              style={{ borderBottom: i === 0 ? "1px solid var(--border)" : "none" }}>
-              <p className="text-xs mb-1 text-right" style={{ color: "var(--text-secondary)" }}>{f.label}</p>
-              <input className="w-full px-3 py-2 rounded-lg text-sm text-right"
-                style={{ background: "var(--gray-bg)", border: "1px solid var(--border)" }}
-                value={f.value} onChange={e => f.onChange(e.target.value)} />
-            </div>
-          ))}
+        <div>
+          <SectionHeader icon={Store} title="פרטי העסק" />
+          <Card padded={false} className="overflow-hidden">
+            {[
+              { label: "שם העסק",          value: bizName, onChange: setBizName },
+              { label: "ח.פ / עוסק מורשה", value: bizId,   onChange: setBizId   },
+            ].map((f, i) => (
+              <div key={f.label} className="px-3 py-2.5"
+                style={{ borderBottom: i === 0 ? "1px solid var(--border)" : "none" }}>
+                <p className="text-xs mb-1 text-right" style={{ color: "var(--text-secondary)" }}>{f.label}</p>
+                <input className="w-full px-3 py-2 rounded-lg text-sm text-right"
+                  style={{ background: "var(--gray-bg)", border: "1px solid var(--border)" }}
+                  value={f.value} onChange={e => f.onChange(e.target.value)} />
+              </div>
+            ))}
+          </Card>
         </div>
 
         {/* Hours & days */}
-        <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-          <div className="flex items-center justify-between px-3 py-2.5 flex-row"
-            style={{ borderBottom: "1px solid var(--border)" }}>
-            <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-              style={{ background: "var(--blue-light)", color: "var(--blue)" }}>
-              {openCount} ימים פתוחים
-            </span>
-            <div className="flex items-center gap-2 flex-row">
-              <Clock size={13} style={{ color: "var(--blue)" }} />
-              <p className="text-sm font-semibold">ימי פעילות ושעות פתיחה</p>
-            </div>
-          </div>
+        <div>
+          <SectionHeader icon={Clock} title="ימי פעילות ושעות פתיחה"
+            action={
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                style={{ background: "var(--blue-light)", color: "var(--blue)" }}>
+                {openCount} ימים פתוחים
+              </span>
+            } />
+          <Card padded={false} className="overflow-hidden">
           {days.map((d, i) => (
             <div key={d.name} className="flex items-center gap-3 px-3 py-2.5 flex-row"
               style={{
@@ -326,22 +324,19 @@ export default function Settings() {
             </p>
             <Check size={13} style={{ color: "var(--blue)" }} />
           </div>
+          </Card>
         </div>
 
         {/* Shift split — gated by plan */}
-        <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-          <div className="flex items-center justify-between px-3 py-2.5 flex-row" style={{ borderBottom: "1px solid var(--border)" }}>
-            {plan === "starter" && (
+        <div>
+          <SectionHeader icon={Layers} title="חילוק משמרות בסידור"
+            action={plan === "starter" ? (
               <span className="text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 flex-row"
                 style={{ background: "var(--navy)", color: "#fff" }}>
                 <Crown size={10} /> Plus ומעלה
               </span>
-            )}
-            <div className="flex items-center gap-2 flex-row">
-              <Layers size={13} style={{ color: "var(--blue)" }} />
-              <p className="text-sm font-semibold">חילוק משמרות בסידור</p>
-            </div>
-          </div>
+            ) : undefined} />
+          <Card padded={false} className="overflow-hidden">
 
           {plan === "starter" ? (
             <div className="px-3 py-4 flex flex-col items-center gap-2 text-center">
@@ -378,14 +373,13 @@ export default function Settings() {
               </div>
             </div>
           )}
+          </Card>
         </div>
 
         {/* Tips mode */}
-        <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-          <div className="flex items-center gap-2 px-3 py-2.5 flex-row" style={{ borderBottom: "1px solid var(--border)" }}>
-            <Receipt size={13} style={{ color: "var(--blue)" }} />
-            <p className="text-sm font-semibold">חישוב טיפים</p>
-          </div>
+        <div>
+          <SectionHeader icon={Receipt} title="חישוב טיפים" />
+          <Card padded={false}>
           <div className="flex flex-row gap-2 p-3">
             {([
               ["per-shift", "פר משמרת", "בוקר וערב בנפרד"],
@@ -407,14 +401,13 @@ export default function Settings() {
               </button>
             ))}
           </div>
+          </Card>
         </div>
 
         {/* Roles + permissions */}
-        <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-          <div className="flex items-center gap-2 px-3 py-2.5 flex-row" style={{ borderBottom: "1px solid var(--border)" }}>
-            <Users size={13} style={{ color: "var(--blue)" }} />
-            <p className="text-sm font-semibold">תפקידים והרשאות</p>
-          </div>
+        <div>
+          <SectionHeader icon={Users} title="תפקידים והרשאות" />
+          <Card padded={false}>
           <div className="px-3 pt-3 pb-2 flex flex-wrap gap-2 flex-row">
             {roles.map(r => {
               const rp    = perms[r] || {};
@@ -452,6 +445,7 @@ export default function Settings() {
           <p className="text-[10px] px-3 pb-2.5" style={{ color: "var(--text-secondary)" }}>
             לחץ על תפקיד לבחירת הרשאות גישה
           </p>
+          </Card>
         </div>
 
         {/* Fingerprint / Face ID login for this device */}
@@ -461,11 +455,9 @@ export default function Settings() {
         {businessId && personId && <PushNotificationCard businessId={businessId} personId={personId} />}
 
         {/* Clock in/out via app */}
-        <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-          <div className="flex items-center gap-2 px-3 py-2.5 flex-row" style={{ borderBottom: "1px solid var(--border)" }}>
-            <Fingerprint size={13} style={{ color: "var(--blue)" }} />
-            <p className="text-sm font-semibold">דיווח נוכחות באפליקציה</p>
-          </div>
+        <div>
+          <SectionHeader icon={Fingerprint} title="דיווח נוכחות באפליקציה" />
+          <Card padded={false}>
           <p className="text-xs px-3 pt-2.5 pb-2 text-right leading-relaxed" style={{ color: "var(--text-secondary)" }}>
             עובדים מדווחים כניסה ויציאה מהאפליקציה, ואתה מאשר בלחיצה. כניסה דורשת אישור תמיד.
           </p>
@@ -477,14 +469,13 @@ export default function Settings() {
             </button>
             <p className="text-sm">דרוש אישור מנהל גם ביציאה ממשמרת</p>
           </div>
+          </Card>
         </div>
 
         {/* Plan upgrades */}
-        <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-          <div className="flex items-center gap-2 px-3 py-2.5 flex-row" style={{ borderBottom: "1px solid var(--border)" }}>
-            <Sparkles size={13} style={{ color: "var(--blue)" }} />
-            <p className="text-sm font-semibold">שדרוגי מסלול</p>
-          </div>
+        <div>
+          <SectionHeader icon={Sparkles} title="שדרוגי מסלול" />
+          <Card padded={false} className="overflow-hidden">
           <a href="/biometric-device"
             className="flex items-center justify-between px-3 py-3 flex-row"
             style={{ background: "var(--blue-light)" }}>
@@ -495,6 +486,7 @@ export default function Settings() {
             </div>
             <Fingerprint size={18} style={{ color: "var(--blue)" }} />
           </a>
+          </Card>
         </div>
 
         {/* FAQ — visible to everyone; manager-only questions filtered by role */}
@@ -502,18 +494,16 @@ export default function Settings() {
 
         {/* Customer support — manager / אחמ"ש only */}
         {canContactSupport && (
-          <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-            <div className="flex items-center justify-between px-3 py-2.5 flex-row" style={{ borderBottom: "1px solid var(--border)" }}>
-              <button onClick={() => { setSupportOpen(true); setTicketResult(null); }}
-                className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
-                style={{ background: "var(--navy)", color: "#fff" }}>
-                <Plus size={11} /> פנייה חדשה
-              </button>
-              <div className="flex items-center gap-2 flex-row">
-                <Mail size={13} style={{ color: "var(--blue)" }} />
-                <p className="text-sm font-semibold">שירות לקוחות — Sidur</p>
-              </div>
-            </div>
+          <div>
+            <SectionHeader icon={Mail} title="שירות לקוחות — Sidur"
+              action={
+                <button onClick={() => { setSupportOpen(true); setTicketResult(null); }}
+                  className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
+                  style={{ background: "var(--navy)", color: "#fff" }}>
+                  <Plus size={11} /> פנייה חדשה
+                </button>
+              } />
+            <Card padded={false}>
             <p className="text-xs px-3 py-2.5 text-right leading-relaxed" style={{ color: "var(--text-secondary)" }}>
               תקלה או שאלה באפליקציה? שלח הודעה ישירה לצוות Sidur — נקבל התראה ונחזור אליך מהר.
             </p>
@@ -530,6 +520,7 @@ export default function Settings() {
               </a>
               <p className="text-[10px]" style={{ color: "#9A9890" }}>עקבו אחרינו:</p>
             </div>
+            </Card>
           </div>
         )}
 

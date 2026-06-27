@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Bell, Check } from "lucide-react";
+import Card from "@/components/ui/Card";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -45,7 +47,7 @@ export default function PushNotificationCard({ businessId, personId }: { busines
 
       const res = await fetch("/api/push/subscribe", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, personId, subscription: sub.toJSON() }),
+        body: JSON.stringify({ businessId, personId, subscription: sub.toJSON(), callerId: personId }),
       }).then(r => r.json());
       if (!res.success) throw new Error(res.error || "ההרשמה להתראות נכשלה");
 
@@ -60,11 +62,9 @@ export default function PushNotificationCard({ businessId, personId }: { busines
   if (!supported) return null;
 
   return (
-    <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-      <div className="flex items-center gap-2 px-3 py-2.5 flex-row" style={{ borderBottom: "1px solid var(--border)" }}>
-        <Bell size={13} style={{ color: "var(--blue)" }} />
-        <p className="text-sm font-semibold">התראות Push</p>
-      </div>
+    <div>
+      <SectionHeader icon={Bell} title="התראות Push" />
+      <Card padded={false}>
       <p className="text-xs px-3 pt-2.5 pb-2 text-right leading-relaxed" style={{ color: "var(--text-secondary)" }}>
         {enabled
           ? "התראות מופעלות במכשיר הזה — תקבל/י עדכון גם כשהאפליקציה סגורה."
@@ -87,6 +87,7 @@ export default function PushNotificationCard({ businessId, personId }: { busines
           </button>
         )}
       </div>
+      </Card>
     </div>
   );
 }
