@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="he" dir="rtl" className="h-full">
+    <html lang="he" dir="rtl" className="h-full" suppressHydrationWarning>
       <head>
         {/* Applies the theme before first paint — avoids a flash of the
             wrong theme that a useEffect (runs after render) couldn't prevent. */}
