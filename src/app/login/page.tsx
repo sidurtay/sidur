@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, ArrowRight, Phone, Lock, Fingerprint } from "lucide-react";
+import Card from "@/components/ui/Card";
 
 type LoginSuccessData = {
   businessId: string; personId: string; phone: string; name: string;
@@ -159,7 +160,7 @@ export default function Login() {
 
       {/* Form — floating card */}
       <div className="animate-fade-slide-up px-5 flex flex-col gap-4" style={{ marginTop: -20, animationDelay: "0.65s" }}>
-        <div className="bg-white rounded-[28px] p-6 flex flex-col gap-4"
+        <Card className="rounded-[28px] p-6 flex flex-col gap-4"
           style={{ boxShadow: "0 12px 32px -8px rgba(20,24,31,0.16)", border: "1px solid var(--border)" }}>
 
           {passkeyPhone && (
@@ -242,7 +243,7 @@ export default function Login() {
               {forgotBusy ? "שולח..." : "שכחתי סיסמה"}
             </button>
           )}
-        </div>
+        </Card>
 
         <button onClick={() => router.push("/register")}
           className="text-sm text-center py-2">
