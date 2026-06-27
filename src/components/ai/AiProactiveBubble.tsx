@@ -135,7 +135,7 @@ export default function AiProactiveBubble({ session, onOpenWithMessage }: { sess
         right: 16,
         zIndex: 61,
         maxWidth: 230,
-        background: "#fff",
+        background: "var(--surface)",
         borderRadius: 16,
         padding: "10px 14px",
         boxShadow: "0 8px 24px rgba(20,24,31,0.22)",
@@ -151,7 +151,7 @@ export default function AiProactiveBubble({ session, onOpenWithMessage }: { sess
       >
         <X size={10} color="#fff" />
       </button>
-      <p className="text-xs font-semibold text-right leading-relaxed" style={{ color: "#1F2937" }}>{bubble.text}</p>
+      <p className="text-xs font-semibold text-right leading-relaxed" style={{ color: "var(--text-main)" }}>{bubble.text}</p>
 
       <style jsx>{`
         .ai-proactive-bubble {
@@ -164,7 +164,7 @@ export default function AiProactiveBubble({ session, onOpenWithMessage }: { sess
           right: 22px;
           width: 12px;
           height: 12px;
-          background: #fff;
+          background: var(--surface);
           border-left: 1px solid rgba(249,115,22,0.25);
           border-bottom: 1px solid rgba(249,115,22,0.25);
           transform: rotate(-45deg);
