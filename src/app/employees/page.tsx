@@ -5,7 +5,7 @@ import { Plus, X, Phone, Calendar, Lock, Download, ChevronRight, ChevronLeft, Cl
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import {
-  calcHours, formatHours, calcOvertimeHours, exportMonthToExcel, exportAllToExcel,
+  calcHours, formatHours, calcOvertimeHours, calcPay, formatCurrency, exportMonthToExcel, exportAllToExcel,
   buildRealAttendance, compareWeekToSchedule, findNoShows,
   type AttendanceMonth, type ComparedShift,
 } from "@/lib/shiftData";
@@ -201,7 +201,7 @@ export default function Employees() {
     if (!businessId || employees.length === 0) return;
     setExportingAll(true);
     try {
-      const rows: { name: string; role: string; day: string; date: string; timeIn: string; timeOut: string }[] = [];
+      const rows: { name: string; role: string; day: string; date: string; timeIn: string; timeOut: string; hourlyWage?: number }[] = [];
       await Promise.all(employees.map(async emp => {
         if (!emp.id) return;
         const res = await fetch(`/api/clock-requests?businessId=${businessId}&personId=${emp.id}`).then(r => r.json());
@@ -210,7 +210,7 @@ export default function Employees() {
         const current = months[0];
         if (!current) return;
         current.weeks.flatMap(w => w.shifts).forEach(s => {
-          rows.push({ name: emp.name, role: emp.role, day: s.day, date: s.date, timeIn: s.timeIn, timeOut: s.timeOut });
+          rows.push({ name: emp.name, role: emp.role, day: s.day, date: s.date, timeIn: s.timeIn, timeOut: s.timeOut, hourlyWage: emp.hourlyWage });
         });
       }));
       await exportAllToExcel(rows, bizName, `דוח_שכר_כל_העובדים_${new Date().toLocaleDateString("he-IL", { month: "long", year: "numeric" })}.xlsx`);
@@ -291,6 +291,9 @@ export default function Employees() {
   const totalMonthHours  = allShiftsInMonth.reduce((sum, s) => sum + calcHours(s.timeIn, s.timeOut), 0);
   const totalShifts      = allShiftsInMonth.length;
   const avgPerShift      = totalShifts > 0 ? totalMonthHours / totalShifts : 0;
+  const totalMonthPay    = attendanceEmp?.hourlyWage != null
+    ? allShiftsInMonth.reduce((sum, s) => sum + calcPay(s.timeIn, s.timeOut, attendanceEmp.hourlyWage!), 0)
+    : null;
 
   return (
     <div className="flex flex-col min-h-screen pb-28" style={{ background: "var(--gray-bg)" }}>
@@ -576,6 +579,16 @@ export default function Employees() {
                 <p className="text-[10px] mt-0.5" style={{ color: "var(--text-secondary)" }}>ממוצע משמרת</p>
               </div>
             </div>
+
+            {totalMonthPay != null && (
+              <div className="mx-4 mb-3 rounded-xl px-4 py-3 flex items-center justify-between flex-row"
+                style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)" }}>
+                <span className="text-lg font-bold" style={{ color: "var(--blue)" }}>{formatCurrency(totalMonthPay)}</span>
+                <p className="text-xs font-semibold text-right" style={{ color: "var(--blue)" }}>
+                  שכר משוער לחודש <span className="font-normal">(לפי ₪{attendanceEmp?.hourlyWage}/שעה, כולל 125% על שעות נוספות)</span>
+                </p>
+              </div>
+            )}
 
             {/* Weekly accordion */}
             <div className="px-4 flex flex-col gap-2 mb-3">

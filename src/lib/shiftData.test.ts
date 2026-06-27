@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calcHours, formatHours, calcOvertimeHours, compareWeekToSchedule, findNoShows } from "./shiftData";
+import { calcHours, formatHours, calcOvertimeHours, calcPay, formatCurrency, compareWeekToSchedule, findNoShows } from "./shiftData";
 
 describe("calcHours", () => {
   it("computes a same-day shift duration", () => {
@@ -93,5 +93,29 @@ describe("findNoShows", () => {
     const assignments = [{ dayOfWeek: 0, timeIn: "08:00", timeOut: "16:00" }];
     const shifts = [{ day: "ראשון", date: "1.1", timeIn: "08:00", timeOut: "16:00" }];
     expect(findNoShows(assignments, shifts)).toEqual([]);
+  });
+});
+
+describe("calcPay", () => {
+  it("pays regular hours at the flat hourly wage with no overtime", () => {
+    expect(calcPay("08:00", "16:00", 40)).toBe(8 * 40);
+  });
+
+  it("pays overtime hours at a 125% premium", () => {
+    // 10h shift: 8 regular + 2 overtime
+    const expected = 8 * 40 + 2 * 40 * 1.25;
+    expect(calcPay("08:00", "18:00", 40)).toBeCloseTo(expected, 5);
+  });
+
+  it("never pays less than straight time would for the same hours", () => {
+    const totalHours = calcHours("08:00", "20:00");
+    const pay = calcPay("08:00", "20:00", 40);
+    expect(pay).toBeGreaterThanOrEqual(totalHours * 40);
+  });
+});
+
+describe("formatCurrency", () => {
+  it("formats with the shekel sign and rounds to whole numbers", () => {
+    expect(formatCurrency(1234.6)).toBe("₪1,235");
   });
 });

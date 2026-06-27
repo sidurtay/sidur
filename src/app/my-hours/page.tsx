@@ -4,9 +4,9 @@ import { useRouter } from "next/navigation";
 import { ChevronRight, ChevronLeft, Download, FileSpreadsheet, TrendingUp, ArrowRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import { calcHours, formatHours, exportMonthToExcel, buildRealAttendance, type AttendanceMonth } from "@/lib/shiftData";
+import { calcHours, calcPay, formatHours, formatCurrency, exportMonthToExcel, buildRealAttendance, type AttendanceMonth } from "@/lib/shiftData";
 
-type RealEmp = { name: string; role: string; initials: string; color: string; textColor: string };
+type RealEmp = { name: string; role: string; initials: string; color: string; textColor: string; hourlyWage?: number };
 
 export default function MyHours() {
   const router = useRouter();
@@ -48,6 +48,9 @@ export default function MyHours() {
   const totalMonthHours  = allShiftsInMonth.reduce((sum, s) => sum + calcHours(s.timeIn, s.timeOut), 0);
   const totalShifts      = allShiftsInMonth.length;
   const avgPerShift      = totalShifts > 0 ? totalMonthHours / totalShifts : 0;
+  const totalMonthPay    = emp?.hourlyWage != null
+    ? allShiftsInMonth.reduce((sum, s) => sum + calcPay(s.timeIn, s.timeOut, emp.hourlyWage!), 0)
+    : null;
 
   if (!emp || !currentMonth) {
     return (
@@ -111,6 +114,14 @@ export default function MyHours() {
           <p className="text-[10px] mt-0.5" style={{ color: "var(--text-secondary)" }}>ממוצע משמרת</p>
         </div>
       </div>
+
+      {totalMonthPay != null && (
+        <div className="mx-4 mb-3 rounded-xl px-4 py-3 flex items-center justify-between flex-row"
+          style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)" }}>
+          <span className="text-lg font-bold" style={{ color: "var(--blue)" }}>{formatCurrency(totalMonthPay)}</span>
+          <p className="text-xs font-semibold text-right" style={{ color: "var(--blue)" }}>שכר משוער לחודש</p>
+        </div>
+      )}
 
       {/* Weekly accordion */}
       <div className="px-4 flex flex-col gap-2 mb-3">

@@ -181,6 +181,24 @@ export function calcOvertimeHours(timeIn: string, timeOut: string): number {
   return Math.max(0, calcHours(timeIn, timeOut) - DAILY_OVERTIME_THRESHOLD);
 }
 
+// Simplified overtime premium — real Israeli law tiers this (125% for the
+// first 2 overtime hours/day, 150% beyond that), but tracking that precisely
+// needs a full daily breakdown this app doesn't have yet. A flat 125% on all
+// overtime hours is a deliberately conservative approximation: it never
+// *overstates* what's owed, so it's safe to show as an estimate, just not a
+// substitute for a real payroll calculation.
+const OVERTIME_MULTIPLIER = 1.25;
+export function calcPay(timeIn: string, timeOut: string, hourlyWage: number): number {
+  const totalHours = calcHours(timeIn, timeOut);
+  const overtimeHours = calcOvertimeHours(timeIn, timeOut);
+  const regularHours = totalHours - overtimeHours;
+  return regularHours * hourlyWage + overtimeHours * hourlyWage * OVERTIME_MULTIPLIER;
+}
+
+export function formatCurrency(amount: number): string {
+  return `₪${Math.round(amount).toLocaleString("he-IL")}`;
+}
+
 export type ComparisonStatus = "ok" | "late" | "early-leave" | "no-show" | "unscheduled";
 export type ComparedShift = ShiftEntry & { plannedIn?: string; plannedOut?: string; status: ComparisonStatus };
 
@@ -229,60 +247,74 @@ export function findNoShows(
 // One combined, branded payroll-ready Excel sheet across every employee,
 // instead of having to download and re-merge N separate per-employee files.
 export async function exportAllToExcel(
-  rows: { name: string; role: string; day: string; date: string; timeIn: string; timeOut: string }[],
+  rows: { name: string; role: string; day: string; date: string; timeIn: string; timeOut: string; hourlyWage?: number }[],
   businessName: string,
   filename: string
 ) {
   const wb = styleWorkbook();
   const sheet = wb.addWorksheet("דוח שכר");
-  const cols = 8;
+  const cols = 9;
   addBrandHeader(sheet, "דוח שעות לשכר", `${businessName} — כל העובדים`, cols);
 
   sheet.columns = [
     { width: 18 }, { width: 12 }, { width: 10 }, { width: 10 },
-    { width: 10 }, { width: 10 }, { width: 12 }, { width: 12 },
+    { width: 10 }, { width: 10 }, { width: 12 }, { width: 12 }, { width: 14 },
   ];
 
-  const headerRow = sheet.addRow(["שם עובד", "תפקיד", "יום", "תאריך", "שעת כניסה", "שעת יציאה", "סה\"כ שעות", "שעות נוספות"]);
+  const headerRow = sheet.addRow(["שם עובד", "תפקיד", "יום", "תאריך", "שעת כניסה", "שעת יציאה", "סה\"כ שעות", "שעות נוספות", "שכר משוער"]);
   styleHeaderRow(headerRow);
 
   rows.forEach((s, i) => {
     const h  = calcHours(s.timeIn, s.timeOut);
     const ot = calcOvertimeHours(s.timeIn, s.timeOut);
-    const row = sheet.addRow([s.name, s.role, s.day, s.date, s.timeIn, s.timeOut, formatHours(h), ot > 0 ? formatHours(ot) : "—"]);
+    const pay = s.hourlyWage != null ? formatCurrency(calcPay(s.timeIn, s.timeOut, s.hourlyWage)) : "—";
+    const row = sheet.addRow([s.name, s.role, s.day, s.date, s.timeIn, s.timeOut, formatHours(h), ot > 0 ? formatHours(ot) : "—", pay]);
     styleDataRow(row, i % 2 === 1);
   });
 
   const totalHours = rows.reduce((sum, s) => sum + calcHours(s.timeIn, s.timeOut), 0);
-  const totalRow = sheet.addRow(["", "", "", "", "", "סה\"כ:", formatHours(totalHours), ""]);
+  const totalPay = rows.reduce((sum, s) => sum + (s.hourlyWage != null ? calcPay(s.timeIn, s.timeOut, s.hourlyWage) : 0), 0);
+  const totalRow = sheet.addRow(["", "", "", "", "", "סה\"כ:", formatHours(totalHours), "", totalPay > 0 ? formatCurrency(totalPay) : ""]);
   sheet.mergeCells(totalRow.number, 1, totalRow.number, 5);
   styleTotalRow(totalRow);
 
   await downloadWorkbook(wb, filename);
 }
 
-export async function exportMonthToExcel(emp: { name: string; role: string }, month: AttendanceMonth, businessName: string) {
+export async function exportMonthToExcel(emp: { name: string; role: string; hourlyWage?: number }, month: AttendanceMonth, businessName: string) {
   const wb = styleWorkbook();
   const sheet = wb.addWorksheet("דוח נוכחות");
-  const cols = 6;
+  const hasWage = emp.hourlyWage != null;
+  const cols = hasWage ? 7 : 6;
   addBrandHeader(sheet, "דוח שעות עבודה", `${emp.name} · ${emp.role} · ${businessName} — ${month.label}`, cols);
 
-  sheet.columns = [
-    { width: 14 }, { width: 10 }, { width: 10 }, { width: 10 }, { width: 12 }, { width: 14 },
-  ];
+  sheet.columns = hasWage
+    ? [{ width: 14 }, { width: 10 }, { width: 10 }, { width: 10 }, { width: 12 }, { width: 14 }, { width: 14 }]
+    : [{ width: 14 }, { width: 10 }, { width: 10 }, { width: 10 }, { width: 12 }, { width: 14 }];
 
-  const headerRow = sheet.addRow(["יום", "תאריך", "שעת כניסה", "שעת יציאה", "סה\"כ שעות", "הערות"]);
+  const headers = ["יום", "תאריך", "שעת כניסה", "שעת יציאה", "סה\"כ שעות", "הערות"];
+  if (hasWage) headers.splice(5, 0, "שכר משוער");
+  const headerRow = sheet.addRow(headers);
   styleHeaderRow(headerRow);
 
   const allShifts = month.weeks.flatMap(w => w.shifts);
   allShifts.forEach((s, i) => {
     const h = calcHours(s.timeIn, s.timeOut);
-    const row = sheet.addRow([s.day, s.date, s.timeIn, s.timeOut, formatHours(h), s.note || ""]);
+    const cells = [s.day, s.date, s.timeIn, s.timeOut, formatHours(h)];
+    if (hasWage) cells.push(formatCurrency(calcPay(s.timeIn, s.timeOut, emp.hourlyWage!)));
+    cells.push(s.note || "");
+    const row = sheet.addRow(cells);
     styleDataRow(row, i % 2 === 1);
   });
 
   const total = allShifts.reduce((sum, s) => sum + calcHours(s.timeIn, s.timeOut), 0);
-  const totalRow = sheet.addRow(["", "", "", "סה\"כ:", formatHours(total), ""]);
+  const totalRowCells = ["", "", "", "סה\"כ:", formatHours(total)];
+  if (hasWage) {
+    const totalPay = allShifts.reduce((sum, s) => sum + calcPay(s.timeIn, s.timeOut, emp.hourlyWage!), 0);
+    totalRowCells.push(formatCurrency(totalPay));
+  }
+  totalRowCells.push("");
+  const totalRow = sheet.addRow(totalRowCells);
   sheet.mergeCells(totalRow.number, 1, totalRow.number, 3);
   styleTotalRow(totalRow);
 
