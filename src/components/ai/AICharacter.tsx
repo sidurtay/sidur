@@ -1,9 +1,10 @@
 "use client";
+import Image from "next/image";
 
-// The little floating "face" that opens the AI assistant. Self-contained —
-// purely visual, no app logic. Pulses softly and "winks" every ~8s to draw
-// the eye without being annoying. Styled in the app's own navy/orange brand
-// instead of a generic dark/blue palette.
+// The little floating mascot that opens the AI assistant. Self-contained —
+// purely visual, no app logic. Pulses softly to draw the eye without being
+// annoying. Styled in the app's own navy/orange brand instead of a generic
+// dark/blue palette.
 export default function AICharacter({ onClick, hasUnread }: { onClick: () => void; hasUnread?: boolean }) {
   return (
     <button
@@ -18,7 +19,7 @@ export default function AICharacter({ onClick, hasUnread }: { onClick: () => voi
         width: 58,
         height: 58,
         borderRadius: "50%",
-        background: "linear-gradient(145deg, #1F2937, #14181F)",
+        overflow: "hidden",
         border: "1.5px solid rgba(249,115,22,0.45)",
         display: "flex",
         alignItems: "center",
@@ -29,12 +30,7 @@ export default function AICharacter({ onClick, hasUnread }: { onClick: () => voi
     >
       <span className="ai-character-pulse" />
       <span className="ai-character-sparkle">✦</span>
-      <svg width="27" height="27" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke="#F97316" strokeWidth="1.5" opacity="0.9" />
-        <circle className="ai-character-eye-l" cx="9" cy="11" r="1.5" fill="#FDBA74" />
-        <circle className="ai-character-eye-r" cx="15" cy="11" r="1.5" fill="#FDBA74" />
-        <path d="M9 15c1 1 5 1 6 0" stroke="#FDBA74" strokeWidth="1.4" strokeLinecap="round" />
-      </svg>
+      <Image src="/ai-character.png" alt="" width={58} height={58} style={{ objectFit: "cover", width: "100%", height: "100%" }} priority />
       {hasUnread && (
         <span style={{
           position: "absolute", top: 1, right: 1, width: 11, height: 11,
@@ -54,10 +50,6 @@ export default function AICharacter({ onClick, hasUnread }: { onClick: () => voi
           font-size: 11px; color: #F97316;
           animation: ai-twinkle 3.2s ease-in-out infinite;
         }
-        .ai-character-eye-l, .ai-character-eye-r {
-          transform-origin: center;
-          animation: ai-wink 8s ease-in-out infinite;
-        }
         @keyframes ai-breathe {
           0%, 100% { transform: scale(1); }
           50% { transform: scale(1.04); }
@@ -69,10 +61,6 @@ export default function AICharacter({ onClick, hasUnread }: { onClick: () => voi
         @keyframes ai-twinkle {
           0%, 80%, 100% { opacity: 0; transform: scale(0.6) rotate(0deg); }
           90% { opacity: 1; transform: scale(1.1) rotate(15deg); }
-        }
-        @keyframes ai-wink {
-          0%, 92%, 100% { transform: scaleY(1); }
-          95% { transform: scaleY(0.1); }
         }
       `}</style>
     </button>
