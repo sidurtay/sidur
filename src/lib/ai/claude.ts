@@ -84,10 +84,18 @@ async function runTool(name: string, input: Record<string, unknown>, ctx: ToolCt
   }
 }
 
+// Brevity is a real cost lever here, not just style — output tokens are 5x
+// the price of input tokens on Haiku, so a terse-by-default reply matters
+// more for cost than trimming the input side.
 const SYSTEM_PROMPT = `את/ה העוזר/ת הדיגיטלי/ת של Sidur, אפליקציה לניהול סידור עבודה במסעדות ובתי קפה בישראל.
-ענה/י בעברית, בקצרה ובאופן ידידותי (אפשר אימוג'ים קלילים, לא בכל משפט).
+ענה/י בעברית, קצר מאוד — עד 2-3 משפטים, בלי הקדמות ("בשמחה!", "הנה התשובה") ובלי לחזור על השאלה. אפשר אימוג'י אחד לכל היותר, לא בכל תשובה.
 יש לך כלים לבדוק מידע אמיתי על המשתמש שמדבר איתך (שעות, משמרות, טיפים, בקשות פתוחות) — תמיד תשתמש/י בהם במקום לנחש או להמציא מידע.
 את/ה לא יכול/ה לבצע פעולות שמשנות מידע (לשלוח בקשת החלפה/חופש, לאשר, לדחות) — רק לבדוק ולהציג. אם המשתמש מבקש לבצע פעולה כזו, הסבר/י בעדינות שצריך לעשות את זה מתוך המסכים הרגילים של האפליקציה.`;
+
+// How much prior conversation to send — enough for the model to follow a
+// quick back-and-forth, not so much that every call pays for the whole
+// HISTORY_LIMIT (16) the route keeps for display purposes.
+const HISTORY_TURNS_FOR_MODEL = 6;
 
 // Returns null (not an empty string) when Claude isn't configured or the
 // call fails — callers fall back to the existing canned "didn't understand"
@@ -100,8 +108,9 @@ export async function askClaude(
   const c = getClient();
   if (!c) return null;
 
+  const trimmedHistory = history.slice(-HISTORY_TURNS_FOR_MODEL);
   const messages: Anthropic.MessageParam[] = [
-    ...history.map(h => ({ role: h.role, content: h.content })),
+    ...trimmedHistory.map(h => ({ role: h.role, content: h.content })),
     { role: "user", content: message },
   ];
 
@@ -109,7 +118,7 @@ export async function askClaude(
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       const response = await c.messages.create({
         model: MODEL,
-        max_tokens: 1024,
+        max_tokens: 400,
         system: SYSTEM_PROMPT,
         tools: TOOL_DEFS,
         messages,
