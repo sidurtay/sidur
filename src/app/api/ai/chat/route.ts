@@ -3,6 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { matchIntent, EXAMPLE_PROMPTS } from "@/lib/ai/intentMatcher";
 import * as tools from "@/lib/ai/tools";
 import { isManager as checkIsManager } from "@/lib/auth/permissions";
+import { askClaude } from "@/lib/ai/claude";
 
 const HISTORY_LIMIT = 16;
 
@@ -14,7 +15,10 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-async function buildReply(message: string, ctx: Ctx, employeeName: string): Promise<string | ChatReply> {
+async function buildReply(
+  message: string, ctx: Ctx, employeeName: string,
+  history: { role: "user" | "assistant"; content: string }[]
+): Promise<string | ChatReply> {
   const match = matchIntent(message, ctx.isManager);
   const firstName = employeeName.split(" ")[0];
 
@@ -131,11 +135,19 @@ async function buildReply(message: string, ctx: Ctx, employeeName: string): Prom
         : pick([`🚫 דחיתי: "${n.title}".`, `🚫 בוצע — "${n.title}" נדחתה.`]);
     }
 
-    default:
+    default: {
+      // Free regex matcher couldn't classify this — try the real model
+      // (read-only tools only; see claude.ts) before falling back to the
+      // canned "didn't understand" message. Returns null if no API key is
+      // configured yet, or the call fails, so this is purely additive.
+      const claudeReply = await askClaude(message, ctx, history);
+      if (claudeReply) return claudeReply;
+
       return pick([
         "לא בטוח שהבנתי 🙂 אפשר למשל לשאול אותי:\n",
         "הממ, זה לא משהו שאני מכיר בינתיים — אבל אפשר לנסות:\n",
       ]) + EXAMPLE_PROMPTS.map(p => `• ${p}`).join("\n");
+    }
   }
 }
 
@@ -150,7 +162,17 @@ export async function POST(req: NextRequest) {
     // isManager gates manager-only intents (approving swaps/absences, building the
     // schedule) — must come from the DB, never trust a client-supplied flag here.
     const ctx: Ctx = { businessId, personId, isManager: await checkIsManager(supabase, businessId, personId) };
-    const result = await buildReply(message.trim(), ctx, employeeName || "");
+
+    const { data: historyRows } = await supabase
+      .from("ai_conversations")
+      .select("role, content")
+      .eq("business_id", businessId)
+      .eq("person_id", personId)
+      .order("created_at", { ascending: false })
+      .limit(HISTORY_LIMIT);
+    const history = (historyRows || []).reverse() as { role: "user" | "assistant"; content: string }[];
+
+    const result = await buildReply(message.trim(), ctx, employeeName || "", history);
     const reply = typeof result === "string" ? result : result.text;
     const action = typeof result === "string" ? undefined : result.action;
 
