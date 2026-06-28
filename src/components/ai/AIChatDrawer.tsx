@@ -1,9 +1,22 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { X, Send, Sparkles, ArrowLeft } from "lucide-react";
+import Image from "next/image";
+import { X, Send, ArrowLeft } from "lucide-react";
 import { EXAMPLE_PROMPTS } from "@/lib/ai/intentMatcher";
 import AiWalker from "./AiWalker";
 import ScheduleBuilderChat from "./ScheduleBuilderChat";
+
+// A fresh random set of suggestion chips each time the drawer opens — keeps
+// pointing people at things the assistant can answer instead of just the
+// same 4 every time.
+function pickRandomPrompts(count: number) {
+  const pool = [...EXAMPLE_PROMPTS];
+  const picked: string[] = [];
+  while (picked.length < count && pool.length > 0) {
+    picked.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  }
+  return picked;
+}
 
 type Action = { label: string; href: string };
 type Msg = { role: "user" | "assistant"; content: string; action?: Action };
@@ -22,6 +35,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
   const bottomRef = useRef<HTMLDivElement>(null);
   const sentRef = useRef(false);
   const sentInitialRef = useRef(false);
+  const [suggestedPrompts] = useState(() => pickRandomPrompts(4));
 
   useEffect(() => {
     // Guards against a race where the user sends a message (optimistically appended
@@ -86,7 +100,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
     }
   }
 
-  const showSuggestions = !loadingHistory && messages.length <= 1 && !loading;
+  const showSuggestions = !loadingHistory && !loading;
 
   return (
     <div
@@ -121,9 +135,9 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
                 מחובר ומוכן לעזור
               </p>
             </div>
-            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: "linear-gradient(145deg, #1F2937, #14181F)", border: "1.5px solid rgba(249,115,22,0.45)" }}>
-              <Sparkles size={14} style={{ color: "#F97316" }} />
+            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0"
+              style={{ border: "1.5px solid rgba(249,115,22,0.45)" }}>
+              <Image src="/ai-character.png" alt="" width={32} height={32} style={{ objectFit: "cover", width: "100%", height: "100%" }} />
             </div>
           </div>
         </div>
@@ -168,7 +182,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
                 <div className="flex flex-col items-end gap-1.5 mt-1">
                   <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>אפשר למשל לשאול:</p>
                   <div className="flex flex-row flex-wrap gap-1.5 justify-end">
-                    {EXAMPLE_PROMPTS.slice(0, 4).map(p => (
+                    {suggestedPrompts.map(p => (
                       <button key={p} onClick={() => send(p)}
                         className="px-3 py-1.5 rounded-full text-[11px] font-medium"
                         style={{ background: "rgba(249,115,22,0.12)", color: "#FDBA74", border: "1px solid rgba(249,115,22,0.3)" }}>
