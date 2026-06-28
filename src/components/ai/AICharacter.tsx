@@ -16,8 +16,8 @@ export default function AICharacter({ onClick, hasUnread }: { onClick: () => voi
         bottom: 92,
         right: 16,
         zIndex: 60,
-        width: 58,
-        height: 58,
+        width: 48,
+        height: 48,
         borderRadius: "50%",
         overflow: "hidden",
         border: "1.5px solid rgba(249,115,22,0.45)",
@@ -30,7 +30,7 @@ export default function AICharacter({ onClick, hasUnread }: { onClick: () => voi
     >
       <span className="ai-character-pulse" />
       <span className="ai-character-sparkle">✦</span>
-      <Image src="/ai-character.png" alt="" width={58} height={58} style={{ objectFit: "cover", width: "100%", height: "100%" }} priority />
+      <Image src="/ai-character.png" alt="" width={48} height={48} style={{ objectFit: "cover", width: "100%", height: "100%" }} priority />
       {hasUnread && (
         <span style={{
           position: "absolute", top: 1, right: 1, width: 11, height: 11,

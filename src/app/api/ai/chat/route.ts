@@ -46,20 +46,28 @@ async function buildReply(
       };
 
     case "tips_today": {
-      const res = await tools.getTipsToday(ctx);
-      if ("error" in res) return `הופ, נתקלתי בתקלה כשבדקתי את הטיפים 😕 (${res.error})`;
-      if (!res.published) return "הטיפים של היום עדיין לא פורסמו — אעדכן אותך כשהם יהיו מוכנים 🕐";
-      if (!res.worked) return "לא רשומה לך משמרת היום, אז אין טיפים לחלוקה 🤷";
-      return `קיבלת בערך ₪${res.myShare} מטיפי משמרת ה${res.shiftLabel} של היום (${res.myHours} שעות) 💰`;
+      const scope = match.tipsScope || "today";
+      if (scope === "today") {
+        const res = await tools.getTipsToday(ctx);
+        if ("error" in res) return `הופ, נתקלתי בתקלה כשבדקתי את הטיפים 😕 (${res.error})`;
+        if (!res.published) return "הטיפים של היום עדיין לא פורסמו — אעדכן אותך כשהם יהיו מוכנים 🕐";
+        if (!res.worked) return "לא רשומה לך משמרת היום, אז אין טיפים לחלוקה 🤷";
+        return `קיבלת בערך ₪${res.myShare} מטיפי משמרת ה${res.shiftLabel} של היום (${res.myHours} שעות) 💰`;
+      }
+      const res = await tools.getTipsForPeriod(ctx, scope);
+      const periodLabel = scope === "week" ? "השבוע" : "החודש";
+      if (res.total === 0) return `לא מצאתי טיפים מפורסמים ${periodLabel} עבורך 🤷`;
+      return `עשית בערך ₪${res.total} בטיפים ${periodLabel} 💰`;
     }
 
     case "hours": {
-      const res = await tools.getEmployeeHours(ctx, { month: match.month });
+      const res = await tools.getEmployeeHours(ctx, { month: match.month, weekScope: match.weekScope });
       if ("error" in res) return `הופ, נתקלתי בתקלה כשמשכתי את השעות 😕 (${res.error})`;
       if (res.shiftsCount === 0) return "לא מצאתי משמרות מתועדות בתקופה הזו.";
+      const periodSuffix = match.weekScope ? " (השבוע)" : match.month ? "" : " (כל ההיסטוריה)";
       return pick([
-        `עבדת ${res.totalHours} שעות ב-${res.shiftsCount} משמרות${match.month ? "" : " (כל ההיסטוריה)"} 💪`,
-        `סך הכל ${res.totalHours} שעות, על ${res.shiftsCount} משמרות${match.month ? "" : " (כל ההיסטוריה)"}.`,
+        `עבדת ${res.totalHours} שעות ב-${res.shiftsCount} משמרות${periodSuffix} 💪`,
+        `סך הכל ${res.totalHours} שעות, על ${res.shiftsCount} משמרות${periodSuffix}.`,
       ]);
     }
 

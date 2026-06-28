@@ -26,6 +26,8 @@ export type Intent =
 export type MatchResult = {
   intent: Intent;
   month?: string;          // YYYY-MM, for "hours"
+  weekScope?: boolean;      // true when "hours" should sum only the current week instead of all history
+  tipsScope?: "today" | "week" | "month"; // for "tips_today" — which range to sum
   date?: string;            // YYYY-MM-DD, for "create_absence" / "schedule_for_date"
   dateLabel?: string;       // human-friendly label for the resolved date, e.g. "מחר", "יום שישי"
   reason?: string;          // free text after the date, for "create_absence"
@@ -160,9 +162,18 @@ const PATTERNS: { intent: Intent; test: RegExp }[] = [
   },
   {
     intent: "tips_today",
-    test: /כמה\s*טיפים|טיפים\s*(שלי|היום)|הטיפים\s*שלי|כמה\s*עשיתי\s*(בטיפים)?|my\s*tips|tips\s*today|how\s*much.*tips/,
+    test: /כמה\s*טיפים|טיפים\s*(שלי|היום|השבוע|החודש)|הטיפים\s*שלי|כמה\s*עשיתי\s*(בטיפים)?|my\s*tips|tips\s*today|how\s*much.*tips/,
   },
 ];
+
+// "השבוע"/"this week" or "החודש"/"this month" anywhere in the message —
+// shared by both "hours" (alongside the existing explicit-month extraction)
+// and "tips_today" (which otherwise defaults to just today, same as before).
+function extractWeekOrMonthScope(text: string): "week" | "month" | undefined {
+  if (/השבוע|this week/.test(text)) return "week";
+  if (/החודש|this month/.test(text)) return "month";
+  return undefined;
+}
 
 function matchFaq(text: string, isManager: boolean): string | undefined {
   for (const item of FAQ_ITEMS) {
@@ -179,7 +190,8 @@ export function matchIntent(rawText: string, isManager: boolean): MatchResult {
     if (!test.test(text)) continue;
     if ((intent === "manager_pending" || intent === "approve_last" || intent === "deny_last" || intent === "build_schedule") && !isManager) continue;
 
-    if (intent === "hours") return { intent, month: extractMonth(text) };
+    if (intent === "hours") return { intent, month: extractMonth(text), weekScope: extractWeekOrMonthScope(text) === "week" };
+    if (intent === "tips_today") return { intent, tipsScope: extractWeekOrMonthScope(text) || "today" };
     if (intent === "schedule_for_date") {
       const { date, label } = extractDateAndLabel(text);
       return { intent, date, dateLabel: label };

@@ -37,7 +37,7 @@ async function notifyManager(
   });
 }
 
-export async function getEmployeeHours(ctx: ToolCtx, args: { month?: string }) {
+export async function getEmployeeHours(ctx: ToolCtx, args: { month?: string; weekScope?: boolean }) {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("clock_requests")
@@ -48,6 +48,10 @@ export async function getEmployeeHours(ctx: ToolCtx, args: { month?: string }) {
   if (error) return { error: error.message };
 
   const month = args.month; // "YYYY-MM", optional — defaults to all history
+  // "this week" means the calendar week of the app's frozen "today" — same
+  // Sunday-start week the schedule/dashboard use everywhere else.
+  const weekStartMs = args.weekScope ? new Date(`${CURRENT_WEEK_START}T00:00:00Z`).getTime() : null;
+  const weekEndMs = weekStartMs !== null ? weekStartMs + 7 * 86400000 : null;
   const byDay: Record<string, { in?: number; out?: number }> = {};
   (data || []).forEach(r => {
     const ts = new Date(r.requested_at).getTime();
@@ -55,6 +59,7 @@ export async function getEmployeeHours(ctx: ToolCtx, args: { month?: string }) {
     const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
     const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     if (month && monthKey !== month) return;
+    if (weekStartMs !== null && weekEndMs !== null && (ts < weekStartMs || ts >= weekEndMs)) return;
     if (!byDay[key]) byDay[key] = {};
     if (r.type === "in" && (byDay[key].in === undefined || ts < byDay[key].in!)) byDay[key].in = ts;
     if (r.type === "out" && (byDay[key].out === undefined || ts > byDay[key].out!)) byDay[key].out = ts;
@@ -307,6 +312,66 @@ export async function getTipsToday(ctx: ToolCtx) {
   const myShare = totalHours > 0 ? Math.round((totalForShift * myHours) / totalHours) : 0;
 
   return { published: true, worked: true, myShare, shiftLabel: isEvening ? "ערב" : "בוקר", myHours: Math.round(myHours * 10) / 10 };
+}
+
+// Same per-day proportional split as getTipsToday, generalized to any single
+// date — the building block getTipsForPeriod sums over a range with.
+async function tipsShareForDate(ctx: ToolCtx, date: string) {
+  const supabase = createServiceRoleClient();
+  const { data: tipsDay, error: tipsError } = await supabase
+    .from("tips_days")
+    .select("morning_total, evening_total, published")
+    .eq("business_id", ctx.businessId)
+    .eq("date", date)
+    .maybeSingle();
+  if (tipsError || !tipsDay || !tipsDay.published) return 0;
+
+  const { weekStart, dayOfWeek } = weekInfoForDate(date);
+  const { data: assignments } = await supabase
+    .from("schedule_assignments")
+    .select("person_id, time_in, time_out")
+    .eq("business_id", ctx.businessId)
+    .eq("week_start", weekStart)
+    .eq("day_of_week", dayOfWeek);
+
+  const mine = (assignments || []).find(a => a.person_id === ctx.personId);
+  if (!mine) return 0;
+
+  const myHour = parseInt(mine.time_in.slice(0, 2), 10);
+  const isEvening = myHour >= 15;
+  const shiftAssignments = (assignments || []).filter(a => {
+    const h = parseInt(a.time_in.slice(0, 2), 10);
+    return (h >= 15) === isEvening;
+  });
+
+  const totalForShift = Number(isEvening ? tipsDay.evening_total : tipsDay.morning_total) || 0;
+  const totalHours = shiftAssignments.reduce((s, a) => s + calcHours(a.time_in.slice(0, 5), a.time_out.slice(0, 5)), 0);
+  const myHours = calcHours(mine.time_in.slice(0, 5), mine.time_out.slice(0, 5));
+  return totalHours > 0 ? Math.round((totalForShift * myHours) / totalHours) : 0;
+}
+
+// "today" / "this week" (Sun–Sat of the app's frozen "today") / "this month
+// so far" — lets the assistant answer "how much in tips this week/month"
+// instead of only "today" like getTipsToday.
+export async function getTipsForPeriod(ctx: ToolCtx, scope: "today" | "week" | "month") {
+  let dates: string[];
+  if (scope === "today") {
+    dates = [TODAY_DATE];
+  } else if (scope === "week") {
+    const start = new Date(`${CURRENT_WEEK_START}T00:00:00Z`);
+    dates = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start);
+      d.setUTCDate(d.getUTCDate() + i);
+      return d.toISOString().slice(0, 10);
+    });
+  } else {
+    const [y, m, dayOfMonth] = TODAY_DATE.split("-").map(Number);
+    dates = Array.from({ length: dayOfMonth }, (_, i) => `${y}-${String(m).padStart(2, "0")}-${String(i + 1).padStart(2, "0")}`);
+  }
+
+  let total = 0;
+  for (const date of dates) total += await tipsShareForDate(ctx, date);
+  return { total };
 }
 
 export async function markNotificationRead(notificationId: string) {

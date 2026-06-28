@@ -6,13 +6,18 @@ type Session = { businessId: string; personId: string; name: string; businessNam
 type Bubble = { key: string; text: string; askMessage: string };
 
 const EMPLOYEE_GENERIC: { key: string; text: string; askMessage: string }[] = [
-  { key: "generic-hours", text: "רוצה לדעת כמה שעות עשית החודש? 🕐", askMessage: "כמה שעות עבדתי החודש?" },
+  { key: "generic-hours-month", text: "רוצה לדעת כמה שעות עשית החודש? 🕐", askMessage: "כמה שעות עבדתי החודש?" },
+  { key: "generic-hours-week", text: "רוצה לדעת כמה שעות עבדת השבוע? 🕐", askMessage: "כמה שעות עבדתי השבוע?" },
   { key: "generic-shifts", text: "יש לך משמרות קרובות — רוצה לראות מתי? 📅", askMessage: "מה המשמרות הקרובות שלי?" },
+  { key: "generic-tips-week", text: "רוצה לדעת כמה טיפים עשית השבוע? 💰", askMessage: "כמה טיפים עשיתי השבוע?" },
+  { key: "generic-tips-month", text: "רוצה לדעת כמה טיפים עשית החודש? 💰", askMessage: "כמה טיפים עשיתי החודש?" },
 ];
 const MANAGER_GENERIC: { key: string; text: string; askMessage: string }[] = [
   { key: "generic-mgr-schedule", text: "רוצה שאבדוק מי עובד היום? 👀", askMessage: "מי עובד היום?" },
   { key: "generic-mgr-pending", text: "רוצה לראות אם יש בקשות ממתינות? 🔔", askMessage: "יש בקשות ממתינות?" },
 ];
+
+const DAY_NAMES = ["יום ראשון", "יום שני", "יום שלישי", "יום רביעי", "יום חמישי", "יום שישי", "שבת"];
 
 const POLL_MS = 75_000;
 const FIRST_DELAY_MS = 7_000;
@@ -57,6 +62,30 @@ export default function AiProactiveBubble({ session, onOpenWithMessage }: { sess
               text: "ביקשו ממך להחליף משמרת — רוצה לאשר או לדחות? 🔄",
               askMessage: "ביקשו ממני להחליף משמרת",
             });
+          }
+
+          // Someone else put their shift up for an open swap (no specific
+          // person proposed) — if I have no shift that same day, surface it
+          // as a chance to pick up extra hours rather than going unnoticed.
+          const openSwap = swapRes.requests.find((r: { status: string; proposedPerson?: string; requestedBy: string }) =>
+            r.status === "pending" && !r.proposedPerson && r.requestedBy !== session.personId
+          );
+          if (openSwap) {
+            try {
+              const weekRes = await fetch(`/api/schedule?businessId=${session.businessId}&weekStart=${openSwap.weekStart}`).then(r => r.json());
+              const iAmFree = weekRes.success && !weekRes.assignments.some((a: { personId: string; dayOfWeek: number }) =>
+                a.personId === session.personId && a.dayOfWeek === openSwap.dayOfWeek
+              );
+              if (iAmFree) {
+                const firstName = (openSwap.requesterName || "מישהו").split(" ")[0];
+                const dayLabel = DAY_NAMES[openSwap.dayOfWeek] || "";
+                candidates.push({
+                  key: `open-swap-${openSwap.id}`,
+                  text: `${firstName} מבקש/ת להחליף משמרת ב${dayLabel} (${openSwap.timeIn}–${openSwap.timeOut}) ואתה פנוי/ה — רוצה לעבוד? 💪`,
+                  askMessage: "יש בקשות החלפה?",
+                });
+              }
+            } catch {}
           }
         }
         if (annRes.success) {

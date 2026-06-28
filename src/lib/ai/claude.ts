@@ -45,10 +45,13 @@ const TOOL_DEFS: Anthropic.Tool[] = [
   },
   {
     name: "get_employee_hours",
-    description: "מחזיר סך שעות העבודה והמשמרות של העובד ששואל, אופציונלי לחודש מסוים.",
+    description: "מחזיר סך שעות העבודה והמשמרות של העובד ששואל. אפשר להגביל לחודש מסוים, או לשבוע הנוכחי בלבד.",
     input_schema: {
       type: "object",
-      properties: { month: { type: "string", description: "חודש בפורמט YYYY-MM, אופציונלי — אם לא מצוין מחזיר את כל ההיסטוריה" } },
+      properties: {
+        month: { type: "string", description: "חודש בפורמט YYYY-MM, אופציונלי — אם לא מצוין ולא התבקש שבוע, מחזיר את כל ההיסטוריה" },
+        week: { type: "boolean", description: "true אם נשאל ספציפית על השבוע הנוכחי בלבד" },
+      },
       required: [],
     },
   },
@@ -59,8 +62,12 @@ const TOOL_DEFS: Anthropic.Tool[] = [
   },
   {
     name: "get_tips_today",
-    description: "מחזיר את חלקו של העובד בטיפים של היום, אם הם כבר פורסמו.",
-    input_schema: { type: "object", properties: {}, required: [] },
+    description: "מחזיר את חלקו של העובד בטיפים — היום, השבוע הנוכחי, או החודש הנוכחי עד כה.",
+    input_schema: {
+      type: "object",
+      properties: { scope: { type: "string", enum: ["today", "week", "month"], description: "טווח הזמן שנשאל עליו, ברירת מחדל today" } },
+      required: [],
+    },
   },
   {
     name: "get_pending_manager_notifications",
@@ -73,9 +80,12 @@ async function runTool(name: string, input: Record<string, unknown>, ctx: ToolCt
   switch (name) {
     case "get_upcoming_shifts": return tools.getUpcomingShifts(ctx);
     case "get_schedule_for_date": return tools.getScheduleForDate(ctx, String(input.date || ""));
-    case "get_employee_hours": return tools.getEmployeeHours(ctx, { month: input.month ? String(input.month) : undefined });
+    case "get_employee_hours": return tools.getEmployeeHours(ctx, { month: input.month ? String(input.month) : undefined, weekScope: !!input.week });
     case "get_shift_swap_requests": return tools.getShiftSwapRequests(ctx);
-    case "get_tips_today": return tools.getTipsToday(ctx);
+    case "get_tips_today": {
+      const scope = (input.scope as "today" | "week" | "month") || "today";
+      return scope === "today" ? tools.getTipsToday(ctx) : tools.getTipsForPeriod(ctx, scope);
+    }
     case "get_pending_manager_notifications":
       if (!ctx.isManager) return { error: "רק מנהל יכול לראות את זה" };
       return tools.getPendingManagerNotifications(ctx);
