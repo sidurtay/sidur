@@ -1,6 +1,7 @@
 "use client";
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { CalendarDays, ArrowRight, Check, ChevronLeft, Store, Coffee, Utensils, Beer, X, Sparkles } from "lucide-react";
 import { DEFAULT_CONFIG } from "@/lib/businessConfig";
 import { PLANS } from "@/lib/plans";
@@ -339,6 +340,13 @@ function Register() {
             style={{ background: loading ? "#ADA89D" : "var(--navy)" }}>
             {loading ? "יוצר חשבון..." : `התחל עם תוכנית ${PLANS.find(p2 => p2.key === plan)?.name}`}
           </button>
+
+          <p className="text-[11px] text-center leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+            בלחיצה על "התחל" אתה מאשר שקראת ומסכים ל
+            <Link href="/terms" className="font-semibold" style={{ color: "var(--blue)" }}> תנאי השימוש </Link>
+            ול
+            <Link href="/privacy" className="font-semibold" style={{ color: "var(--blue)" }}> מדיניות הפרטיות</Link>
+          </p>
         </div>
       )}
 

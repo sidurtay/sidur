@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { CalendarDays, Users, Coins, BarChart3, Check, Zap, Rocket, Crown, ShieldCheck, Sparkles } from "lucide-react";
 import InstagramIcon from "@/components/InstagramIcon";
 import LogoMark from "@/components/Logo";
@@ -198,6 +199,11 @@ export default function Splash() {
         style={{ color: "var(--blue)" }}>
         <InstagramIcon size={13} /> sidur.app
       </a>
+      <div className="flex items-center justify-center gap-3 flex-row pt-2">
+        <Link href="/terms" className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>תנאי שימוש</Link>
+        <span className="text-[11px]" style={{ color: "var(--border)" }}>·</span>
+        <Link href="/privacy" className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>מדיניות פרטיות</Link>
+      </div>
       <p className="text-[10px] text-center pb-8 pt-1" style={{ color: "var(--text-secondary)" }}>
         © 2026 Sidur · כל הזכויות שמורות
       </p>
