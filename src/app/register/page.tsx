@@ -2,15 +2,26 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, ArrowRight, Check, ChevronLeft, Store, Coffee, Utensils, Beer, X, Sparkles } from "lucide-react";
+import { ArrowRight, Check, X, Sparkles, ChevronLeft } from "lucide-react";
 import { DEFAULT_CONFIG } from "@/lib/businessConfig";
 import { PLANS } from "@/lib/plans";
+import LogoMark from "@/components/Logo";
+import Image from "next/image";
 
 const BUSINESS_TYPES = [
-  { key: "cafe",       label: "בית קפה",  icon: <Coffee size={20} /> },
-  { key: "restaurant", label: "מסעדה",    icon: <Utensils size={20} /> },
-  { key: "bar",        label: "בר",       icon: <Beer size={20} /> },
-  { key: "other",      label: "אחר",      icon: <Store size={20} /> },
+  { key: "cafe",       label: "בית קפה",        emoji: "☕" },
+  { key: "restaurant", label: "מסעדה",           emoji: "🍽️" },
+  { key: "icecream",   label: "גלידריה",         emoji: "🍦" },
+  { key: "bar",        label: "בר / פאב",        emoji: "🍺" },
+  { key: "bakery",     label: "מאפייה",          emoji: "🥐" },
+  { key: "barbershop", label: "ספרות",           emoji: "✂️" },
+  { key: "beauty",     label: "סלון יופי",       emoji: "💅" },
+  { key: "gym",        label: "חדר כושר",        emoji: "🏋️" },
+  { key: "clothing",   label: "חנות בגדים",      emoji: "👗" },
+  { key: "grocery",    label: "מכולת / סופר",    emoji: "🛒" },
+  { key: "cleaning",   label: "שירותי ניקיון",   emoji: "🧹" },
+  { key: "hotel",      label: "מלון / צימר",     emoji: "🏨" },
+  { key: "other",      label: "אחר",             emoji: "🏢" },
 ];
 
 type Step = 1 | 2 | 3 | 4;
@@ -24,28 +35,21 @@ function Register() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>(1);
 
-  // Step 1 — Business
-  const [bizName,    setBizName]    = useState("");
-  const [bizCity,    setBizCity]    = useState("");
-  const [bizType,    setBizType]    = useState("");
-
-  // Step 2 — Manager
+  const [bizName,     setBizName]     = useState("");
+  const [bizCity,     setBizCity]     = useState("");
+  const [bizType,     setBizType]     = useState("");
   const [managerName, setManagerName] = useState("");
   const [phone,       setPhone]       = useState("");
   const [email,       setEmail]       = useState("");
   const [password,    setPassword]    = useState("");
 
-  // Step 3 — Plan, pre-selected from the landing page's pricing section
-  // (?plan=starter|plus|business) when the visitor arrives via a "בחר תוכנית"
-  // CTA there, so the choice they already made carries through instead of
-  // forcing them to re-pick it.
   const requestedPlan = searchParams.get("plan");
   const [plan, setPlan] = useState(
     PLANS.some(p => p.key === requestedPlan) ? requestedPlan! : "business"
   );
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState("");
   const [showPlanInfo, setShowPlanInfo] = useState(false);
 
   function next() { setStep(s => (s < 4 ? (s + 1) as Step : s)); }
@@ -54,17 +58,14 @@ function Register() {
     setStep(s => (s - 1) as Step);
   }
 
-  // Digits only, capped at 10 and dash-formatted after the area code — matches
-  // the same helper used for adding employees, so phone numbers look and
-  // validate consistently everywhere they're entered in the app.
   function formatPhone(raw: string) {
     const digits = raw.replace(/\D/g, "").slice(0, 10);
     if (digits.length <= 3) return digits;
     return digits.slice(0, 3) + "-" + digits.slice(3);
   }
 
-  function isValidEmail(value: string) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  function isValidEmail(v: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
   }
 
   function canNext() {
@@ -75,8 +76,7 @@ function Register() {
   }
 
   async function finish() {
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -84,352 +84,385 @@ function Register() {
         body: JSON.stringify({ bizName, bizCity, bizType, managerName, phone, email, password, plan }),
       });
       const data = await res.json();
-      if (!data.success) {
-        setError(data.error || "ההרשמה נכשלה, נסה שוב");
-        setLoading(false);
-        return;
-      }
-      const session = {
+      if (!data.success) { setError(data.error || "ההרשמה נכשלה, נסה שוב"); setLoading(false); return; }
+      localStorage.setItem("shiftpro_session", JSON.stringify({
         businessId: data.businessId, personId: data.personId,
-        businessName: data.businessName, name: data.name, phone: data.phone, email,
-        password, plan,
-        loginAt: Date.now(),
-        role: "manager",
-      };
-      localStorage.setItem("shiftpro_session", JSON.stringify(session));
-      // Mirrored locally too — the rest of the app still reads business config from here
-      // until those pages are migrated to read from Supabase directly.
+        businessName: data.businessName, name: data.name, phone: data.phone, email, password, plan,
+        loginAt: Date.now(), role: "manager",
+      }));
       localStorage.setItem("shiftpro_business_config", JSON.stringify({
         permanent: { ...DEFAULT_CONFIG, bizName, initialized: true },
       }));
       setStep(4);
-    } catch {
-      setError("שגיאת רשת — בדוק חיבור ונסה שוב");
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError("שגיאת רשת — בדוק חיבור ונסה שוב"); }
+    finally { setLoading(false); }
   }
+
+  const STEP_LABELS = ["", "פרטי העסק", "פרטי המנהל", "בחר תוכנית"];
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "var(--gray-bg)" }}>
 
-      {/* Header */}
-      <div className="flex flex-col pt-14 pb-5 px-5"
-        style={{ background: "var(--navy)" }}>
-        <div className="flex items-center justify-between flex-row mb-5">
-          {step < 4
-            ? <button onClick={back}
-                className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: "rgba(255,255,255,0.12)" }}>
-                <ArrowRight size={18} color="white" />
-              </button>
-            : <div className="w-9" />
-          }
-          <div className="flex items-center gap-2 flex-row">
-            <p className="text-white font-bold text-base">Sidur</p>
-            <CalendarDays size={18} color="white" />
-          </div>
-        </div>
-
-        {/* Step indicator */}
-        {step < 4 && (
-          <div className="flex flex-col items-end gap-2">
-            <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>שלב {step} מתוך 3</p>
-            <p className="text-white font-semibold text-base mt-1">
-              {step === 1 && "פרטי העסק"}
-              {step === 2 && "פרטי המנהל"}
-              {step === 3 && "בחר תוכנית"}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Slim vertical progress rail, left edge */}
+      {/* ── Header ── */}
       {step < 4 && (
-        <div className="fixed top-1/2 left-0 -translate-y-1/2 z-40" style={{ width: 3, height: 120, borderRadius: 2, background: "rgba(0,0,0,0.08)", overflow: "hidden" }}>
-          <div className="transition-all" style={{ width: "100%", height: `${(step / 3) * 100}%`, background: "var(--navy)" }} />
+        <div className="sticky top-0 z-20 flex flex-col" style={{ background: "var(--navy)" }}>
+          <div className="flex items-center justify-between px-5 pt-12 pb-4 flex-row">
+            <button onClick={back}
+              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: "rgba(255,255,255,0.1)" }}>
+              <ArrowRight size={17} color="white" />
+            </button>
+            <div className="flex items-center gap-2 flex-row">
+              <p className="text-white font-bold text-sm">Sidur</p>
+              <div className="w-7 h-7 rounded-lg overflow-hidden">
+                <LogoMark size={28} />
+              </div>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="flex flex-row gap-1.5 px-5 pb-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.12)" }}>
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{ width: step >= i ? "100%" : "0%", background: step > i ? "#4ADE80" : "#F97316" }} />
+              </div>
+            ))}
+          </div>
+
+          <div className="px-5 pb-5">
+            <p className="text-[11px] mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>שלב {step} מתוך 3</p>
+            <p className="text-lg font-bold text-white">{STEP_LABELS[step]}</p>
+          </div>
         </div>
       )}
 
-      {/* ── Step 1: Business details ── */}
+      {/* ── Step 1: Business ── */}
       {step === 1 && (
-        <div className="px-5 pt-5 flex flex-col gap-4 pb-8">
-          <div className="bg-white rounded-2xl p-5 flex flex-col gap-4"
-            style={{ border: "1px solid var(--border)" }}>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>
-                שם העסק
-              </label>
-              <input placeholder="קפה קפה נהריה"
-                value={bizName} onChange={e => setBizName(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm text-right outline-none"
-                style={{ background: "var(--gray-bg)", border: "1px solid var(--border)" }} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>
-                עיר
-              </label>
-              <input placeholder="נהריה"
-                value={bizCity} onChange={e => setBizCity(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm text-right outline-none"
-                style={{ background: "var(--gray-bg)", border: "1px solid var(--border)" }} />
-            </div>
+        <div className="flex flex-col gap-5 px-4 pt-5 pb-10">
+
+          {/* Inputs */}
+          <div className="flex flex-col gap-3 rounded-2xl p-4"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <Field label="שם העסק" placeholder='למשל: "גלידת הגן" או "ספר בסטייל"'>
+              <input value={bizName} onChange={e => setBizName(e.target.value)}
+                placeholder='למשל: "גלידת הגן" או "ספר בסטייל"'
+                className="w-full px-4 py-3.5 rounded-xl text-sm text-right outline-none"
+                style={{ background: "var(--gray-bg)", border: "1px solid var(--border)", color: "var(--text-main)" }} />
+            </Field>
+            <Field label="עיר">
+              <input value={bizCity} onChange={e => setBizCity(e.target.value)}
+                placeholder="תל-אביב, חיפה, ירושלים..."
+                className="w-full px-4 py-3.5 rounded-xl text-sm text-right outline-none"
+                style={{ background: "var(--gray-bg)", border: "1px solid var(--border)", color: "var(--text-main)" }} />
+            </Field>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <p className="text-xs font-semibold text-right px-1" style={{ color: "var(--text-secondary)" }}>
-              סוג עסק
-            </p>
-            <div className="grid grid-cols-2 gap-2">
+          {/* Business type grid */}
+          <div className="flex flex-col gap-3">
+            <p className="text-sm font-bold text-right px-1" style={{ color: "var(--text-main)" }}>סוג העסק</p>
+            <div className="grid grid-cols-3 gap-2">
               {BUSINESS_TYPES.map(t => (
                 <button key={t.key} onClick={() => setBizType(t.key)}
-                  className="flex flex-col items-center gap-2 py-4 rounded-2xl transition-all"
+                  className="flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-2xl transition-all"
                   style={{
-                    background: bizType === t.key ? "var(--blue-light)" : "var(--surface)",
-                    border: `1px solid ${bizType === t.key ? "var(--navy)" : "var(--border)"}`,
-                    color: bizType === t.key ? "var(--blue)" : "var(--text-main)",
+                    background: bizType === t.key ? "rgba(249,115,22,0.1)" : "var(--surface)",
+                    border: `1.5px solid ${bizType === t.key ? "#F97316" : "var(--border)"}`,
+                    boxShadow: bizType === t.key ? "0 0 0 3px rgba(249,115,22,0.12)" : "none",
                   }}>
-                  <span style={{ color: bizType === t.key ? "var(--blue)" : "var(--text-secondary)" }}>
-                    {t.icon}
+                  <span className="text-2xl leading-none">{t.emoji}</span>
+                  <span className="text-[10px] font-semibold text-center leading-tight"
+                    style={{ color: bizType === t.key ? "#F97316" : "var(--text-secondary)" }}>
+                    {t.label}
                   </span>
-                  <span className="text-sm font-semibold">{t.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          <button onClick={next} disabled={!canNext()}
-            className="w-full py-4 rounded-2xl text-sm font-bold text-white mt-2"
-            style={{ background: canNext() ? "var(--navy)" : "#C4C2B8" }}>
-            המשך
-          </button>
+          <Cta onClick={next} disabled={!canNext()}>המשך →</Cta>
         </div>
       )}
 
-      {/* ── Step 2: Manager details ── */}
+      {/* ── Step 2: Manager ── */}
       {step === 2 && (
-        <div className="px-5 pt-5 flex flex-col gap-4 pb-8">
-          <div className="bg-white rounded-2xl p-5 flex flex-col gap-4"
-            style={{ border: "1px solid var(--border)" }}>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>
-                שם מלא
-              </label>
-              <input placeholder="איתי כהן"
-                value={managerName} onChange={e => setManagerName(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm text-right outline-none"
-                style={{ background: "var(--gray-bg)", border: "1px solid var(--border)" }} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>
-                מספר טלפון
-              </label>
-              <input type="tel" inputMode="numeric" placeholder="05X-XXXXXXX" maxLength={11}
+        <div className="flex flex-col gap-4 px-4 pt-5 pb-10">
+          <div className="flex flex-col gap-3 rounded-2xl p-4"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <Field label="שם מלא">
+              <input value={managerName} onChange={e => setManagerName(e.target.value)}
+                placeholder="השם שלך"
+                className="w-full px-4 py-3.5 rounded-xl text-sm text-right outline-none"
+                style={{ background: "var(--gray-bg)", border: "1px solid var(--border)", color: "var(--text-main)" }} />
+            </Field>
+            <Field label="מספר טלפון">
+              <input type="tel" inputMode="numeric" maxLength={11}
                 value={phone} onChange={e => setPhone(formatPhone(e.target.value))}
-                className="w-full px-4 py-3 rounded-xl text-sm text-right outline-none"
-                style={{ background: "var(--gray-bg)", border: "1px solid var(--border)", direction: "ltr" }} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>
-                אימייל <span className="font-normal">(לאיפוס סיסמה ועדכונים)</span>
-              </label>
-              <input type="email" placeholder="itay@example.com"
-                value={email} onChange={e => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm text-right outline-none"
-                style={{ background: "var(--gray-bg)", border: "1px solid var(--border)", direction: "ltr", textAlign: "right" }} />
+                placeholder="05X-XXXXXXX"
+                className="w-full px-4 py-3.5 rounded-xl text-sm outline-none"
+                style={{ background: "var(--gray-bg)", border: "1px solid var(--border)", color: "var(--text-main)", direction: "ltr", textAlign: "right" }} />
+            </Field>
+            <Field label="אימייל">
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full px-4 py-3.5 rounded-xl text-sm outline-none"
+                style={{ background: "var(--gray-bg)", border: `1px solid ${email && !isValidEmail(email) ? "#EF4444" : "var(--border)"}`, color: "var(--text-main)", direction: "ltr", textAlign: "right" }} />
               {email.length > 0 && !isValidEmail(email) && (
-                <p className="text-xs text-right" style={{ color: "var(--red)" }}>
-                  כתובת אימייל לא תקינה
-                </p>
+                <p className="text-xs text-right mt-1" style={{ color: "#EF4444" }}>כתובת לא תקינה</p>
               )}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>
-                סיסמה <span className="font-normal">(לפחות 6 תווים)</span>
-              </label>
-              <input type="password" placeholder="••••••••"
-                value={password} onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm text-right outline-none"
-                style={{ background: "var(--gray-bg)", border: "1px solid var(--border)" }} />
+            </Field>
+            <Field label="סיסמה" sub="לפחות 6 תווים">
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-3.5 rounded-xl text-sm text-right outline-none"
+                style={{ background: "var(--gray-bg)", border: `1px solid ${password && password.length < 6 ? "#EF4444" : "var(--border)"}`, color: "var(--text-main)" }} />
               {password.length > 0 && password.length < 6 && (
-                <p className="text-xs text-right" style={{ color: "var(--red)" }}>
-                  הסיסמה קצרה מדי
-                </p>
+                <p className="text-xs text-right mt-1" style={{ color: "#EF4444" }}>הסיסמה קצרה מדי</p>
               )}
-            </div>
+            </Field>
           </div>
 
-          <div className="rounded-xl px-4 py-3 text-xs text-right"
-            style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)", color: "var(--blue)" }}>
-            הפרטים שלך מוגנים ומוצפנים. לא נשתף את המידע שלך עם צד שלישי.
-          </div>
-
-          <button onClick={next} disabled={!canNext()}
-            className="w-full py-4 rounded-2xl text-sm font-bold text-white"
-            style={{ background: canNext() ? "var(--navy)" : "#C4C2B8" }}>
-            המשך
-          </button>
-        </div>
-      )}
-
-      {/* ── Step 3: Plan selection ── */}
-      {step === 3 && (
-        <div className="px-5 pt-5 flex flex-col gap-3 pb-8">
-          <div className="flex items-center justify-between flex-row px-1">
-            <button onClick={() => setShowPlanInfo(true)} className="text-xs font-semibold" style={{ color: "var(--blue)" }}>
-              איזו תוכנית מתאימה לי?
-            </button>
-            <p className="text-xs text-right" style={{ color: "var(--text-secondary)" }}>
-              ניתן לשדרג או לשנות תוכנית בכל עת
+          {/* Trust note */}
+          <div className="flex items-center gap-2 flex-row px-1">
+            <p className="text-[11px] text-right leading-relaxed flex-1" style={{ color: "var(--text-secondary)" }}>
+              🔒 הפרטים שלך מוצפנים ומאובטחים. לעולם לא נמכור אותם.
             </p>
           </div>
 
-          {PLANS.map(p => (
-            <button key={p.key} onClick={() => setPlan(p.key)}
-              className="relative w-full rounded-2xl p-4 text-right transition-all flex flex-col gap-3"
-              style={{
-                background: plan === p.key ? p.bg : "var(--surface)",
-                border: `2px solid ${plan === p.key ? p.border : "var(--border)"}`,
-              }}>
+          <Cta onClick={next} disabled={!canNext()}>המשך →</Cta>
+        </div>
+      )}
 
-              {p.badge && (
-                <span className="absolute top-3 left-3 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: "var(--navy)", color: "#fff" }}>
-                  {p.badge}
-                </span>
-              )}
+      {/* ── Step 3: Plan ── */}
+      {step === 3 && (
+        <div className="flex flex-col gap-3 px-4 pt-5 pb-10">
 
-              <div className="flex items-start justify-between flex-row">
-                <div className="flex items-baseline gap-1 flex-row">
-                  <span className="text-sm" style={{ color: "var(--text-secondary)" }}>{p.priceNote}</span>
-                  <span className="text-2xl font-bold" style={{ color: p.color }}>{p.price}</span>
-                </div>
-                <div className="flex items-center gap-2 flex-row">
-                  <p className="text-base font-bold">{p.name}</p>
-                  <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-                    style={{ borderColor: plan === p.key ? p.color : "var(--border)",
-                             background:  plan === p.key ? p.color : "transparent" }}>
-                    {plan === p.key && <Check size={11} color="white" strokeWidth={3} />}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                {p.features.map(f => (
-                  <div key={f} className="flex items-center gap-1.5 flex-row justify-end">
-                    <span className="text-xs">{f}</span>
-                    <Check size={11} style={{ color: "var(--green)", flexShrink: 0 }} strokeWidth={3} />
-                  </div>
-                ))}
-                {p.missing.map(f => (
-                  <div key={f} className="flex items-center gap-1.5 flex-row justify-end opacity-40">
-                    <span className="text-xs line-through">{f}</span>
-                    <ChevronLeft size={11} style={{ flexShrink: 0 }} />
-                  </div>
-                ))}
-              </div>
+          <div className="flex items-center justify-between flex-row px-1 mb-1">
+            <button onClick={() => setShowPlanInfo(true)}
+              className="text-xs font-semibold flex items-center gap-1 flex-row"
+              style={{ color: "#F97316" }}>
+              <Sparkles size={12} /> מה מתאים לי?
             </button>
-          ))}
+            <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>ניתן לשנות בכל עת</p>
+          </div>
 
-          {error && (
-            <p className="text-xs text-center font-medium" style={{ color: "var(--red)" }}>{error}</p>
-          )}
+          {PLANS.map(p => {
+            const selected = plan === p.key;
+            const isFree = p.price === "₪0";
+            const isPro = p.key === "business";
+            return (
+              <button key={p.key} onClick={() => setPlan(p.key)}
+                className="relative w-full rounded-2xl text-right transition-all"
+                style={{
+                  background: isPro ? (selected ? "linear-gradient(145deg,#1C2033,#141820)" : "#1A1F2B") : "var(--surface)",
+                  border: selected
+                    ? isPro ? "1.5px solid #F97316" : "1.5px solid var(--navy)"
+                    : "1.5px solid var(--border)",
+                  boxShadow: selected && isPro ? "0 8px 32px rgba(249,115,22,0.2)" : "none",
+                  transform: selected && isPro ? "scale(1.01)" : "none",
+                }}>
+
+                {p.badge && (
+                  <div className="absolute -top-3 right-4">
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold text-white"
+                      style={{ background: "#F97316", boxShadow: "0 3px 10px rgba(249,115,22,0.4)" }}>
+                      ✦ {p.badge}
+                    </span>
+                  </div>
+                )}
+
+                <div className="p-4 pt-5">
+                  <div className="flex items-start justify-between flex-row mb-3">
+                    <div className="flex items-baseline gap-1 flex-row" style={{ direction: "ltr" }}>
+                      <span className={`font-bold ${isFree ? "text-xl" : "text-2xl"}`}
+                        style={{ color: isPro ? "#fff" : "var(--text-main)" }}>
+                        {p.price}
+                      </span>
+                      <span className="text-xs" style={{ color: isPro ? "rgba(255,255,255,0.4)" : "var(--text-secondary)" }}>
+                        {p.priceNote}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-row">
+                      <p className="text-base font-bold" style={{ color: isPro ? "#fff" : "var(--text-main)" }}>
+                        {p.name}
+                      </p>
+                      <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all"
+                        style={{
+                          borderColor: selected ? (isPro ? "#F97316" : "var(--navy)") : "var(--border)",
+                          background: selected ? (isPro ? "#F97316" : "var(--navy)") : "transparent",
+                        }}>
+                        {selected && <Check size={10} color="white" strokeWidth={3} />}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Value note */}
+                  {!isFree && (
+                    <p className="text-[10px] mb-3 text-right"
+                      style={{ color: isPro ? "rgba(249,115,22,0.85)" : "var(--text-secondary)" }}>
+                      {p.key === "plus" ? "פחות מ-₪3 ליום" : "פחות מ-₪5 ליום — ללא הגבלת עובדים"}
+                    </p>
+                  )}
+
+                  <div className="flex flex-col gap-1.5">
+                    {p.features.map(f => (
+                      <div key={f} className="flex items-center gap-2 flex-row justify-end">
+                        <span className="text-xs" style={{ color: isPro ? "rgba(255,255,255,0.85)" : "var(--text-main)" }}>{f}</span>
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={{ background: "rgba(74,222,128,0.15)" }}>
+                          <Check size={9} style={{ color: "#4ADE80" }} strokeWidth={3} />
+                        </div>
+                      </div>
+                    ))}
+                    {p.missing.length > 0 && (
+                      <div className="mt-1 pt-1.5" style={{ borderTop: "1px solid var(--border)" }}>
+                        {p.missing.map(f => (
+                          <div key={f} className="flex items-center gap-2 flex-row justify-end mb-1.5">
+                            <span className="text-xs" style={{ color: "var(--text-secondary)", opacity: 0.5 }}>{f}</span>
+                            <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                              style={{ background: "rgba(0,0,0,0.04)" }}>
+                              <span className="text-[8px]" style={{ color: "var(--text-secondary)", opacity: 0.4 }}>✕</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+
+          {error && <p className="text-xs text-center font-medium" style={{ color: "#EF4444" }}>{error}</p>}
 
           <button onClick={finish} disabled={loading}
             className="w-full py-4 rounded-2xl text-sm font-bold text-white mt-1"
-            style={{ background: loading ? "#ADA89D" : "var(--navy)" }}>
-            {loading ? "יוצר חשבון..." : `התחל עם תוכנית ${PLANS.find(p2 => p2.key === plan)?.name}`}
+            style={{ background: loading ? "#9CA3AF" : "#F97316", boxShadow: loading ? "none" : "0 4px 20px rgba(249,115,22,0.35)" }}>
+            {loading ? "יוצר את החשבון שלך..." : `התחל עם ${PLANS.find(p2 => p2.key === plan)?.name} →`}
           </button>
 
           <p className="text-[11px] text-center leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-            בלחיצה על "התחל" אתה מאשר שקראת ומסכים ל
-            <Link href="/terms" className="font-semibold" style={{ color: "var(--blue)" }}> תנאי השימוש </Link>
+            בלחיצה אתה מסכים ל
+            <Link href="/terms" className="font-semibold" style={{ color: "#F97316" }}> תנאי השימוש </Link>
             ול
-            <Link href="/privacy" className="font-semibold" style={{ color: "var(--blue)" }}> מדיניות הפרטיות</Link>
+            <Link href="/privacy" className="font-semibold" style={{ color: "#F97316" }}> מדיניות הפרטיות</Link>
           </p>
         </div>
       )}
 
       {/* ── Step 4: Success ── */}
       {step === 4 && (
-        <div className="flex flex-col items-center justify-center flex-1 px-6 py-12 text-center">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
-            style={{ background: "var(--green-light)", border: "2px solid #A8D9BB" }}>
-            <Check size={36} style={{ color: "var(--green)" }} strokeWidth={2.5} />
-          </div>
-          <h2 className="text-xl font-bold mb-2">ברוכים הבאים!</h2>
-          <p className="text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
-            העסק <strong>{bizName}</strong> נוצר בהצלחה
-          </p>
-          <p className="text-xs mb-8" style={{ color: "var(--text-secondary)" }}>
-            תוכנית: <strong>{PLANS.find(p => p.key === plan)?.name}</strong>
-          </p>
+        <div className="flex flex-col flex-1" style={{ background: "var(--navy)" }}>
+          <div className="flex flex-col items-center justify-center flex-1 px-6 py-16 text-center">
 
-          <div className="w-full max-w-xs bg-white rounded-2xl p-4 mb-6 text-right"
-            style={{ border: "1px solid var(--border)" }}>
-            {[
-              "הוסף עובדים ראשונים",
-              "הגדר ימי פעילות",
-              "בנה את הסידור הראשון",
-            ].map((step, i) => (
-              <div key={step} className="flex items-center gap-3 py-2.5 flex-row"
-                style={{ borderBottom: i < 2 ? "1px solid var(--border)" : "none" }}>
-                <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
-                  style={{ background: "var(--blue-light)", color: "var(--blue)" }}>{i + 1}</div>
-                <p className="text-sm">{step}</p>
-              </div>
-            ))}
-          </div>
-
-          <button onClick={() => router.replace("/dashboard")}
-            className="w-full max-w-xs py-4 rounded-2xl text-sm font-bold text-white"
-            style={{ background: "var(--navy)" }}>
-            כניסה לאפליקציה
-          </button>
-        </div>
-      )}
-
-      {/* ── Plan comparison popup ── */}
-      {showPlanInfo && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
-          onClick={() => setShowPlanInfo(false)}>
-          <div className="w-full max-w-lg rounded-t-2xl bg-white p-5 pb-8" onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "#D1D5DB" }} />
-            <div className="flex items-center justify-between flex-row mb-4">
-              <button onClick={() => setShowPlanInfo(false)}><X size={18} style={{ color: "var(--text-secondary)" }} /></button>
-              <div className="flex items-center gap-1.5 flex-row">
-                <p className="text-base font-bold">איזו תוכנית מתאימה לי?</p>
-                <Sparkles size={15} style={{ color: "var(--blue)" }} />
-              </div>
+            {/* Confetti-like mascot */}
+            <div className="w-24 h-24 rounded-3xl overflow-hidden mb-6 flex items-center justify-center"
+              style={{ boxShadow: "0 16px 48px rgba(249,115,22,0.4)", background: "rgba(249,115,22,0.12)", border: "2px solid rgba(249,115,22,0.3)" }}>
+              <Image src="/ai-character.png" alt="" width={96} height={96} style={{ objectFit: "cover" }} />
             </div>
-            <div className="flex flex-col gap-3">
-              <div className="rounded-xl px-4 py-3 text-right" style={{ border: "1px solid var(--border)" }}>
-                <p className="text-sm font-bold mb-0.5">Sidur Starter — צוות קטן שמתחיל</p>
-                <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                  עד 10 עובדים, סידור ונוכחות בסיסיים. מצוין לבדיקה ראשונה בלי שום עלות.
-                </p>
-              </div>
-              <div className="rounded-xl px-4 py-3 text-right" style={{ border: "1px solid var(--border)" }}>
-                <p className="text-sm font-bold mb-0.5">Sidur Plus — כשהסידור מתחיל לתפוס זמן</p>
-                <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                  ה-AI בונה לך סידור תוך דקות לפי אילוצי העובדים, וטיפים מתחשבים אוטומטית.
-                </p>
-              </div>
-              <div className="rounded-xl px-4 py-3 text-right" style={{ border: "2px solid var(--blue-border)", background: "var(--blue-light)" }}>
-                <p className="text-sm font-bold mb-0.5">Sidur Business — לרשתות וסניפים מרובים</p>
-                <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                  עובדים ללא הגבלה, ניהול מולטי-סניף וגישת API — הבחירה הפופולרית ביותר שלנו.
-                </p>
-              </div>
+
+            <div className="mb-2 px-3 py-1 rounded-full text-[11px] font-bold"
+              style={{ background: "rgba(74,222,128,0.15)", color: "#4ADE80", border: "1px solid rgba(74,222,128,0.3)" }}>
+              ✓ החשבון נוצר בהצלחה
             </div>
-            <button onClick={() => setShowPlanInfo(false)}
-              className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-4"
-              style={{ background: "var(--navy)" }}>
-              הבנתי, בחזרה לבחירה
+            <h2 className="text-2xl font-bold text-white mt-3 mb-1">ברוכים הבאים, {managerName.split(" ")[0]}! 🎉</h2>
+            <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.55)" }}>
+              {bizName} מנוהל עכשיו ב-Sidur
+            </p>
+
+            {/* Next steps */}
+            <div className="w-full max-w-xs rounded-2xl p-4 mb-6 text-right"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
+              <p className="text-xs font-bold text-white mb-3">3 דברים ראשונים:</p>
+              {[
+                { emoji: "👥", text: "הוסף את העובדים שלך" },
+                { emoji: "📅", text: "הגדר ימי ושעות פעילות" },
+                { emoji: "🤖", text: "תן ל-AI לבנות את הסידור הראשון" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3 flex-row py-2.5"
+                  style={{ borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.07)" : "none" }}>
+                  <span className="text-lg">{item.emoji}</span>
+                  <p className="text-sm text-white">{item.text}</p>
+                </div>
+              ))}
+            </div>
+
+            <button onClick={() => router.replace("/dashboard")}
+              className="w-full max-w-xs py-4 rounded-2xl text-base font-bold text-white"
+              style={{ background: "#F97316", boxShadow: "0 8px 24px rgba(249,115,22,0.4)" }}>
+              כניסה לאפליקציה →
             </button>
           </div>
         </div>
       )}
+
+      {/* ── Plan info popup ── */}
+      {showPlanInfo && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setShowPlanInfo(false)}>
+          <div className="w-full max-w-lg rounded-t-3xl p-5 pb-10"
+            style={{ background: "var(--surface)" }}
+            onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--border)" }} />
+            <div className="flex items-center justify-between flex-row mb-5">
+              <button onClick={() => setShowPlanInfo(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center"
+                style={{ background: "var(--gray-bg)" }}>
+                <X size={15} style={{ color: "var(--text-secondary)" }} />
+              </button>
+              <p className="text-base font-bold" style={{ color: "var(--text-main)" }}>איזו תוכנית מתאימה לי?</p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <PlanCard title="חינם — צוות קטן שמתחיל" sub="עד 6 עובדים, סידור ונוכחות בסיסיים. אפס עלות, ללא כרטיס אשראי." />
+              <PlanCard title="Plus ₪79 — כשהסידור לוקח זמן" sub="ה-AI בונה סידור שלם תוך שניות לפי אילוצי העובדים. טיפים מחושבים אוטומטית. החזר השקעה ביום הראשון." />
+              <PlanCard title="Pro ₪149 — עסק בלי גבולות" sub="עובדים ללא הגבלה, מולטי-סניף וגישת API. לעסקים שגדלים ורוצים הכל מסודר." highlight />
+            </div>
+            <button onClick={() => setShowPlanInfo(false)}
+              className="w-full py-3.5 rounded-2xl text-sm font-bold text-white mt-5"
+              style={{ background: "var(--navy)" }}>
+              הבנתי — בחזרה לבחירה
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, sub, children }: { label: string; sub?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>
+        {label}{sub && <span className="font-normal"> ({sub})</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function Cta({ onClick, disabled, children }: { onClick: () => void; disabled: boolean; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick} disabled={disabled}
+      className="w-full py-4 rounded-2xl text-base font-bold text-white transition-all"
+      style={{
+        background: disabled ? "var(--border)" : "#F97316",
+        boxShadow: disabled ? "none" : "0 4px 20px rgba(249,115,22,0.3)",
+      }}>
+      {children}
+    </button>
+  );
+}
+
+function PlanCard({ title, sub, highlight }: { title: string; sub: string; highlight?: boolean }) {
+  return (
+    <div className="rounded-2xl px-4 py-3.5 text-right"
+      style={{
+        background: highlight ? "rgba(249,115,22,0.06)" : "var(--gray-bg)",
+        border: `1.5px solid ${highlight ? "rgba(249,115,22,0.3)" : "var(--border)"}`,
+      }}>
+      <p className="text-sm font-bold mb-1" style={{ color: "var(--text-main)" }}>{title}</p>
+      <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>{sub}</p>
     </div>
   );
 }
