@@ -248,8 +248,9 @@ function Register() {
 
           {PLANS.map(p => {
             const selected = plan === p.key;
-            const isFree = p.price === "₪0";
+            const isFree = p.monthlyPrice === 0;
             const isPro = p.key === "business";
+            const displayPrice = isFree ? "₪0" : `₪${p.monthlyPrice}`;
             return (
               <button key={p.key} onClick={() => setPlan(p.key)}
                 className="relative w-full rounded-2xl text-right transition-all"
@@ -276,7 +277,7 @@ function Register() {
                     <div className="flex items-baseline gap-1 flex-row" style={{ direction: "ltr" }}>
                       <span className={`font-bold ${isFree ? "text-xl" : "text-2xl"}`}
                         style={{ color: isPro ? "#fff" : "var(--text-main)" }}>
-                        {p.price}
+                        {displayPrice}
                       </span>
                       <span className="text-xs" style={{ color: isPro ? "rgba(255,255,255,0.4)" : "var(--text-secondary)" }}>
                         {p.priceNote}
@@ -414,9 +415,9 @@ function Register() {
               <p className="text-base font-bold" style={{ color: "var(--text-main)" }}>איזו תוכנית מתאימה לי?</p>
             </div>
             <div className="flex flex-col gap-3">
-              <PlanCard title="חינם — צוות קטן שמתחיל" sub="עד 6 עובדים, סידור ונוכחות בסיסיים. אפס עלות, ללא כרטיס אשראי." />
-              <PlanCard title="Plus ₪79 — כשהסידור לוקח זמן" sub="ה-AI בונה סידור שלם תוך שניות לפי אילוצי העובדים. טיפים מחושבים אוטומטית. החזר השקעה ביום הראשון." />
-              <PlanCard title="Pro ₪149 — עסק בלי גבולות" sub="עובדים ללא הגבלה, מולטי-סניף וגישת API. לעסקים שגדלים ורוצים הכל מסודר." highlight />
+              <PlanCard title="חינם — צוות קטן שמתחיל" sub="עד 10 עובדים, סידור ונוכחות בסיסיים. אפס עלות, ללא כרטיס אשראי." />
+              <PlanCard title="Essential ₪149 — כשהסידור לוקח זמן" sub="ה-AI בונה סידור שלם תוך שניות. WhatsApp לעובדים, טיפים אוטומטיים. החזר השקעה ביום השלישי." />
+              <PlanCard title="Pro ₪299 — עסק בלי גבולות" sub="עובדים ללא הגבלה, מולטי-סניף ודוחות עלות עבודה. לרשתות שרוצות הכל." highlight />
             </div>
             <button onClick={() => setShowPlanInfo(false)}
               className="w-full py-3.5 rounded-2xl text-sm font-bold text-white mt-5"
