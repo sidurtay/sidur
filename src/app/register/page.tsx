@@ -416,7 +416,7 @@ function Register() {
             </div>
             <div className="flex flex-col gap-3">
               <PlanCard title="חינם — צוות קטן שמתחיל" sub="עד 10 עובדים, סידור ונוכחות בסיסיים. אפס עלות, ללא כרטיס אשראי." />
-              <PlanCard title="Essential ₪149 — כשהסידור לוקח זמן" sub="ה-AI בונה סידור שלם תוך שניות. WhatsApp לעובדים, טיפים אוטומטיים. החזר השקעה ביום השלישי." />
+              <PlanCard title="Essential ₪149 — כשהסידור לוקח זמן" sub="ה-AI בונה סידור שלם תוך שניות. התראות לעובדים, טיפים אוטומטיים. החזר השקעה ביום השלישי." />
               <PlanCard title="Pro ₪299 — עסק בלי גבולות" sub="עובדים ללא הגבלה, מולטי-סניף ודוחות עלות עבודה. לרשתות שרוצות הכל." highlight />
             </div>
             <button onClick={() => setShowPlanInfo(false)}

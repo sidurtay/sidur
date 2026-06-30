@@ -67,7 +67,7 @@ export default function Splash() {
             { icon: <Clock size={11} />,         label: "נוכחות חכמה" },
             { icon: <Coins size={11} />,         label: "חישוב טיפים" },
             { icon: <BarChart3 size={11} />,     label: "דוחות שעות" },
-            { icon: <MessageCircle size={11} />, label: "WhatsApp לעובדים" },
+            { icon: <MessageCircle size={11} />, label: "התראות לעובדים" },
           ].map(f => (
             <span key={f.label} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium"
               style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
@@ -114,7 +114,7 @@ export default function Splash() {
         <p className="text-sm font-bold text-right" style={{ color: "var(--text-main)" }}>למה Sidur?</p>
         {[
           { emoji: "🤖", title: "AI שבונה את הסידור לך",     sub: "מזין את האילוצים פעם אחת — הסידור מוכן תוך שניות" },
-          { emoji: "📱", title: "התראות WhatsApp לעובדים",   sub: "כל עובד מקבל את המשמרת שלו ישר לוואטסאפ" },
+          { emoji: "📱", title: "התראות לעובדים",              sub: "כל עובד מקבל התראה על המשמרת שלו ישר לטלפון" },
           { emoji: "⏱️", title: "נוכחות בזמן אמת",           sub: "כניסה ויציאה דרך QR, טביעת אצבע, או ידני" },
           { emoji: "💸", title: "חלוקת טיפים הוגנת",         sub: "חישוב אוטומטי לפי שעות — בוקר וערב בנפרד" },
           { emoji: "📊", title: "דוחות מוכנים לשכר",         sub: "ייצוא ל-Excel בלחיצה אחת, בלי להעתיק ידנית" },
