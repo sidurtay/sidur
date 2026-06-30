@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AIAssistant from "@/components/ai/AIAssistant";
+import CapacitorInit from "@/components/CapacitorInit";
 
 export const metadata: Metadata = {
   title: "Sidur",
@@ -26,6 +27,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         {children}
         <AIAssistant />
+        <CapacitorInit />
       </body>
     </html>
   );
