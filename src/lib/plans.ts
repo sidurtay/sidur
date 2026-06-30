@@ -16,7 +16,7 @@ export type Plan = {
 export const PLANS: Plan[] = [
   {
     key: "starter",
-    name: "חינם",
+    name: "Starter",
     monthlyPrice: 0,
     annualPrice: 0,
     priceLabel: "₪0",

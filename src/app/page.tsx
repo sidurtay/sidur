@@ -309,10 +309,10 @@ export default function Splash() {
 
 function RoiCalculator() {
   const [employees, setEmployees] = useState(10);
-  const hoursPerWeek = 2;         // avg hours saved building schedule
-  const hourlyValue  = 60;        // NIS value of manager's time per hour
-  const saved        = Math.round(employees * hoursPerWeek * hourlyValue / employees) * 4; // monthly
-  const actualSaved  = hoursPerWeek * 4 * hourlyValue;
+  const hourlyValue   = 60;
+  const hoursPerWeek  = Math.round((1 + employees * 0.18) * 10) / 10; // scales with team size
+  const hoursPerMonth = Math.round(hoursPerWeek * 4 * 10) / 10;
+  const actualSaved   = Math.round(hoursPerMonth * hourlyValue);
 
   return (
     <div className="mx-4 mb-4 rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
@@ -336,7 +336,7 @@ function RoiCalculator() {
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl px-3 py-2.5 text-right" style={{ background: "rgba(249,115,22,0.07)", border: "1px solid rgba(249,115,22,0.2)" }}>
             <p className="text-[10px] mb-0.5" style={{ color: "var(--text-secondary)" }}>שעות חסכון בחודש</p>
-            <p className="text-lg font-bold" style={{ color: "#F97316" }}>{hoursPerWeek * 4} שעות</p>
+            <p className="text-lg font-bold" style={{ color: "#F97316" }}>{hoursPerMonth} שעות</p>
           </div>
           <div className="rounded-xl px-3 py-2.5 text-right" style={{ background: "rgba(74,222,128,0.07)", border: "1px solid rgba(74,222,128,0.2)" }}>
             <p className="text-[10px] mb-0.5" style={{ color: "var(--text-secondary)" }}>שווי כסף לחודש</p>
