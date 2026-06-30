@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, Clock, ArrowLeftRight, X, CheckCheck, Plus, Pencil, Trash2, ChevronLeft, Users, Fingerprint, LogIn, LogOut, CalendarClock, Megaphone } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
+import BranchSwitcher from "@/components/BranchSwitcher";
 import ClockInOutCard from "@/components/ClockInOutCard";
 import Card from "@/components/ui/Card";
 import SectionHeader from "@/components/ui/SectionHeader";
@@ -67,6 +68,7 @@ export default function Dashboard() {
   const [upcomingShifts, setUpcomingShifts] = useState<ReturnType<typeof buildUpcomingShifts>>([]);
   const [jobRoleKeys, setJobRoleKeys] = useState<string[]>([]);
   const [myPersonId, setMyPersonId] = useState("");
+  const [session, setSession] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     let biz = "";
@@ -77,6 +79,7 @@ export default function Dashboard() {
       if (session.name) setManagerName(session.name);
       if (session.businessName) setBusinessName(session.businessName);
       if (session.personId) setMyPersonId(session.personId);
+      setSession(session);
     } catch { setRole("manager"); }
 
     setBusinessId(biz);
@@ -192,9 +195,13 @@ export default function Dashboard() {
       <div style={{ background: "linear-gradient(160deg, #1B202B, #14181F)" }} className="px-4 pt-12 pb-5 rounded-b-[28px]">
         <div className="flex items-center justify-between flex-row mb-5">
           <Logo size={26} />
-          <div className="text-right">
+          <div className="flex flex-col items-end gap-1.5">
             <p className="text-white text-lg font-bold leading-tight">שלום, {managerName.split(" ")[0]} 👋</p>
-            <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>{businessName} · {TODAY_LABEL}</p>
+            {session && (session.phone as string) ? (
+              <BranchSwitcher session={session as Parameters<typeof BranchSwitcher>[0]["session"]} />
+            ) : (
+              <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>{businessName} · {TODAY_LABEL}</p>
+            )}
           </div>
         </div>
 

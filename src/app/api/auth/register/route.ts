@@ -69,6 +69,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: message || "יצירת המנהל נכשלה" }, { status: 500 });
     }
 
+    // Link manager phone → business in the multi-branch table
+    await supabase.from("manager_businesses").insert({
+      manager_phone: phone.trim(),
+      business_id: business.id,
+      person_id: manager.id,
+      is_owner: true,
+    });
+
     return NextResponse.json({
       success: true,
       businessId: business.id,

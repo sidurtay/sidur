@@ -144,7 +144,7 @@ function Register() {
           {/* Inputs */}
           <div className="flex flex-col gap-3 rounded-2xl p-4"
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <Field label="שם העסק" placeholder='למשל: "גלידת הגן" או "ספר בסטייל"'>
+            <Field label="שם העסק">
               <input value={bizName} onChange={e => setBizName(e.target.value)}
                 placeholder='למשל: "גלידת הגן" או "ספר בסטייל"'
                 className="w-full px-4 py-3.5 rounded-xl text-sm text-right outline-none"

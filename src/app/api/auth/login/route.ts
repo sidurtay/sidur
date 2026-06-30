@@ -20,13 +20,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "טלפון או סיסמה שגויים" }, { status: 401 });
     }
 
-    const businessName = (person.businesses as unknown as { name: string } | null)?.name || "";
     const passwordOk =
       (person.temp_password && person.temp_password === password) ||
       (person.password_hash && verifyPassword(password, person.password_hash));
 
     if (!passwordOk) {
       return NextResponse.json({ error: "טלפון או סיסמה שגויים" }, { status: 401 });
+    }
+
+    const businessName = (person.businesses as unknown as { name: string } | null)?.name || "";
+
+    // For managers: check if they manage multiple branches
+    let branches: { businessId: string; businessName: string; personId: string }[] = [];
+    if (person.role_type === "manager") {
+      const { data: mbRows } = await supabase
+        .from("manager_businesses")
+        .select("business_id, person_id, businesses!manager_businesses_business_id_fkey(name)")
+        .eq("manager_phone", phone.trim());
+
+      if (mbRows && mbRows.length > 1) {
+        branches = mbRows.map(row => ({
+          businessId: row.business_id,
+          personId: row.person_id,
+          businessName: (row.businesses as unknown as { name: string } | null)?.name || "",
+        }));
+      }
     }
 
     const DAY_NAMES = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
@@ -42,6 +60,8 @@ export async function POST(req: NextRequest) {
       personId: person.id, businessId: person.business_id,
       name: person.name, phone: person.phone, businessName,
       role: person.role_type,
+      // Populated only when manager has >1 branch — triggers branch-picker in the client
+      branches: branches.length > 1 ? branches : [],
       businessConfig: {
         bizName: businessName,
         bizId: business?.business_id_num || "",
