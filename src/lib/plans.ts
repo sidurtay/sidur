@@ -1,7 +1,5 @@
 // Single source of truth for pricing tiers — shared between the public
-// landing page (so pricing is visible before anyone starts registering,
-// unlike the Israeli competitors' "contact us" model) and the registration
-// flow's plan-selection step.
+// landing page and the registration flow's plan-selection step.
 export type Plan = {
   key: string;
   name: string;
@@ -18,50 +16,53 @@ export type Plan = {
 export const PLANS: Plan[] = [
   {
     key: "starter",
-    name: "Sidur Starter",
-    price: "חינם",
+    name: "חינם",
+    price: "₪0",
     priceNote: "לתמיד",
     color: "var(--text-secondary)",
     bg: "var(--gray-bg)",
     border: "var(--border)",
     features: [
-      "עד 10 עובדים",
-      "סידור עבודה",
+      "עד 6 עובדים",
+      "סידור עבודה שבועי",
       "נוכחות ידנית",
-      "צ'אט פנימי",
+      "בקשות חופשה והחלפות",
+      "עוזר AI בסיסי",
     ],
-    missing: ["AI לסידור", "חישוב טיפים", "דוחות מתקדמים"],
+    missing: ["AI אוטומטי לסידור", "חישוב טיפים", "דוחות וייצוא Excel", "התראות WhatsApp"],
   },
   {
     key: "plus",
-    name: "Sidur Plus",
-    price: "₪99",
+    name: "Plus",
+    price: "₪79",
     priceNote: "לחודש",
     color: "var(--text-secondary)",
     bg: "var(--gray-bg)",
     border: "var(--border)",
     features: [
-      "עד 20 עובדים",
-      "כל יכולות ה-Starter",
-      "AI לבניית סידור",
-      "חישוב טיפים",
-      "דוחות חודשיים",
+      "עד 25 עובדים",
+      "כל מה שבחינם +",
+      "AI בונה סידור אוטומטית",
+      "חישוב וחלוקת טיפים",
+      "דוחות חודשיים + ייצוא Excel",
+      "התראות WhatsApp לעובדים",
     ],
-    missing: ["מולטי-סניף"],
+    missing: ["מולטי-סניף", "API"],
   },
   {
     key: "business",
-    name: "Sidur Business",
-    price: "₪199",
+    name: "Pro",
+    price: "₪149",
     priceNote: "לחודש",
     color: "var(--blue)",
     bg: "var(--blue-light)",
     border: "var(--blue-border)",
-    badge: "הכי פופולרי",
+    badge: "הכי משתלם",
     features: [
       "עובדים ללא הגבלה",
-      "כל יכולות ה-Plus",
+      "כל מה שב-Plus +",
       "מולטי-סניף",
+      "דוחות מתקדמים",
       "API גישה",
       "תמיכה עדיפה",
     ],

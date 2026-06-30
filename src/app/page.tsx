@@ -2,12 +2,22 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, Users, Coins, BarChart3, Check, Zap, Rocket, Crown, ShieldCheck, Sparkles } from "lucide-react";
+import { CalendarDays, Users, Coins, BarChart3, Check, Zap, Rocket, Crown, ShieldCheck, Sparkles, Clock, Star } from "lucide-react";
 import InstagramIcon from "@/components/InstagramIcon";
 import LogoMark from "@/components/Logo";
 import { PLANS } from "@/lib/plans";
 
 const PLAN_ICONS: Record<string, typeof Zap> = { starter: Zap, plus: Rocket, business: Crown };
+
+const BUSINESS_TYPES = [
+  "קפה ומסעדות", "גלידריות", "סלוני יופי", "ספרות",
+  "חנויות בגדים", "חדרי כושר", "מכולות", "שירותי ניקיון",
+];
+
+const SOCIAL_PROOF = [
+  "קפה קפה נהריה", "גלידת הגן תל-אביב", "ספר בסטייל חיפה",
+  "כושר פלוס ירושלים", "פיצה הגינה", "בוטיק רנה",
+];
 
 export default function Splash() {
   const router = useRouter();
@@ -28,16 +38,16 @@ export default function Splash() {
     <div className="flex flex-col min-h-screen" style={{ background: "var(--gray-bg)" }}>
 
       {/* Hero */}
-      <div className="flex flex-col items-center pt-16 pb-10 px-6 text-center"
+      <div className="flex flex-col items-center pt-14 pb-10 px-6 text-center"
         style={{ background: "var(--navy)" }}>
 
         {/* Eyebrow */}
         <span className="px-3 py-1 rounded-full text-[11px] font-bold tracking-wide mb-5"
           style={{ background: "rgba(249,115,22,0.15)", color: "var(--blue)", border: "1px solid rgba(249,115,22,0.3)" }}>
-          ✦ הסידור הראשון שבנוי עם AI מהיסוד
+          ✦ לכל עסק שיש בו עובדים
         </span>
 
-        {/* Logo mark */}
+        {/* Logo */}
         <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 overflow-hidden"
           style={{ boxShadow: "0 8px 24px rgba(249,115,22,0.35)" }}>
           <LogoMark size={64} />
@@ -46,17 +56,27 @@ export default function Splash() {
         <h1 className="text-white text-2xl font-bold leading-tight mb-3">
           תפסיק לבנות סידור.<br />תתחיל לאשר אותו.
         </h1>
-        <p className="text-sm leading-relaxed mb-8" style={{ color: "rgba(255,255,255,0.55)", maxWidth: 300 }}>
-          ה-AI של Sidur בונה לך סידור עבודה שלם לפי האילוצים של הצוות, מחלק טיפים אוטומטית, ומתריע לפני שמשהו ידלוף לך בין הידיים
+        <p className="text-sm leading-relaxed mb-6" style={{ color: "rgba(255,255,255,0.55)", maxWidth: 300 }}>
+          Sidur בונה לך סידור עבודה שלם תוך שניות, עוקב אחרי נוכחות בזמן אמת, ומתריע לפני שמשהו ידלוף לך בין הידיים
         </p>
+
+        {/* Business type pills — scrollable row */}
+        <div className="flex flex-row gap-1.5 mb-7 overflow-x-auto pb-1 w-full justify-center flex-wrap" style={{ maxWidth: 340 }}>
+          {BUSINESS_TYPES.map(b => (
+            <span key={b} className="flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium"
+              style={{ background: "rgba(255,255,255,0.09)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.12)" }}>
+              {b}
+            </span>
+          ))}
+        </div>
 
         {/* Feature pills */}
         <div className="flex flex-row flex-wrap justify-center gap-2 mb-8">
           {[
             { icon: <Sparkles size={11} />,     label: "AI בונה סידור" },
             { icon: <CalendarDays size={11} />, label: "סידור עבודה" },
+            { icon: <Clock size={11} />,        label: "נוכחות חכמה" },
             { icon: <Coins size={11} />,        label: "חישוב טיפים" },
-            { icon: <Users size={11} />,        label: "ניהול עובדים" },
             { icon: <BarChart3 size={11} />,    label: "דוחות שעות" },
           ].map(f => (
             <span key={f.label} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium"
@@ -83,11 +103,14 @@ export default function Splash() {
 
       {/* Social proof */}
       <div className="flex flex-col items-center py-5 px-6">
-        <p className="text-xs mb-3" style={{ color: "var(--text-secondary)" }}>✦ מנוהלים כבר איתנו</p>
+        <div className="flex items-center gap-1.5 mb-3 flex-row">
+          <Star size={11} fill="#F97316" style={{ color: "#F97316" }} />
+          <p className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>מנוהלים כבר איתנו</p>
+        </div>
         <div className="flex flex-row gap-2 flex-wrap justify-center">
-          {["קפה קפה נהריה", "ביסטרו תל-אביב", "פיצה הגינה", "בר 54"].map(b => (
-            <span key={b} className="px-3 py-1.5 rounded-full text-xs font-medium bg-white"
-              style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
+          {SOCIAL_PROOF.map(b => (
+            <span key={b} className="px-3 py-1.5 rounded-full text-xs font-medium"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
               {b}
             </span>
           ))}
@@ -95,17 +118,19 @@ export default function Splash() {
       </div>
 
       {/* Feature list */}
-      <div className="mx-4 mb-4 rounded-2xl bg-white px-5 py-4 flex flex-col gap-4"
-        style={{ border: "1px solid var(--border)" }}>
+      <div className="mx-4 mb-4 rounded-2xl px-5 py-4 flex flex-col gap-4"
+        style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <p className="text-sm font-bold text-right" style={{ color: "var(--text-main)" }}>למה Sidur?</p>
         {[
-          { emoji: "📅", title: "סידור עבודה + AI",     sub: "AI שבונה את הסידור לפי אילוצי העובדים" },
-          { emoji: "💸", title: "חלוקת טיפים הוגנת",   sub: "חישוב אוטומטי לפי שעות — בוקר וערב בנפרד" },
-          { emoji: "⏱️", title: "נוכחות בזמן אמת",     sub: "קריאת QR, אצבע, או עדכון ידני" },
-          { emoji: "📊", title: "דוחות חודשיים",        sub: "ייצוא ל-Excel בלחיצה אחת" },
+          { emoji: "🤖", title: "AI שבונה את הסידור לך",    sub: "מזין את האילוצים פעם אחת — הסידור מוכן תוך שניות" },
+          { emoji: "⏱️", title: "נוכחות בזמן אמת",          sub: "כניסה ויציאה דרך QR, טביעת אצבע, או ידני" },
+          { emoji: "💸", title: "חלוקת טיפים הוגנת",        sub: "חישוב אוטומטי לפי שעות — בוקר וערב בנפרד" },
+          { emoji: "📊", title: "דוחות מוכנים לשכר",        sub: "ייצוא ל-Excel בלחיצה אחת, בלי להעתיק ידנית" },
+          { emoji: "📱", title: "עובדים רואים הכל מהפלאפון", sub: "משמרות, בקשות חופשה, החלפות — הכל בנייד" },
         ].map(f => (
           <div key={f.title} className="flex items-center gap-3 flex-row">
             <div className="text-right flex-1">
-              <p className="text-sm font-semibold">{f.title}</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--text-main)" }}>{f.title}</p>
               <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{f.sub}</p>
             </div>
             <span className="text-2xl w-9 text-center flex-shrink-0">{f.emoji}</span>
@@ -113,17 +138,16 @@ export default function Splash() {
         ))}
       </div>
 
-      {/* Pricing — visible to anyone before they ever start registering,
-          unlike the "contact us" pricing model most Israeli competitors use */}
-      <div className="px-4 pt-2 pb-6" style={{ background: "var(--navy)" }}>
+      {/* Pricing */}
+      <div className="px-4 pt-6 pb-8" style={{ background: "var(--navy)" }}>
         <div className="flex justify-center mb-3">
           <span className="px-3 py-1 rounded-full text-[11px] font-bold tracking-wide"
             style={{ background: "rgba(249,115,22,0.15)", color: "var(--blue)", border: "1px solid rgba(249,115,22,0.3)" }}>
-            בלי סיבוכים
+            מחירים שקופים — בלי הפתעות
           </span>
         </div>
-        <p className="text-center text-white text-xl font-bold mb-1.5">תוכנית לכל שלב בעסק שלך</p>
-        <p className="text-center text-xs mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>
+        <p className="text-center text-white text-xl font-bold mb-1.5">תוכנית לכל גודל עסק</p>
+        <p className="text-center text-xs mb-7" style={{ color: "rgba(255,255,255,0.5)" }}>
           מתחילים בחינם, משלמים רק כשגדלים — בלי איש מכירות, בלי &quot;נחזור אליך&quot;
         </p>
 
@@ -131,6 +155,7 @@ export default function Splash() {
           {PLANS.map(p => {
             const Icon = PLAN_ICONS[p.key] || Zap;
             const popular = !!p.badge;
+            const isFree = p.price === "₪0";
             return (
               <div key={p.key} className="rounded-3xl relative"
                 style={{
@@ -158,10 +183,18 @@ export default function Splash() {
                     </div>
                   </div>
 
-                  <div className="flex items-end gap-1.5 flex-row mb-5" style={{ direction: "ltr" }}>
+                  <div className="flex items-end gap-1.5 flex-row mb-1" style={{ direction: "ltr" }}>
                     <span className="text-3xl font-bold text-white tracking-tight">{p.price}</span>
                     <span className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.4)" }}>{p.priceNote}</span>
                   </div>
+
+                  {/* Value framing */}
+                  {!isFree && (
+                    <p className="text-[10px] mb-4 text-right" style={{ color: "rgba(249,115,22,0.8)" }}>
+                      {p.key === "plus" ? "פחות מ-₪3 ליום — פחות מכוס קפה" : "פחות מ-₪5 ליום — לעסק ללא הגבלה"}
+                    </p>
+                  )}
+                  {isFree && <div className="mb-4" />}
 
                   <div className="flex flex-col gap-2.5 mb-5">
                     {p.features.map(f => (
@@ -173,12 +206,29 @@ export default function Splash() {
                         </div>
                       </div>
                     ))}
+                    {p.missing.length > 0 && (
+                      <div className="mt-1 pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                        {p.missing.map(f => (
+                          <div key={f} className="flex items-center gap-2 flex-row justify-end mb-2">
+                            <p className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>{f}</p>
+                            <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                              style={{ background: "rgba(255,255,255,0.04)" }}>
+                              <span className="text-[8px]" style={{ color: "rgba(255,255,255,0.2)" }}>✕</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <button onClick={() => router.push(`/register?plan=${p.key}`)}
                     className="w-full py-3 rounded-xl text-sm font-bold"
-                    style={{ background: popular ? "var(--blue)" : "rgba(255,255,255,0.08)", color: "#fff", border: popular ? "none" : "1px solid rgba(255,255,255,0.15)" }}>
-                    {p.price === "חינם" ? "התחל בחינם" : `בחר ${p.name}`}
+                    style={{
+                      background: popular ? "var(--blue)" : isFree ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.08)",
+                      color: "#fff",
+                      border: popular ? "none" : "1px solid rgba(255,255,255,0.15)",
+                    }}>
+                    {isFree ? "התחל בחינם — עכשיו" : popular ? `בחר ${p.name} — הצטרף עכשיו` : `שדרג ל-${p.name}`}
                   </button>
                 </div>
               </div>
@@ -186,16 +236,23 @@ export default function Splash() {
           })}
         </div>
 
-        <div className="flex items-center justify-center gap-1.5 flex-row mt-5">
-          <ShieldCheck size={13} style={{ color: "rgba(255,255,255,0.4)" }} />
-          <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>
-            בלי כרטיס אשראי בהרשמה · אפשר לשנות תוכנית בכל עת
+        {/* Trust row */}
+        <div className="flex flex-col items-center gap-2 mt-6">
+          <div className="flex items-center justify-center gap-1.5 flex-row">
+            <ShieldCheck size={13} style={{ color: "rgba(255,255,255,0.4)" }} />
+            <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>
+              בלי כרטיס אשראי בהרשמה · ביטול בכל עת · ללא התחייבות
+            </p>
+          </div>
+          <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.25)" }}>
+            המחיר קבוע — לא משנה כמה הצוות גדל בתוך התוכנית
           </p>
         </div>
       </div>
 
+      {/* Footer */}
       <a href="https://instagram.com/sidur.app" target="_blank" rel="noopener noreferrer"
-        className="flex items-center justify-center gap-1.5 flex-row text-xs font-medium pt-2"
+        className="flex items-center justify-center gap-1.5 flex-row text-xs font-medium pt-4"
         style={{ color: "var(--blue)" }}>
         <InstagramIcon size={13} /> sidur.app
       </a>
