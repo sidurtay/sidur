@@ -35,7 +35,10 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
   const sentInitialRef = useRef(false);
 
   const groups = QUICK_ACTION_GROUPS.filter(g => !g.managerOnly || session.isManager);
-  const [activeGroup, setActiveGroup] = useState(groups[0]?.key || "");
+  // Flattened into one scrollable strip (with each prompt's category icon
+  // attached) instead of a tabbed grid — a persistent carousel above the
+  // composer that's always there to tap, not just before the first message.
+  const carouselPrompts = groups.flatMap(g => g.prompts.map(p => ({ text: p, icon: GROUP_ICON[g.key] })));
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
 
   useEffect(() => {
@@ -108,10 +111,9 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
     }
   }
 
-  // The quick-action grid only makes sense before a real conversation starts —
-  // once the person has sent something, this becomes a normal chat thread.
-  const showQuickActions = !loadingHistory && !loading && messages.length <= 1;
-  const activeGroupData = groups.find(g => g.key === activeGroup);
+  // The snapshot only makes sense before a real conversation starts — once the
+  // person has sent something, this becomes a normal chat thread.
+  const showSnapshot = !loadingHistory && !loading && messages.length <= 1;
 
   return (
     <div
@@ -197,46 +199,11 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
                   shown as cards immediately with zero typing. This is what makes
                   opening the assistant feel like a mini dashboard, not a blank
                   chat prompt waiting for a question. */}
-              {showQuickActions && snapshot && (
+              {showSnapshot && snapshot && (
                 <div className="flex flex-col items-end gap-2 mt-1">
                   <ChatCard card={snapshot.shift} />
                   {snapshot.hours && <ChatCard card={snapshot.hours} />}
                   {snapshot.tips && <ChatCard card={snapshot.tips} />}
-                </div>
-              )}
-
-              {/* Quick-action grid — a small "app menu" for browsing what the
-                  assistant can do, instead of a flat row of random chips. */}
-              {showQuickActions && activeGroupData && (
-                <div className="flex flex-col gap-2.5 mt-1">
-                  <p className="text-[10px] text-right" style={{ color: "rgba(255,255,255,0.4)" }}>או בחר/י נושא:</p>
-
-                  <div className="flex flex-row flex-wrap gap-1.5 justify-end">
-                    {groups.map(g => {
-                      const GroupIcon = GROUP_ICON[g.key];
-                      const active = g.key === activeGroup;
-                      return (
-                        <button key={g.key} onClick={() => setActiveGroup(g.key)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold flex-row"
-                          style={active
-                            ? { background: "#F97316", color: "#fff" }
-                            : { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                          {GroupIcon && <GroupIcon size={12} />}
-                          {g.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    {activeGroupData.prompts.map(p => (
-                      <button key={p} onClick={() => send(p)}
-                        className="text-right px-3 py-3 rounded-xl text-xs font-medium leading-snug"
-                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(249,115,22,0.25)", color: "#fff" }}>
-                        {p}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               )}
 
@@ -245,6 +212,22 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
                 <p className="text-xs text-center" style={{ color: "#F87171" }}>{error}</p>
               )}
               <div ref={bottomRef} />
+            </div>
+
+            {/* Question carousel — a persistent horizontally-scrollable strip of
+                things the assistant can answer, always available above the
+                composer (not just before the first message) so it stays useful
+                mid-conversation instead of disappearing after one question. */}
+            <div className="ai-chat-carousel flex flex-row gap-2 px-4 pt-2.5 pb-1 overflow-x-auto"
+              style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+              {carouselPrompts.map(({ text, icon: Icon }) => (
+                <button key={text} onClick={() => send(text)} disabled={loading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium flex-row flex-shrink-0"
+                  style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.25)", color: "#FDBA74", opacity: loading ? 0.5 : 1 }}>
+                  {Icon && <Icon size={11} />}
+                  {text}
+                </button>
+              ))}
             </div>
 
             {/* Input */}
@@ -285,6 +268,12 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
         .ai-chat-scroll::-webkit-scrollbar-thumb {
           background: #f97316;
           border-radius: 6px;
+        }
+        .ai-chat-carousel {
+          scrollbar-width: none;
+        }
+        .ai-chat-carousel::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
     </div>

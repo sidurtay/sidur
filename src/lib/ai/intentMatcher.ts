@@ -200,7 +200,10 @@ export function matchIntent(rawText: string, isManager: boolean): MatchResult {
       const date = extractExplicitDate(text);
       return { intent, date, reason: date ? extractReason(text) : undefined };
     }
-    if (intent === "create_swap") return { intent, proposedPersonName: extractName(text) };
+    if (intent === "create_swap") {
+      const date = extractExplicitDate(text);
+      return { intent, proposedPersonName: extractName(text), date, dateLabel: date ? extractDateAndLabel(text).label : undefined };
+    }
     return { intent };
   }
 

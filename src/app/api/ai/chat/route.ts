@@ -112,6 +112,29 @@ async function buildReply(
     }
 
     case "create_swap": {
+      // A specific date was mentioned ("החלפה ב-1.7") — this reads as "help me
+      // find coverage", not "auto-send a request naming no one in particular".
+      // Show who (in the same role) marked themselves available that day per
+      // their submitted אילוצים, so the person can reach out directly.
+      if (match.date) {
+        const res = await tools.getAvailableForDate(ctx, match.date);
+        if ("error" in res) return `הופ, נתקלתי בתקלה כשבדקתי זמינות 😕 (${res.error})`;
+        const label = match.dateLabel || match.date;
+        if (res.available.length === 0) {
+          return `לא מצאתי אף אחד בתפקיד שלך שסימן זמינות ל-${label} — אולי כדאי לשאול ידנית או לבדוק עם המנהל 🤔`;
+        }
+        return {
+          text: `מי סימן/ה זמינות ל-${label} בתפקיד שלך:\n` + res.available.map(p =>
+            `• ${p.name} — ${p.status === "all" ? "כל היום" : p.status === "morning" ? "בוקר" : "ערב"}`
+          ).join("\n"),
+          card: {
+            type: "availability",
+            dateLabel: label,
+            people: res.available.map(p => ({ name: p.name, initials: initialsFor(p.name), phone: p.phone, role: p.role, status: p.status })),
+          },
+        };
+      }
+
       const upcoming = await tools.getUpcomingShifts(ctx);
       if ("error" in upcoming || upcoming.shifts.length === 0) return "לא מצאתי משמרת קרובה שלך להחליף 🤔";
       const target = upcoming.shifts[0];

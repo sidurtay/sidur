@@ -121,6 +121,47 @@ export async function getScheduleForDate(ctx: ToolCtx, dateStr: string) {
   return { working };
 }
 
+// Who (in the requester's own role) marked themselves available on a given
+// date, per the "אילוצים" constraints they submitted — so a person who needs
+// coverage can see exactly who to message, instead of guessing or asking
+// around. Someone who never submitted a constraint for that week is treated
+// as available (same convention as the AI schedule builder).
+export async function getAvailableForDate(ctx: ToolCtx, dateStr: string) {
+  const supabase = createServiceRoleClient();
+  const { weekStart, dayOfWeek } = weekInfoForDate(dateStr);
+
+  const { data: me, error: meError } = await supabase
+    .from("people").select("role_key").eq("id", ctx.personId).maybeSingle();
+  if (meError) return { error: meError.message };
+  const myRole = me?.role_key || null;
+
+  const { data: coworkers, error: peopleError } = await supabase
+    .from("people")
+    .select("id, name, phone, role_key")
+    .eq("business_id", ctx.businessId)
+    .eq("role_type", "employee")
+    .neq("id", ctx.personId)
+    .eq("role_key", myRole || "");
+  if (peopleError) return { error: peopleError.message };
+
+  const { data: constraintRows, error: constraintError } = await supabase
+    .from("constraints")
+    .select("person_id, status")
+    .eq("business_id", ctx.businessId)
+    .eq("week_start", weekStart)
+    .eq("day_of_week", dayOfWeek);
+  if (constraintError) return { error: constraintError.message };
+
+  const statusByPerson: Record<string, string> = {};
+  (constraintRows || []).forEach(r => { statusByPerson[r.person_id] = r.status; });
+
+  const available = (coworkers || [])
+    .map(c => ({ id: c.id, name: c.name, phone: c.phone, role: c.role_key, status: statusByPerson[c.id] || "all" }))
+    .filter(c => c.status !== "off");
+
+  return { available, myRole };
+}
+
 export async function getShiftSwapRequests(ctx: ToolCtx) {
   const supabase = createServiceRoleClient();
   let query = supabase

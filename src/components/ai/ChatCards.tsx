@@ -1,5 +1,7 @@
-import { Clock, Coins, Users, CalendarOff } from "lucide-react";
+import { Clock, Coins, Users, CalendarOff, Phone, UserCheck } from "lucide-react";
 import type { AnyCard } from "@/lib/ai/cards";
+
+const STATUS_LABEL: Record<string, string> = { all: "כל היום", morning: "בוקר", evening: "ערב" };
 
 const PALETTE = ["#F97316", "#FBBF24", "#34D399", "#60A5FA", "#F472B6", "#A78BFA"];
 function colorFor(name: string) {
@@ -66,6 +68,41 @@ export function ChatCard({ card }: { card: AnyCard }) {
           <p className="text-lg font-bold" style={{ color: "#fff" }}>₪{card.amount}</p>
           <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>{card.label}</p>
         </div>
+      </div>
+    );
+  }
+
+  if (card.type === "availability") {
+    return (
+      <div className="w-full max-w-[85%] rounded-2xl overflow-hidden" style={{ background: "#20262F", border: "1px solid rgba(249,115,22,0.25)" }}>
+        <div className="flex items-center gap-1.5 px-3.5 py-2.5 flex-row" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <UserCheck size={13} style={{ color: "#F97316" }} />
+          <p className="text-xs font-bold" style={{ color: "#fff" }}>זמינים ל-{card.dateLabel}</p>
+        </div>
+        {card.people.length === 0 ? (
+          <p className="text-xs text-center py-4" style={{ color: "rgba(255,255,255,0.4)" }}>אף אחד לא סימן זמינות</p>
+        ) : (
+          <div className="flex flex-col">
+            {card.people.map((p, i) => (
+              <div key={i} className="flex items-center gap-2.5 px-3.5 py-2.5 flex-row"
+                style={{ borderBottom: i < card.people.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+                <a href={`tel:${p.phone}`}
+                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: "rgba(52,211,153,0.15)" }}>
+                  <Phone size={13} style={{ color: "#34D399" }} />
+                </a>
+                <div className="flex-1 text-right">
+                  <p className="text-xs font-semibold" style={{ color: "#fff" }}>{p.name}</p>
+                  <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>פנוי/ה · {STATUS_LABEL[p.status] || p.status}</p>
+                </div>
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                  style={{ background: colorFor(p.name), color: "#1A1F29" }}>
+                  {p.initials}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }

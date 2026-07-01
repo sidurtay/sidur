@@ -7,7 +7,10 @@ export type HoursCard = { type: "hours"; totalHours: number; shiftsCount: number
 export type TipsCard = { type: "tips"; amount: number; label: string };
 export type ShiftCard = { type: "shift"; role: string; timeIn: string; timeOut: string } | { type: "shift"; none: true };
 
-export type AnyCard = RosterCard | HoursCard | TipsCard | ShiftCard;
+export type AvailablePerson = { name: string; initials: string; phone: string; role: string; status: string };
+export type AvailabilityCard = { type: "availability"; dateLabel: string; people: AvailablePerson[] };
+
+export type AnyCard = RosterCard | HoursCard | TipsCard | ShiftCard | AvailabilityCard;
 
 export function initialsFor(name: string): string {
   const parts = name.trim().split(/\s+/);
