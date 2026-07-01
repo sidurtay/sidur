@@ -4,12 +4,13 @@ import { matchIntent, EXAMPLE_PROMPTS } from "@/lib/ai/intentMatcher";
 import * as tools from "@/lib/ai/tools";
 import { isManager as checkIsManager } from "@/lib/auth/permissions";
 import { askClaude } from "@/lib/ai/claude";
+import { initialsFor, type AnyCard } from "@/lib/ai/cards";
 
 const HISTORY_LIMIT = 16;
 
 type Ctx = { businessId: string; personId: string; isManager: boolean };
 type ChatAction = { label: string; href: string };
-type ChatReply = { text: string; action?: ChatAction };
+type ChatReply = { text: string; action?: ChatAction; card?: AnyCard };
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -52,23 +53,29 @@ async function buildReply(
         if ("error" in res) return `הופ, נתקלתי בתקלה כשבדקתי את הטיפים 😕 (${res.error})`;
         if (!res.published) return "הטיפים של היום עדיין לא פורסמו — אעדכן אותך כשהם יהיו מוכנים 🕐";
         if (!res.worked) return "לא רשומה לך משמרת היום, אז אין טיפים לחלוקה 🤷";
-        return `קיבלת בערך ₪${res.myShare} מטיפי משמרת ה${res.shiftLabel} של היום (${res.myHours} שעות) 💰`;
+        return {
+          text: `קיבלת בערך ₪${res.myShare} מטיפי משמרת ה${res.shiftLabel} של היום (${res.myHours} שעות) 💰`,
+          card: { type: "tips", amount: res.myShare, label: `משמרת ${res.shiftLabel} · היום` },
+        };
       }
       const res = await tools.getTipsForPeriod(ctx, scope);
       const periodLabel = scope === "week" ? "השבוע" : "החודש";
       if (res.total === 0) return `לא מצאתי טיפים מפורסמים ${periodLabel} עבורך 🤷`;
-      return `עשית בערך ₪${res.total} בטיפים ${periodLabel} 💰`;
+      return {
+        text: `עשית בערך ₪${res.total} בטיפים ${periodLabel} 💰`,
+        card: { type: "tips", amount: res.total, label: periodLabel },
+      };
     }
 
     case "hours": {
       const res = await tools.getEmployeeHours(ctx, { month: match.month, weekScope: match.weekScope });
       if ("error" in res) return `הופ, נתקלתי בתקלה כשמשכתי את השעות 😕 (${res.error})`;
       if (res.shiftsCount === 0) return "לא מצאתי משמרות מתועדות בתקופה הזו.";
-      const periodSuffix = match.weekScope ? " (השבוע)" : match.month ? "" : " (כל ההיסטוריה)";
-      return pick([
-        `עבדת ${res.totalHours} שעות ב-${res.shiftsCount} משמרות${periodSuffix} 💪`,
-        `סך הכל ${res.totalHours} שעות, על ${res.shiftsCount} משמרות${periodSuffix}.`,
-      ]);
+      const periodLabel = match.weekScope ? "השבוע" : match.month ? "בתקופה שנבחרה" : "בכל ההיסטוריה";
+      return {
+        text: `עבדת ${res.totalHours} שעות ב-${res.shiftsCount} משמרות (${periodLabel}) 💪`,
+        card: { type: "hours", totalHours: res.totalHours, shiftsCount: res.shiftsCount, periodLabel },
+      };
     }
 
     case "upcoming_shifts": {
@@ -85,7 +92,14 @@ async function buildReply(
       if ("error" in res) return `הופ, נתקלתי בתקלה כשמשכתי את הסידור 😕 (${res.error})`;
       const label = match.dateLabel || "אז";
       if (res.working.length === 0) return `אין משמרות מתוכננות ל${label === "היום" ? "היום" : label} 🤷`;
-      return `מי עובד ${label}:\n` + res.working.map(w => `• ${w.name} — ${w.role} (${w.timeIn}–${w.timeOut})`).join("\n");
+      return {
+        text: `מי עובד ${label}:\n` + res.working.map(w => `• ${w.name} — ${w.role} (${w.timeIn}–${w.timeOut})`).join("\n"),
+        card: {
+          type: "roster",
+          label: `מי עובד ${label}`,
+          people: res.working.map(w => ({ name: w.name, initials: initialsFor(w.name), role: w.role, timeIn: w.timeIn, timeOut: w.timeOut })),
+        },
+      };
     }
 
     case "swap_requests_list": {
@@ -183,13 +197,16 @@ export async function POST(req: NextRequest) {
     const result = await buildReply(message.trim(), ctx, employeeName || "", history);
     const reply = typeof result === "string" ? result : result.text;
     const action = typeof result === "string" ? undefined : result.action;
+    // Cards aren't persisted (ai_conversations only stores plain text) — history
+    // reloads show the text version, only the live turn gets the rich card.
+    const card = typeof result === "string" ? undefined : result.card;
 
     await supabase.from("ai_conversations").insert([
       { business_id: businessId, person_id: personId, role: "user", content: message.trim() },
       { business_id: businessId, person_id: personId, role: "assistant", content: reply },
     ]);
 
-    return NextResponse.json({ success: true, reply, action });
+    return NextResponse.json({ success: true, reply, action, card });
   } catch (err) {
     console.error("ai chat error:", err);
     return NextResponse.json({ error: "שגיאת שרת — נסה שוב" }, { status: 500 });

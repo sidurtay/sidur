@@ -5,6 +5,8 @@ import { X, Send, ArrowLeft, Clock, Coins, ArrowLeftRight, ShieldCheck, LucideIc
 import { QUICK_ACTION_GROUPS } from "@/lib/ai/intentMatcher";
 import AiWalker from "./AiWalker";
 import ScheduleBuilderChat from "./ScheduleBuilderChat";
+import { ChatCard } from "./ChatCards";
+import type { AnyCard, ShiftCard, HoursCard, TipsCard } from "@/lib/ai/cards";
 
 const GROUP_ICON: Record<string, LucideIcon> = {
   hours: Clock,
@@ -14,7 +16,8 @@ const GROUP_ICON: Record<string, LucideIcon> = {
 };
 
 type Action = { label: string; href: string };
-type Msg = { role: "user" | "assistant"; content: string; action?: Action };
+type Msg = { role: "user" | "assistant"; content: string; action?: Action; card?: AnyCard };
+type Snapshot = { shift: ShiftCard; hours: HoursCard | null; tips: TipsCard | null };
 
 type Session = { businessId: string; personId: string; name: string; businessName: string; isManager: boolean };
 
@@ -33,6 +36,14 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
 
   const groups = QUICK_ACTION_GROUPS.filter(g => !g.managerOnly || session.isManager);
   const [activeGroup, setActiveGroup] = useState(groups[0]?.key || "");
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/ai/snapshot?businessId=${session.businessId}&personId=${session.personId}`)
+      .then(r => r.json())
+      .then(res => { if (res.success) setSnapshot({ shift: res.shift, hours: res.hours, tips: res.tips }); })
+      .catch(() => {});
+  }, [session.businessId, session.personId]);
 
   useEffect(() => {
     // Guards against a race where the user sends a message (optimistically appended
@@ -86,7 +97,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
       }).then(r => r.json());
 
       if (res.success) {
-        setMessages(prev => [...prev, { role: "assistant", content: res.reply, action: res.action }]);
+        setMessages(prev => [...prev, { role: "assistant", content: res.reply, action: res.action, card: res.card }]);
       } else {
         setError(res.error || "משהו נכשל, נסה שוב");
       }
@@ -156,14 +167,18 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
               ) : (
                 messages.map((m, i) => (
                   <div key={i} className={`flex flex-col gap-1.5 ${m.role === "user" ? "items-start" : "items-end"}`}>
-                    <div
-                      className="px-3.5 py-2.5 rounded-2xl text-sm max-w-[85%] leading-relaxed whitespace-pre-wrap"
-                      style={m.role === "user"
-                        ? { background: "rgba(255,255,255,0.08)", color: "#fff" }
-                        : { background: "linear-gradient(150deg, #FFF7ED, #FFFFFF)", color: "#1F2937" }}
-                    >
-                      {m.content}
-                    </div>
+                    {m.card ? (
+                      <ChatCard card={m.card} />
+                    ) : (
+                      <div
+                        className="px-3.5 py-2.5 rounded-2xl text-sm max-w-[85%] leading-relaxed whitespace-pre-wrap"
+                        style={m.role === "user"
+                          ? { background: "rgba(255,255,255,0.08)", color: "#fff" }
+                          : { background: "linear-gradient(150deg, #FFF7ED, #FFFFFF)", color: "#1F2937" }}
+                      >
+                        {m.content}
+                      </div>
+                    )}
                     {m.action && session.isManager && (
                       <button
                         onClick={() => setWizardActive(true)}
@@ -176,6 +191,18 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
                     )}
                   </div>
                 ))
+              )}
+
+              {/* Proactive snapshot — today's shift, hours this week, tips today,
+                  shown as cards immediately with zero typing. This is what makes
+                  opening the assistant feel like a mini dashboard, not a blank
+                  chat prompt waiting for a question. */}
+              {showQuickActions && snapshot && (
+                <div className="flex flex-col items-end gap-2 mt-1">
+                  <ChatCard card={snapshot.shift} />
+                  {snapshot.hours && <ChatCard card={snapshot.hours} />}
+                  {snapshot.tips && <ChatCard card={snapshot.tips} />}
+                </div>
               )}
 
               {/* Quick-action grid — a small "app menu" for browsing what the

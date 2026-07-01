@@ -6,7 +6,7 @@ import { calcHours } from "@/lib/shiftData";
 export const CURRENT_WEEK_START = "2026-06-21";
 export const NEXT_WEEK_START = "2026-06-28";
 export const TODAY_DAY_OF_WEEK = 2; // Tuesday, 23.6
-const TODAY_DATE = "2026-06-23";
+export const TODAY_DATE = "2026-06-23";
 
 type ToolCtx = { businessId: string; personId: string; isManager: boolean };
 
