@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { verifyPassword } from "@/lib/passwords";
+import { rateLimit, clientIp } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
     const { phone, password } = await req.json();
     if (!phone?.trim() || !password) {
       return NextResponse.json({ error: "יש למלא טלפון וסיסמה" }, { status: 400 });
+    }
+
+    // Guards against brute-forcing the 6-digit temp passwords / password enumeration.
+    const limited = rateLimit(`login:${clientIp(req)}:${phone.trim()}`, 8, 5 * 60 * 1000);
+    if (!limited.ok) {
+      return NextResponse.json({ error: "יותר מדי ניסיונות, נסה שוב בעוד כמה דקות" }, { status: 429 });
     }
 
     const supabase = createServiceRoleClient();

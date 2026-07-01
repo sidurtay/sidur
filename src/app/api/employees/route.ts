@@ -4,6 +4,7 @@ import { paletteFor, initialsFor, sinceLabel } from "@/lib/avatarPalette";
 import { sendMail } from "@/lib/mailer";
 import { MINIMUM_WAGE_HOURLY } from "@/lib/minimumWage";
 import { isManager, canAddEmployee } from "@/lib/auth/permissions";
+import { EMPLOYEE_LIMIT } from "@/lib/plans";
 
 function credentialsEmailHtml(employeeName: string, businessName: string, phone: string, tempPassword: string) {
   return `
@@ -20,8 +21,14 @@ function credentialsEmailHtml(employeeName: string, businessName: string, phone:
   `;
 }
 
+// 8 chars from a 31-char alphabet (~39 bits of entropy) — combined with the
+// login rate limiter, brute-forcing this is no longer practical. Ambiguous
+// characters (0/O, 1/I/l) are excluded so it's still easy to type from a phone.
+const TEMP_PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function generateTempPassword() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  let out = "";
+  for (let i = 0; i < 8; i++) out += TEMP_PASSWORD_ALPHABET[Math.floor(Math.random() * TEMP_PASSWORD_ALPHABET.length)];
+  return out;
 }
 
 export async function GET(req: NextRequest) {
@@ -76,6 +83,12 @@ export async function POST(req: NextRequest) {
       .select("id", { count: "exact", head: true })
       .eq("business_id", businessId)
       .eq("role_type", "employee");
+
+    const { data: biz } = await supabase.from("businesses").select("plan").eq("id", businessId).maybeSingle();
+    const limit = EMPLOYEE_LIMIT[biz?.plan || "starter"];
+    if (limit !== null && limit !== undefined && (count || 0) >= limit) {
+      return NextResponse.json({ error: `הגעת למגבלת ${limit} העובדים של התוכנית שלך. שדרג תוכנית כדי להוסיף עוד.` }, { status: 403 });
+    }
 
     const palette = paletteFor(count || 0);
     const tempPassword = generateTempPassword();

@@ -117,12 +117,24 @@ export async function PATCH(req: NextRequest) {
       if (!finalProposed) {
         return NextResponse.json({ error: "לא נבחר עובד מחליף" }, { status: 400 });
       }
+      // Guard against assigning a person from a different business — proposedPerson
+      // arrives from the request body and must be re-checked server-side.
+      const { data: proposedPersonRow } = await supabase
+        .from("people")
+        .select("id")
+        .eq("id", finalProposed)
+        .eq("business_id", existing.business_id)
+        .maybeSingle();
+      if (!proposedPersonRow) {
+        return NextResponse.json({ error: "העובד המוצע לא שייך לעסק הזה" }, { status: 400 });
+      }
       const { error: assignError } = await supabase
         .from("schedule_assignments")
         .update({ person_id: finalProposed })
         .eq("id", existing.assignment_id);
       if (assignError) {
-        return NextResponse.json({ error: assignError.message }, { status: 500 });
+        console.error("swap approve assign error:", assignError.message);
+        return NextResponse.json({ error: "האישור נכשל, נסה שוב" }, { status: 500 });
       }
     }
 
@@ -131,7 +143,8 @@ export async function PATCH(req: NextRequest) {
       .update({ status: approve ? "approved" : "denied", proposed_person: finalProposed })
       .eq("id", id);
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("swap status update error:", error.message);
+      return NextResponse.json({ error: "העדכון נכשל, נסה שוב" }, { status: 500 });
     }
 
     sendPushToPerson(existing.requested_by, {

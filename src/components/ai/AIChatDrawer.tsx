@@ -59,11 +59,11 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
         if (res.success && res.history.length > 0) {
           setMessages(res.history.map((h: { role: "user" | "assistant"; content: string; card?: AnyCard }) => ({ role: h.role, content: h.content, card: h.card })));
         } else {
-          setMessages([{ role: "assistant", content: `היי ${session.name.split(" ")[0]}! 👋 איך אפשר לעזור?` }]);
+          setMessages([{ role: "assistant", content: `היי ${session.name.split(" ")[0]}! 👋 אני סיד, איך אפשר לעזור?` }]);
         }
       })
       .catch(() => {
-        if (!sentRef.current) setMessages([{ role: "assistant", content: "היי! איך אפשר לעזור? 👋" }]);
+        if (!sentRef.current) setMessages([{ role: "assistant", content: "היי! אני סיד, איך אפשר לעזור? 👋" }]);
       })
       .finally(() => setLoadingHistory(false));
   }, [session.businessId, session.personId, session.name]);
@@ -142,7 +142,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
           </button>
           <div className="flex items-center gap-2 flex-row">
             <div className="text-right">
-              <p className="text-sm font-bold" style={{ color: "#fff" }}>עוזר AI · Sidur</p>
+              <p className="text-sm font-bold" style={{ color: "#fff" }}>סיד · העוזר שלך</p>
               <p className="text-[10px] flex items-center gap-1 justify-end" style={{ color: "rgba(255,255,255,0.45)" }}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#34D399" }} />
                 מחובר ומוכן לעזור

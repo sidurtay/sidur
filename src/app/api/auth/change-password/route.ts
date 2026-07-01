@@ -10,13 +10,28 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createServiceRoleClient();
+
+    // This endpoint is only for the forced first-login flow — it must not double as
+    // a general "reset anyone's password by ID" tool. Only proceed if the target
+    // account is actually still pending its first password change.
+    const { data: person } = await supabase
+      .from("people")
+      .select("must_change_password")
+      .eq("id", personId)
+      .maybeSingle();
+
+    if (!person?.must_change_password) {
+      return NextResponse.json({ error: "אין הרשאה לפעולה זו" }, { status: 403 });
+    }
+
     const { error } = await supabase
       .from("people")
       .update({ password_hash: hashPassword(newPassword), temp_password: null, must_change_password: false })
       .eq("id", personId);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("change-password update error:", error.message);
+      return NextResponse.json({ error: "שמירה נכשלה, נסה שוב" }, { status: 500 });
     }
     return NextResponse.json({ success: true });
   } catch (err) {

@@ -30,21 +30,24 @@ export async function POST(req: NextRequest) {
       .select()
       .single();
     if (bizError || !business) {
-      return NextResponse.json({ error: bizError?.message || "יצירת העסק נכשלה" }, { status: 500 });
+      console.error("register business insert error:", bizError?.message);
+      return NextResponse.json({ error: "יצירת העסק נכשלה" }, { status: 500 });
     }
 
     const { error: hoursError } = await supabase
       .from("business_hours")
       .insert(buildDefaultHours(bizType).map(h => ({ ...h, business_id: business.id })));
     if (hoursError) {
-      return NextResponse.json({ error: hoursError.message }, { status: 500 });
+      console.error("register hours insert error:", hoursError.message);
+      return NextResponse.json({ error: "יצירת שעות הפעילות נכשלה" }, { status: 500 });
     }
 
     const { error: rolesError } = await supabase
       .from("roles")
       .insert(rolePresetFor(bizType).map(r => ({ ...r, business_id: business.id })));
     if (rolesError) {
-      return NextResponse.json({ error: rolesError.message }, { status: 500 });
+      console.error("register roles insert error:", rolesError.message);
+      return NextResponse.json({ error: "יצירת התפקידים נכשלה" }, { status: 500 });
     }
 
     const { data: manager, error: personError } = await supabase
@@ -60,8 +63,9 @@ export async function POST(req: NextRequest) {
       .select()
       .single();
     if (personError || !manager) {
-      const message = personError?.code === "23505" ? "מספר הטלפון הזה כבר רשום במערכת" : personError?.message;
-      return NextResponse.json({ error: message || "יצירת המנהל נכשלה" }, { status: 500 });
+      if (personError && personError.code !== "23505") console.error("register person insert error:", personError.message);
+      const message = personError?.code === "23505" ? "מספר הטלפון הזה כבר רשום במערכת" : "יצירת המנהל נכשלה";
+      return NextResponse.json({ error: message }, { status: 500 });
     }
 
     // Link manager phone → business in the multi-branch table

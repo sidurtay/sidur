@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { canEditSchedule } from "@/lib/auth/permissions";
 
+async function belongsToBusiness(supabase: ReturnType<typeof createServiceRoleClient>, personId: string, businessId: string) {
+  const { data } = await supabase.from("people").select("id").eq("id", personId).eq("business_id", businessId).maybeSingle();
+  return !!data;
+}
+
 function mapRow(row: {
   id: string; day_of_week: number; person_id: string; role_key: string; home_role_key: string | null;
   time_in: string; time_out: string;
@@ -61,6 +66,9 @@ export async function POST(req: NextRequest) {
     if (!(await canEditSchedule(supabase, businessId, callerId))) {
       return NextResponse.json({ error: "אין הרשאה לערוך את הסידור" }, { status: 403 });
     }
+    if (!(await belongsToBusiness(supabase, personId, businessId))) {
+      return NextResponse.json({ error: "העובד לא שייך לעסק הזה" }, { status: 400 });
+    }
 
     const { data, error } = await supabase
       .from("schedule_assignments")
@@ -102,6 +110,9 @@ export async function PATCH(req: NextRequest) {
     }
     if (!(await canEditSchedule(supabase, existing.business_id, callerId))) {
       return NextResponse.json({ error: "אין הרשאה לערוך את הסידור" }, { status: 403 });
+    }
+    if (fields.personId !== undefined && !(await belongsToBusiness(supabase, fields.personId, existing.business_id))) {
+      return NextResponse.json({ error: "העובד לא שייך לעסק הזה" }, { status: 400 });
     }
 
     const update: Record<string, unknown> = {};

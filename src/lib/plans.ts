@@ -13,6 +13,13 @@ export type Plan = {
   missing: string[];
 };
 
+// null = unlimited. Kept in sync with the "עד X עובדים" copy in each plan's features list.
+export const EMPLOYEE_LIMIT: Record<string, number | null> = {
+  starter: 10,
+  plus: 20,
+  business: null,
+};
+
 export const PLANS: Plan[] = [
   {
     key: "starter",

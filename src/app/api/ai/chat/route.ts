@@ -5,6 +5,7 @@ import * as tools from "@/lib/ai/tools";
 import { isManager as checkIsManager } from "@/lib/auth/permissions";
 import { askClaude } from "@/lib/ai/claude";
 import { initialsFor, type AnyCard } from "@/lib/ai/cards";
+import { rateLimit } from "@/lib/rateLimit";
 
 const HISTORY_LIMIT = 16;
 
@@ -26,9 +27,9 @@ async function buildReply(
   switch (match.intent) {
     case "greeting":
       return pick([
-        `היי ${firstName}! 👋 במה אפשר לעזור — שעות, משמרות, מי עובד היום? תגיד/י ואני אבדוק.`,
-        `שלום ${firstName} 😊 במה אפשר לעזור — אפשר לשאול על שעות עבודה, משמרות קרובות, או לבקש חופש/החלפה.`,
-        `הי ${firstName}! במה אפשר לעזור הפעם?`,
+        `היי ${firstName}! 👋 זה סיד — במה אפשר לעזור? שעות, משמרות, מי עובד היום? תגיד/י ואני אבדוק.`,
+        `שלום ${firstName} 😊 אני סיד — אפשר לשאול אותי על שעות עבודה, משמרות קרובות, או לבקש חופש/החלפה.`,
+        `הי ${firstName}! סיד כאן, במה אפשר לעזור הפעם?`,
       ]);
 
     case "thanks":
@@ -204,7 +205,10 @@ async function buildReply(
       // (read-only tools only; see claude.ts) before falling back to the
       // canned "didn't understand" message. Returns null if no API key is
       // configured yet, or the call fails, so this is purely additive.
-      const claudeReply = await askClaude(message, ctx, history);
+      // Claude calls cost money per request — cap how often one person can trigger
+      // the fallback so a spam script can't run up an unbounded API bill.
+      const limited = rateLimit(`ai-claude:${ctx.personId}`, 20, 60 * 60 * 1000);
+      const claudeReply = limited.ok ? await askClaude(message, ctx, history) : null;
       if (claudeReply) return claudeReply;
 
       return pick([
