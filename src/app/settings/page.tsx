@@ -5,11 +5,9 @@ import { Store, Clock, Users, Plus, X, AlertTriangle, Check, Receipt, ShieldChec
 import InstagramIcon from "@/components/InstagramIcon";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import PasskeyCard from "@/components/PasskeyCard";
+import SecurityRow from "@/components/SecurityRow";
 import ProfileCard from "@/components/ProfileCard";
-import PasswordChangeCard from "@/components/PasswordChangeCard";
 import PayrollExportCard from "@/components/PayrollExportCard";
-import PushNotificationCard from "@/components/PushNotificationCard";
 import FaqAccordion from "@/components/FaqAccordion";
 import EmployeeSettings from "./EmployeeSettings";
 import Card from "@/components/ui/Card";
@@ -516,14 +514,8 @@ export default function Settings() {
           />
         )}
 
-        {/* Change password via emailed code */}
-        {businessId && personId && <PasswordChangeCard businessId={businessId} personId={personId} />}
-
-        {/* Fingerprint / Face ID login for this device */}
-        {businessId && personId && <PasskeyCard businessId={businessId} personId={personId} />}
-
-        {/* Real push notifications outside the app */}
-        {businessId && personId && <PushNotificationCard businessId={businessId} personId={personId} />}
+        {/* Fingerprint login + push notifications, one minimal split row */}
+        {businessId && personId && <SecurityRow businessId={businessId} personId={personId} />}
 
         {/* Clock in/out via app */}
         <div>

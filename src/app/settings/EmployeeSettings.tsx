@@ -4,10 +4,8 @@ import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import PasskeyCard from "@/components/PasskeyCard";
-import PushNotificationCard from "@/components/PushNotificationCard";
+import SecurityRow from "@/components/SecurityRow";
 import ProfileCard from "@/components/ProfileCard";
-import PasswordChangeCard from "@/components/PasswordChangeCard";
 import FaqAccordion from "@/components/FaqAccordion";
 
 type Profile = { name: string; email: string; phone: string; initials: string; color: string; textColor: string; avatarUrl?: string };
@@ -57,9 +55,7 @@ export default function EmployeeSettings() {
           <ProfileCard businessId={businessId} personId={personId} profile={profile} onSaved={handleProfileSaved} />
         )}
 
-        {businessId && personId && <PasswordChangeCard businessId={businessId} personId={personId} />}
-        {businessId && personId && <PasskeyCard businessId={businessId} personId={personId} />}
-        {businessId && personId && <PushNotificationCard businessId={businessId} personId={personId} />}
+        {businessId && personId && <SecurityRow businessId={businessId} personId={personId} />}
 
         <FaqAccordion isManager={false} />
 
