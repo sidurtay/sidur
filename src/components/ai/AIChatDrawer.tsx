@@ -1,22 +1,17 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { X, Send, ArrowLeft } from "lucide-react";
-import { EXAMPLE_PROMPTS } from "@/lib/ai/intentMatcher";
+import { X, Send, ArrowLeft, Clock, Coins, ArrowLeftRight, ShieldCheck, LucideIcon } from "lucide-react";
+import { QUICK_ACTION_GROUPS } from "@/lib/ai/intentMatcher";
 import AiWalker from "./AiWalker";
 import ScheduleBuilderChat from "./ScheduleBuilderChat";
 
-// A fresh random set of suggestion chips each time the drawer opens — keeps
-// pointing people at things the assistant can answer instead of just the
-// same 4 every time.
-function pickRandomPrompts(count: number) {
-  const pool = [...EXAMPLE_PROMPTS];
-  const picked: string[] = [];
-  while (picked.length < count && pool.length > 0) {
-    picked.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
-  }
-  return picked;
-}
+const GROUP_ICON: Record<string, LucideIcon> = {
+  hours: Clock,
+  tips: Coins,
+  leave: ArrowLeftRight,
+  manager: ShieldCheck,
+};
 
 type Action = { label: string; href: string };
 type Msg = { role: "user" | "assistant"; content: string; action?: Action };
@@ -35,7 +30,9 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
   const bottomRef = useRef<HTMLDivElement>(null);
   const sentRef = useRef(false);
   const sentInitialRef = useRef(false);
-  const [suggestedPrompts] = useState(() => pickRandomPrompts(4));
+
+  const groups = QUICK_ACTION_GROUPS.filter(g => !g.managerOnly || session.isManager);
+  const [activeGroup, setActiveGroup] = useState(groups[0]?.key || "");
 
   useEffect(() => {
     // Guards against a race where the user sends a message (optimistically appended
@@ -100,7 +97,10 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
     }
   }
 
-  const showSuggestions = !loadingHistory && !loading;
+  // The quick-action grid only makes sense before a real conversation starts —
+  // once the person has sent something, this becomes a normal chat thread.
+  const showQuickActions = !loadingHistory && !loading && messages.length <= 1;
+  const activeGroupData = groups.find(g => g.key === activeGroup);
 
   return (
     <div
@@ -178,14 +178,34 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
                 ))
               )}
 
-              {showSuggestions && (
-                <div className="flex flex-col items-end gap-1.5 mt-1">
-                  <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>אפשר למשל לשאול:</p>
+              {/* Quick-action grid — a small "app menu" for browsing what the
+                  assistant can do, instead of a flat row of random chips. */}
+              {showQuickActions && activeGroupData && (
+                <div className="flex flex-col gap-2.5 mt-1">
+                  <p className="text-[10px] text-right" style={{ color: "rgba(255,255,255,0.4)" }}>או בחר/י נושא:</p>
+
                   <div className="flex flex-row flex-wrap gap-1.5 justify-end">
-                    {suggestedPrompts.map(p => (
+                    {groups.map(g => {
+                      const GroupIcon = GROUP_ICON[g.key];
+                      const active = g.key === activeGroup;
+                      return (
+                        <button key={g.key} onClick={() => setActiveGroup(g.key)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold flex-row"
+                          style={active
+                            ? { background: "#F97316", color: "#fff" }
+                            : { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                          {GroupIcon && <GroupIcon size={12} />}
+                          {g.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {activeGroupData.prompts.map(p => (
                       <button key={p} onClick={() => send(p)}
-                        className="px-3 py-1.5 rounded-full text-[11px] font-medium"
-                        style={{ background: "rgba(249,115,22,0.12)", color: "#FDBA74", border: "1px solid rgba(249,115,22,0.3)" }}>
+                        className="text-right px-3 py-3 rounded-xl text-xs font-medium leading-snug"
+                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(249,115,22,0.25)", color: "#fff" }}>
                         {p}
                       </button>
                     ))}

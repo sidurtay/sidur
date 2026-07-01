@@ -222,3 +222,32 @@ export const EXAMPLE_PROMPTS = [
   "אני רוצה להחליף משמרת",
   "יש בקשות החלפה פתוחות?",
 ];
+
+// Same prompts as EXAMPLE_PROMPTS, but grouped for the chat drawer's
+// quick-action grid (category tabs + a grid of tappable prompts) instead
+// of one flat row of random chips.
+export type QuickActionGroup = { key: string; label: string; managerOnly?: boolean; prompts: string[] };
+
+export const QUICK_ACTION_GROUPS: QuickActionGroup[] = [
+  {
+    key: "hours",
+    label: "שעות ומשמרות",
+    prompts: ["כמה שעות עבדתי השבוע?", "כמה שעות עבדתי החודש?", "מתי המשמרות הקרובות שלי?", "מי עובד היום?", "מי עובד מחר?"],
+  },
+  {
+    key: "tips",
+    label: "טיפים",
+    prompts: ["כמה טיפים עשיתי השבוע?", "כמה טיפים עשיתי החודש?"],
+  },
+  {
+    key: "leave",
+    label: "חופש והחלפות",
+    prompts: ["אני רוצה לבקש חופש ב-1.7", "אני רוצה להחליף משמרת", "יש בקשות החלפה פתוחות?"],
+  },
+  {
+    key: "manager",
+    label: "ניהול",
+    managerOnly: true,
+    prompts: ["יש בקשות שממתינות לאישור?", "תבנה לי סידור עבודה לשבוע הבא"],
+  },
+];
