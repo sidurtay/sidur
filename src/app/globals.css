@@ -73,6 +73,14 @@
 
 * {
   box-sizing: border-box;
+  /* Mobile Safari/Chrome show a blue overlay on every tap by default — this
+     is very visible on the app's dark surfaces and reads as "the chat is
+     blue" even though no element anywhere sets a blue color. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, a {
+  outline: none;
 }
 
 html {
