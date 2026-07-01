@@ -172,8 +172,9 @@ function Schedule() {
     return (
       <div key={emp.id} className="relative rounded-lg px-2 py-1.5 flex flex-col gap-0.5"
         style={{
-          background: isEmergency ? "var(--amber-light)" : "var(--blue-light)",
-          border: `1px solid ${isEmergency ? "var(--amber-border)" : "var(--blue-border)"}`,
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderInlineEnd: `3px solid ${isEmergency ? "var(--amber)" : "var(--blue)"}`,
         }}>
         {/* Top row — name + tiny remove/swap icons, no separate header band */}
         <div className="flex items-center justify-between gap-1 flex-row">
@@ -190,7 +191,7 @@ function Schedule() {
               </button>
             </div>
           )}
-          <p className="text-[11px] font-bold truncate" style={{ color: "var(--navy)" }}>{emp.name}</p>
+          <p className="text-[11px] font-bold truncate" style={{ color: "var(--text-main)" }}>{emp.name}</p>
         </div>
 
         {/* Time row — click to edit (manager/permitted only) */}
@@ -516,14 +517,14 @@ function Schedule() {
           return (
             <div key={key}>
               <div className="flex items-center justify-between gap-1.5 mb-2 px-3 py-1.5 rounded-lg"
-                style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)" }}>
-                <ChevronDown size={13} style={{ color: "var(--blue)", opacity: 0.6 }} />
+                style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <ChevronDown size={13} style={{ color: "var(--text-secondary)" }} />
                 <div className="flex items-center gap-1.5 flex-row">
                   {allAssigned.length > 0 && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
-                      style={{ background: "var(--navy)", color: "#fff" }}>{allAssigned.length}</span>
+                      style={{ background: "var(--blue)", color: "#fff" }}>{allAssigned.length}</span>
                   )}
-                  <p className="text-xs font-bold" style={{ color: "var(--navy)" }}>{label}</p>
+                  <p className="text-xs font-bold" style={{ color: "var(--text-main)" }}>{label}</p>
                 </div>
               </div>
 
@@ -562,7 +563,7 @@ function Schedule() {
               {anyAddable && canEditSchedule && (
                 <button onClick={() => setAddRole(key)}
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl flex-row"
-                  style={{ border: "1.5px dashed var(--blue-border)", background: "var(--blue-light)" }}>
+                  style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
                   <Plus size={13} style={{ color: "var(--blue)" }} />
                   <span className="text-xs font-semibold" style={{ color: "var(--blue)" }}>הוסף ל{label}</span>
                 </button>
@@ -570,10 +571,9 @@ function Schedule() {
 
               {canEditSchedule && (
                 <button onClick={() => publishOpenShift(key)}
-                  className="w-full flex items-center justify-center gap-2 py-2 mt-1.5 rounded-xl flex-row"
-                  style={{ border: "1.5px dashed var(--green-border)", background: "var(--green-light)" }}>
-                  <Plus size={12} style={{ color: "var(--green)" }} />
-                  <span className="text-[11px] font-semibold" style={{ color: "var(--green)" }}>פרסם משמרת פתוחה</span>
+                  className="w-full flex items-center justify-center gap-1.5 py-2 mt-1 rounded-xl flex-row">
+                  <Plus size={11} style={{ color: "var(--text-secondary)" }} />
+                  <span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>פרסם משמרת פתוחה</span>
                 </button>
               )}
 

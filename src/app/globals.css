@@ -44,23 +44,23 @@
    its light-mode value it nearly disappears against the new dark surfaces. */
 [data-theme="dark"] {
   --navy: #404040;
-  --blue-light: rgba(249, 115, 22, 0.14);
-  --blue-border: rgba(249, 115, 22, 0.35);
+  --blue-light: rgba(249, 115, 22, 0.16);
+  --blue-border: rgba(249, 115, 22, 0.4);
   --green: #4ADE80;
-  --green-light: rgba(74, 222, 128, 0.14);
-  --green-border: rgba(74, 222, 128, 0.35);
+  --green-light: rgba(74, 222, 128, 0.16);
+  --green-border: rgba(74, 222, 128, 0.4);
   --amber: #FBBF24;
-  --amber-light: rgba(251, 191, 36, 0.14);
-  --amber-border: rgba(251, 191, 36, 0.35);
+  --amber-light: rgba(251, 191, 36, 0.16);
+  --amber-border: rgba(251, 191, 36, 0.4);
   --red: #F87171;
-  --red-light: rgba(248, 113, 113, 0.14);
-  --red-border: rgba(248, 113, 113, 0.35);
-  --gray-bg: #0A0A0A;
-  --border: #262626;
+  --red-light: rgba(248, 113, 113, 0.16);
+  --red-border: rgba(248, 113, 113, 0.4);
+  --gray-bg: #121212;
+  --border: #2A2A2A;
   --text-main: #FAFAFA;
   --text-secondary: #A3A3A3;
-  --surface: #171717;
-  --nav-glass-bg: rgba(23, 23, 23, 0.78);
+  --surface: #1C1C1C;
+  --nav-glass-bg: rgba(28, 28, 28, 0.78);
   --nav-glass-border: rgba(255, 255, 255, 0.08);
 }
 
