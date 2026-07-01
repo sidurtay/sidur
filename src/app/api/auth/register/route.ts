@@ -1,24 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { hashPassword } from "@/lib/passwords";
+import { rolePresetFor, hoursPresetFor } from "@/lib/businessTypePresets";
 
-const DEFAULT_HOURS = [
-  { day_of_week: 0, is_open: true, open_time: "08:00", close_time: "23:00" },
-  { day_of_week: 1, is_open: true, open_time: "08:00", close_time: "23:00" },
-  { day_of_week: 2, is_open: true, open_time: "08:00", close_time: "23:00" },
-  { day_of_week: 3, is_open: true, open_time: "08:00", close_time: "23:00" },
-  { day_of_week: 4, is_open: true, open_time: "08:00", close_time: "00:00" },
-  { day_of_week: 5, is_open: true, open_time: "08:00", close_time: "00:00" },
-  { day_of_week: 6, is_open: false, open_time: null, close_time: null },
-];
-
-const DEFAULT_ROLES = [
-  { key: "אחמ\"ש", label: "אחמ\"ש" },
-  { key: "מלצרים", label: "מלצרים" },
-  { key: "מטבח", label: "מטבח" },
-  { key: "בר", label: "בר" },
-  { key: "שטיפה", label: "שטיפה" },
-];
+// Seeded immediately at signup so the account is never in a broken state —
+// the post-signup onboarding wizard (/onboarding) lets the manager override
+// all of this, but these are business-type-appropriate starting points
+// instead of one hardcoded restaurant-shaped default for every business.
+function buildDefaultHours(bizType: string | null | undefined) {
+  const preset = hoursPresetFor(bizType);
+  return Array.from({ length: 7 }, (_, day) => {
+    const open = preset.openDays.includes(day);
+    return { day_of_week: day, is_open: open, open_time: open ? preset.from : null, close_time: open ? preset.to : null };
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,14 +35,14 @@ export async function POST(req: NextRequest) {
 
     const { error: hoursError } = await supabase
       .from("business_hours")
-      .insert(DEFAULT_HOURS.map(h => ({ ...h, business_id: business.id })));
+      .insert(buildDefaultHours(bizType).map(h => ({ ...h, business_id: business.id })));
     if (hoursError) {
       return NextResponse.json({ error: hoursError.message }, { status: 500 });
     }
 
     const { error: rolesError } = await supabase
       .from("roles")
-      .insert(DEFAULT_ROLES.map(r => ({ ...r, business_id: business.id })));
+      .insert(rolePresetFor(bizType).map(r => ({ ...r, business_id: business.id })));
     if (rolesError) {
       return NextResponse.json({ error: rolesError.message }, { status: 500 });
     }

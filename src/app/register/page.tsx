@@ -87,7 +87,7 @@ function Register() {
       localStorage.setItem("shiftpro_session", JSON.stringify({
         businessId: data.businessId, personId: data.personId,
         businessName: data.businessName, name: data.name, phone: data.phone, email, password, plan,
-        loginAt: Date.now(), role: "manager",
+        bizType, loginAt: Date.now(), role: "manager",
       }));
       localStorage.setItem("shiftpro_business_config", JSON.stringify({
         permanent: { ...DEFAULT_CONFIG, bizName, initialized: true },
@@ -362,11 +362,11 @@ function Register() {
             {/* Next steps */}
             <div className="w-full max-w-xs rounded-2xl p-4 mb-6 text-right"
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <p className="text-xs font-bold text-white mb-3">3 דברים ראשונים:</p>
+              <p className="text-xs font-bold text-white mb-3">עוד 2 דקות ומוכנים:</p>
               {[
-                { Icon: Users,        text: "הוסף את העובדים שלך" },
-                { Icon: CalendarDays, text: "הגדר ימי ושעות פעילות" },
-                { Icon: Bot,          text: "תן ל-AI לבנות את הסידור הראשון" },
+                { Icon: CalendarDays, text: "שעות פעילות ומשמרות" },
+                { Icon: Users,        text: "התאמת התפקידים לעסק שלך" },
+                { Icon: Bot,          text: "אז — AI בונה את הסידור הראשון" },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3 flex-row py-2.5"
                   style={{ borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.07)" : "none" }}>
@@ -379,10 +379,10 @@ function Register() {
               ))}
             </div>
 
-            <button onClick={() => router.replace("/dashboard")}
+            <button onClick={() => router.replace("/onboarding")}
               className="w-full max-w-xs py-4 rounded-2xl text-base font-bold text-white"
               style={{ background: "var(--blue)", boxShadow: "0 8px 24px rgba(249,115,22,0.4)" }}>
-              כניסה לאפליקציה →
+              בואו נכיר את העסק שלך →
             </button>
           </div>
         </div>
