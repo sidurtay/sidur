@@ -55,7 +55,7 @@ export default function ChangePassword() {
         </div>
         <p className="text-white text-xl font-bold">כניסה ראשונה</p>
         <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>
-          {name ? `שלום ${name} 👋` : "שלום!"} בחר סיסמה אישית
+          {name ? `שלום ${name}` : "שלום!"} בחר סיסמה אישית
         </p>
       </div>
 
@@ -121,7 +121,7 @@ export default function ChangePassword() {
 
           <button onClick={handleSave} disabled={loading}
             className="w-full py-3.5 rounded-xl text-sm font-bold text-white"
-            style={{ background: loading ? "#ADA89D" : "var(--navy)" }}>
+            style={{ background: loading ? "var(--border)" : "var(--navy)" }}>
             {loading ? "שומר..." : "שמור וכנס לאפליקציה"}
           </button>
         </div>

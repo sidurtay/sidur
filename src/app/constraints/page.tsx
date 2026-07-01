@@ -26,10 +26,10 @@ const statusLabels: Record<DayStatus, string> = {
 };
 
 const statusColors: Record<DayStatus, { bg: string; border: string; text: string }> = {
-  all: { bg: "var(--green-light)", border: "#A8D9BB", text: "var(--green)" },
+  all: { bg: "var(--green-light)", border: "var(--green-border)", text: "var(--green)" },
   morning: { bg: "var(--blue-light)", border: "var(--blue-border)", text: "var(--blue)" },
   evening: { bg: "var(--gray-bg)", border: "var(--text-secondary)", text: "var(--text-main)" },
-  off: { bg: "var(--red-light)", border: "#EFB3B3", text: "var(--red)" },
+  off: { bg: "var(--red-light)", border: "var(--red-border)", text: "var(--red)" },
 };
 
 const shortLabels: Record<DayStatus, string> = { all: "כל היום", morning: "בוקר", evening: "ערב", off: "לא זמין" };
@@ -230,7 +230,7 @@ function EmployeeConstraints() {
 
         <button onClick={handleSubmit} disabled={submitting}
           className="w-full py-3.5 rounded-xl text-sm font-semibold text-white"
-          style={{ background: submitting ? "#ADA89D" : "var(--navy)" }}>
+          style={{ background: submitting ? "var(--border)" : "var(--navy)" }}>
           {submitting ? "שולח..." : "שלח אילוצים למנהל"}
         </button>
       </div>

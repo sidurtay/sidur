@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, ArrowRight, Phone, Lock, Fingerprint } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Phone, Lock, Fingerprint, Check } from "lucide-react";
 import Card from "@/components/ui/Card";
 
 type LoginSuccessData = {
@@ -31,13 +31,18 @@ export default function Login() {
   const [passkeyBusy,  setPasskeyBusy]  = useState(false);
   const [forgotBusy,   setForgotBusy]   = useState(false);
   const [forgotSent,   setForgotSent]   = useState(false);
+  const [remember,     setRemember]     = useState(true);
 
   useEffect(() => {
     const savedPhone = localStorage.getItem("shiftpro_webauthn_phone");
-    if (!savedPhone) return;
-    import("@simplewebauthn/browser").then(({ browserSupportsWebAuthn }) => {
-      if (browserSupportsWebAuthn()) setPasskeyPhone(savedPhone);
-    });
+    if (savedPhone) {
+      import("@simplewebauthn/browser").then(({ browserSupportsWebAuthn }) => {
+        if (browserSupportsWebAuthn()) setPasskeyPhone(savedPhone);
+      });
+    }
+    const rememberedPhone = localStorage.getItem("shiftpro_remembered_phone");
+    if (rememberedPhone) setPhone(rememberedPhone);
+    else setRemember(false);
   }, []);
 
   function storeSessionAndRedirect(data: LoginSuccessData) {
@@ -50,6 +55,8 @@ export default function Login() {
     if (data.businessConfig) {
       localStorage.setItem("shiftpro_business_config", JSON.stringify({ permanent: data.businessConfig }));
     }
+    if (remember) localStorage.setItem("shiftpro_remembered_phone", data.phone);
+    else localStorage.removeItem("shiftpro_remembered_phone");
     router.replace(data.mustChangePassword ? "/change-password" : "/dashboard");
   }
 
@@ -220,6 +227,28 @@ export default function Login() {
             </div>
           </div>
 
+          <div className="flex items-center justify-between flex-row">
+            {forgotSent ? (
+              <p className="text-xs" style={{ color: "var(--green)" }}>סיסמה זמנית נשלחה</p>
+            ) : (
+              <button onClick={handleForgotPassword} disabled={forgotBusy}
+                className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                {forgotBusy ? "שולח..." : "שכחתי סיסמה"}
+              </button>
+            )}
+            <button onClick={() => setRemember(v => !v)} type="button"
+              className="flex items-center gap-1.5 flex-row">
+              <span className="text-xs" style={{ color: "var(--text-secondary)" }}>זכור אותי</span>
+              <span className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-colors"
+                style={{
+                  background: remember ? "var(--blue)" : "transparent",
+                  border: `1.5px solid ${remember ? "var(--blue)" : "var(--border)"}`,
+                }}>
+                {remember && <Check size={11} color="white" strokeWidth={3} />}
+              </span>
+            </button>
+          </div>
+
           {error && (
             <p className="text-xs text-center font-medium" style={{ color: "var(--red)" }}>{error}</p>
           )}
@@ -227,22 +256,11 @@ export default function Login() {
           <button onClick={handleLogin} disabled={loading}
             className="w-full py-3.5 rounded-2xl text-sm font-bold text-white mt-1 transition-opacity"
             style={{
-              background: loading ? "#9CA3AF" : "var(--navy)",
+              background: loading ? "var(--border)" : "var(--navy)",
               boxShadow: loading ? "none" : "0 8px 20px -6px rgba(20,24,31,0.4)",
             }}>
             {loading ? "מתחבר..." : "כניסה"}
           </button>
-
-          {forgotSent ? (
-            <p className="text-xs text-center" style={{ color: "var(--green)" }}>
-              אם הטלפון רשום במערכת, שלחנו אליו מייל עם סיסמה זמנית 📨
-            </p>
-          ) : (
-            <button onClick={handleForgotPassword} disabled={forgotBusy}
-              className="text-xs text-center" style={{ color: "var(--text-secondary)" }}>
-              {forgotBusy ? "שולח..." : "שכחתי סיסמה"}
-            </button>
-          )}
         </Card>
 
         <button onClick={() => router.push("/register")}

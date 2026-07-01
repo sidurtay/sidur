@@ -82,7 +82,7 @@ export default function BiometricDevicePage() {
           <div className="absolute -left-4 top-10 rounded-xl px-2.5 py-1.5 flex items-center gap-1 flex-row shadow-lg"
             style={{ background: "var(--green)" }}>
             <Check size={12} color="white" />
-            <span className="text-[10px] font-semibold text-white">שירה כהן ✓</span>
+            <span className="text-[10px] font-semibold text-white">שירה כהן</span>
           </div>
           {/* Base/stand */}
           <div className="mx-auto mt-1 rounded-b-lg" style={{ width: 60, height: 10, background: "#100F0D" }} />
@@ -155,7 +155,7 @@ export default function BiometricDevicePage() {
             )}
             <button onClick={submit} disabled={!name.trim() || !phone.trim()}
               className="w-full py-3.5 rounded-xl text-sm font-semibold text-white"
-              style={{ background: name.trim() && phone.trim() ? "var(--navy)" : "#ADA89D" }}>
+              style={{ background: name.trim() && phone.trim() ? "var(--navy)" : "var(--border)" }}>
               הרשמה לרשימת ההמתנה
             </button>
           </div>

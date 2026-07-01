@@ -288,7 +288,7 @@ export default function Tips() {
         {/* Past day without data warning */}
         {!isToday && !tips.published && !tips.morningTotal && !tips.eveningTotal && !tips.dailyTotal && (
           <div className="rounded-xl px-3 py-2.5 flex items-center gap-2.5 flex-row"
-            style={{ background: "var(--amber-light)", border: "1px solid #EBC395" }}>
+            style={{ background: "var(--amber-light)", border: "1px solid var(--amber-border)" }}>
             <AlertCircle size={16} style={{ color: "var(--amber)", flexShrink: 0 }} />
             <div className="flex-1 text-right">
               <p className="text-xs font-semibold" style={{ color: "var(--amber)" }}>טיפים לא פורסמו ביום זה</p>
@@ -341,7 +341,7 @@ export default function Tips() {
             </div>
             {dailyNum > 0 && (
               <div className="rounded-xl px-4 py-2.5 text-center"
-                style={{ background: "var(--green-light)", border: "1px solid #A8D9BB" }}>
+                style={{ background: "var(--green-light)", border: "1px solid var(--green-border)" }}>
                 <p className="text-xl font-bold" style={{ color: "var(--green)" }}>₪{dailyNum.toLocaleString()}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{totalCount} עובדים</p>
               </div>
@@ -363,12 +363,12 @@ export default function Tips() {
         {tips.published && !locked && (
           <div className="flex flex-col gap-2">
             <div className="rounded-xl py-3 px-4 flex flex-col gap-1"
-              style={{ background: "var(--green-light)", border: "1px solid #A8D9BB" }}>
+              style={{ background: "var(--green-light)", border: "1px solid var(--green-border)" }}>
               <div className="flex items-center justify-between flex-row">
                 <span className="text-xs font-semibold" style={{ color: "var(--green)" }}>
                   {[...day.morning, ...day.evening].filter((w, i, arr) => arr.findIndex(x => x.name === w.name) === i).length} עובדים קיבלו התראה
                 </span>
-                <span className="text-sm font-semibold" style={{ color: "var(--green)" }}>✓ הטיפים פורסמו</span>
+                <span className="text-sm font-semibold" style={{ color: "var(--green)" }}>הטיפים פורסמו</span>
               </div>
               <div className="flex flex-row flex-wrap gap-1 justify-end">
                 {[...day.morning, ...day.evening]
@@ -455,7 +455,7 @@ function ShiftSection({ label, timeRange, workers, total, onTotal, locked, accen
             <p className="text-sm font-bold" style={{ color: totalNum > 0 ? "var(--green)" : "var(--text-secondary)" }}>
               {totalNum > 0 ? `₪${w.amount.toFixed(0)}` : "—"}
             </p>
-            {totalNum > 0 && <p className="text-[10px]" style={{ color: "#9A9890" }}>{(w.share * 100).toFixed(0)}%</p>}
+            {totalNum > 0 && <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>{(w.share * 100).toFixed(0)}%</p>}
           </div>
           <div className="flex-1 text-right mr-3">
             <div className="flex items-center gap-1.5 justify-end flex-row">
@@ -489,7 +489,7 @@ function WorkerTable({ label, workers, accent }: {
               <p className="text-sm font-bold" style={{ color: w.amount > 0 ? "var(--green)" : "var(--text-secondary)" }}>
                 {w.amount > 0 ? `₪${w.amount.toFixed(0)}` : "—"}
               </p>
-              {w.amount > 0 && <p className="text-[10px]" style={{ color: "#9A9890" }}>{(w.share * 100).toFixed(0)}%</p>}
+              {w.amount > 0 && <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>{(w.share * 100).toFixed(0)}%</p>}
             </div>
             <div className="flex-1 text-right mr-3">
               <div className="flex items-center gap-1.5 justify-end flex-row">

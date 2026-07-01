@@ -49,7 +49,6 @@ export const PLANS: Plan[] = [
     color: "var(--text-secondary)",
     bg: "var(--gray-bg)",
     border: "var(--border)",
-    badge: "הכי פופולרי",
     features: [
       "עד 20 עובדים",
       "כל מה שב-Starter +",
@@ -74,6 +73,7 @@ export const PLANS: Plan[] = [
     color: "var(--blue)",
     bg: "var(--blue-light)",
     border: "var(--blue-border)",
+    badge: "הכי פופולרי",
     features: [
       "עובדים ללא הגבלה",
       "כל מה שב-Essential +",

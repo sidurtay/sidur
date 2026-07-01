@@ -2,26 +2,25 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Check, X, Sparkles, ChevronLeft } from "lucide-react";
+import { ArrowRight, Check, X, Sparkles, ChevronLeft, Coffee, UtensilsCrossed, IceCream2, Beer, Croissant, Scissors, Gem, Dumbbell, Shirt, ShoppingCart, SprayCan, BedDouble, Building2, Lock, Users, CalendarDays, Bot } from "lucide-react";
 import { DEFAULT_CONFIG } from "@/lib/businessConfig";
 import { PLANS } from "@/lib/plans";
-import LogoMark from "@/components/Logo";
 import Image from "next/image";
 
 const BUSINESS_TYPES = [
-  { key: "cafe",       label: "בית קפה",        emoji: "☕" },
-  { key: "restaurant", label: "מסעדה",           emoji: "🍽️" },
-  { key: "icecream",   label: "גלידריה",         emoji: "🍦" },
-  { key: "bar",        label: "בר / פאב",        emoji: "🍺" },
-  { key: "bakery",     label: "מאפייה",          emoji: "🥐" },
-  { key: "barbershop", label: "ספרות",           emoji: "✂️" },
-  { key: "beauty",     label: "סלון יופי",       emoji: "💅" },
-  { key: "gym",        label: "חדר כושר",        emoji: "🏋️" },
-  { key: "clothing",   label: "חנות בגדים",      emoji: "👗" },
-  { key: "grocery",    label: "מכולת / סופר",    emoji: "🛒" },
-  { key: "cleaning",   label: "שירותי ניקיון",   emoji: "🧹" },
-  { key: "hotel",      label: "מלון / צימר",     emoji: "🏨" },
-  { key: "other",      label: "אחר",             emoji: "🏢" },
+  { key: "cafe",       label: "בית קפה",        Icon: Coffee },
+  { key: "restaurant", label: "מסעדה",           Icon: UtensilsCrossed },
+  { key: "icecream",   label: "גלידריה",         Icon: IceCream2 },
+  { key: "bar",        label: "בר / פאב",        Icon: Beer },
+  { key: "bakery",     label: "מאפייה",          Icon: Croissant },
+  { key: "barbershop", label: "ספרות",           Icon: Scissors },
+  { key: "beauty",     label: "סלון יופי",       Icon: Gem },
+  { key: "gym",        label: "חדר כושר",        Icon: Dumbbell },
+  { key: "clothing",   label: "חנות בגדים",      Icon: Shirt },
+  { key: "grocery",    label: "מכולת / סופר",    Icon: ShoppingCart },
+  { key: "cleaning",   label: "שירותי ניקיון",   Icon: SprayCan },
+  { key: "hotel",      label: "מלון / צימר",     Icon: BedDouble },
+  { key: "other",      label: "אחר",             Icon: Building2 },
 ];
 
 type Step = 1 | 2 | 3 | 4;
@@ -112,12 +111,7 @@ function Register() {
               style={{ background: "rgba(255,255,255,0.1)" }}>
               <ArrowRight size={17} color="white" />
             </button>
-            <div className="flex items-center gap-2 flex-row">
-              <p className="text-white font-bold text-sm">Sidur</p>
-              <div className="w-7 h-7 rounded-lg overflow-hidden">
-                <LogoMark size={28} />
-              </div>
-            </div>
+            <p className="text-white font-bold text-sm" style={{ direction: "ltr" }}>Sidur</p>
           </div>
 
           {/* Progress bar */}
@@ -166,13 +160,13 @@ function Register() {
                 <button key={t.key} onClick={() => setBizType(t.key)}
                   className="flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-2xl transition-all"
                   style={{
-                    background: bizType === t.key ? "rgba(249,115,22,0.1)" : "var(--surface)",
-                    border: `1.5px solid ${bizType === t.key ? "#F97316" : "var(--border)"}`,
+                    background: bizType === t.key ? "var(--blue-light)" : "var(--surface)",
+                    border: `1.5px solid ${bizType === t.key ? "var(--blue)" : "var(--border)"}`,
                     boxShadow: bizType === t.key ? "0 0 0 3px rgba(249,115,22,0.12)" : "none",
                   }}>
-                  <span className="text-2xl leading-none">{t.emoji}</span>
+                  <t.Icon size={20} strokeWidth={1.75} style={{ color: bizType === t.key ? "var(--blue)" : "var(--text-secondary)" }} />
                   <span className="text-[10px] font-semibold text-center leading-tight"
-                    style={{ color: bizType === t.key ? "#F97316" : "var(--text-secondary)" }}>
+                    style={{ color: bizType === t.key ? "var(--blue)" : "var(--text-secondary)" }}>
                     {t.label}
                   </span>
                 </button>
@@ -206,27 +200,28 @@ function Register() {
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 className="w-full px-4 py-3.5 rounded-xl text-sm outline-none"
-                style={{ background: "var(--gray-bg)", border: `1px solid ${email && !isValidEmail(email) ? "#EF4444" : "var(--border)"}`, color: "var(--text-main)", direction: "ltr", textAlign: "right" }} />
+                style={{ background: "var(--gray-bg)", border: `1px solid ${email && !isValidEmail(email) ? "var(--red)" : "var(--border)"}`, color: "var(--text-main)", direction: "ltr", textAlign: "right" }} />
               {email.length > 0 && !isValidEmail(email) && (
-                <p className="text-xs text-right mt-1" style={{ color: "#EF4444" }}>כתובת לא תקינה</p>
+                <p className="text-xs text-right mt-1" style={{ color: "var(--red)" }}>כתובת לא תקינה</p>
               )}
             </Field>
             <Field label="סיסמה" sub="לפחות 6 תווים">
               <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className="w-full px-4 py-3.5 rounded-xl text-sm text-right outline-none"
-                style={{ background: "var(--gray-bg)", border: `1px solid ${password && password.length < 6 ? "#EF4444" : "var(--border)"}`, color: "var(--text-main)" }} />
+                style={{ background: "var(--gray-bg)", border: `1px solid ${password && password.length < 6 ? "var(--red)" : "var(--border)"}`, color: "var(--text-main)" }} />
               {password.length > 0 && password.length < 6 && (
-                <p className="text-xs text-right mt-1" style={{ color: "#EF4444" }}>הסיסמה קצרה מדי</p>
+                <p className="text-xs text-right mt-1" style={{ color: "var(--red)" }}>הסיסמה קצרה מדי</p>
               )}
             </Field>
           </div>
 
           {/* Trust note */}
-          <div className="flex items-center gap-2 flex-row px-1">
-            <p className="text-[11px] text-right leading-relaxed flex-1" style={{ color: "var(--text-secondary)" }}>
-              🔒 הפרטים שלך מוצפנים ומאובטחים. לעולם לא נמכור אותם.
+          <div className="flex items-center gap-1.5 flex-row px-1 justify-end">
+            <p className="text-[11px] text-right leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+              הפרטים שלך מוצפנים ומאובטחים. לעולם לא נמכור אותם.
             </p>
+            <Lock size={12} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
           </div>
 
           <Cta onClick={next} disabled={!canNext()}>המשך →</Cta>
@@ -255,19 +250,18 @@ function Register() {
               <button key={p.key} onClick={() => setPlan(p.key)}
                 className="relative w-full rounded-2xl text-right transition-all"
                 style={{
-                  background: isPro ? (selected ? "linear-gradient(145deg,#1C2033,#141820)" : "#1A1F2B") : "var(--surface)",
+                  background: isPro ? "var(--navy)" : "var(--surface)",
                   border: selected
-                    ? isPro ? "1.5px solid #F97316" : "1.5px solid var(--navy)"
+                    ? isPro ? "1.5px solid var(--blue)" : "1.5px solid var(--navy)"
                     : "1.5px solid var(--border)",
                   boxShadow: selected && isPro ? "0 8px 32px rgba(249,115,22,0.2)" : "none",
-                  transform: selected && isPro ? "scale(1.01)" : "none",
                 }}>
 
                 {p.badge && (
                   <div className="absolute -top-3 right-4">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold text-white"
-                      style={{ background: "#F97316", boxShadow: "0 3px 10px rgba(249,115,22,0.4)" }}>
-                      ✦ {p.badge}
+                    <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold text-white flex-row"
+                      style={{ background: "var(--blue)" }}>
+                      <Sparkles size={10} /> {p.badge}
                     </span>
                   </div>
                 )}
@@ -309,10 +303,7 @@ function Register() {
                     {p.features.map(f => (
                       <div key={f} className="flex items-center gap-2 flex-row justify-end">
                         <span className="text-xs" style={{ color: isPro ? "rgba(255,255,255,0.85)" : "var(--text-main)" }}>{f}</span>
-                        <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                          style={{ background: "rgba(74,222,128,0.15)" }}>
-                          <Check size={9} style={{ color: "#4ADE80" }} strokeWidth={3} />
-                        </div>
+                        <Check size={13} style={{ color: "var(--blue)", flexShrink: 0 }} strokeWidth={2.5} />
                       </div>
                     ))}
                     {p.missing.length > 0 && (
@@ -320,10 +311,7 @@ function Register() {
                         {p.missing.map(f => (
                           <div key={f} className="flex items-center gap-2 flex-row justify-end mb-1.5">
                             <span className="text-xs" style={{ color: "var(--text-secondary)", opacity: 0.5 }}>{f}</span>
-                            <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                              style={{ background: "rgba(0,0,0,0.04)" }}>
-                              <span className="text-[8px]" style={{ color: "var(--text-secondary)", opacity: 0.4 }}>✕</span>
-                            </div>
+                            <X size={11} style={{ color: "var(--text-secondary)", opacity: 0.4, flexShrink: 0 }} />
                           </div>
                         ))}
                       </div>
@@ -334,11 +322,11 @@ function Register() {
             );
           })}
 
-          {error && <p className="text-xs text-center font-medium" style={{ color: "#EF4444" }}>{error}</p>}
+          {error && <p className="text-xs text-center font-medium" style={{ color: "var(--red)" }}>{error}</p>}
 
           <button onClick={finish} disabled={loading}
             className="w-full py-4 rounded-2xl text-sm font-bold text-white mt-1"
-            style={{ background: loading ? "#9CA3AF" : "#F97316", boxShadow: loading ? "none" : "0 4px 20px rgba(249,115,22,0.35)" }}>
+            style={{ background: loading ? "var(--border)" : "var(--blue)", boxShadow: loading ? "none" : "0 4px 20px rgba(249,115,22,0.35)" }}>
             {loading ? "יוצר את החשבון שלך..." : `התחל עם ${PLANS.find(p2 => p2.key === plan)?.name} →`}
           </button>
 
@@ -366,7 +354,7 @@ function Register() {
               style={{ background: "rgba(74,222,128,0.15)", color: "#4ADE80", border: "1px solid rgba(74,222,128,0.3)" }}>
               ✓ החשבון נוצר בהצלחה
             </div>
-            <h2 className="text-2xl font-bold text-white mt-3 mb-1">ברוכים הבאים, {managerName.split(" ")[0]}! 🎉</h2>
+            <h2 className="text-2xl font-bold text-white mt-3 mb-1">ברוכים הבאים, {managerName.split(" ")[0]}!</h2>
             <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.55)" }}>
               {bizName} מנוהל עכשיו ב-Sidur
             </p>
@@ -376,13 +364,16 @@ function Register() {
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
               <p className="text-xs font-bold text-white mb-3">3 דברים ראשונים:</p>
               {[
-                { emoji: "👥", text: "הוסף את העובדים שלך" },
-                { emoji: "📅", text: "הגדר ימי ושעות פעילות" },
-                { emoji: "🤖", text: "תן ל-AI לבנות את הסידור הראשון" },
+                { Icon: Users,        text: "הוסף את העובדים שלך" },
+                { Icon: CalendarDays, text: "הגדר ימי ושעות פעילות" },
+                { Icon: Bot,          text: "תן ל-AI לבנות את הסידור הראשון" },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3 flex-row py-2.5"
                   style={{ borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.07)" : "none" }}>
-                  <span className="text-lg">{item.emoji}</span>
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: "rgba(249,115,22,0.15)" }}>
+                    <item.Icon size={14} style={{ color: "#F97316" }} />
+                  </div>
                   <p className="text-sm text-white">{item.text}</p>
                 </div>
               ))}
@@ -390,7 +381,7 @@ function Register() {
 
             <button onClick={() => router.replace("/dashboard")}
               className="w-full max-w-xs py-4 rounded-2xl text-base font-bold text-white"
-              style={{ background: "#F97316", boxShadow: "0 8px 24px rgba(249,115,22,0.4)" }}>
+              style={{ background: "var(--blue)", boxShadow: "0 8px 24px rgba(249,115,22,0.4)" }}>
               כניסה לאפליקציה →
             </button>
           </div>

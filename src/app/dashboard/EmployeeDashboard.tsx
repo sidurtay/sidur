@@ -112,7 +112,7 @@ export default function EmployeeDashboard() {
       <div style={{ background: "var(--navy)" }} className="px-4 pt-12 pb-4">
         <div className="flex items-center justify-between flex-row">
           <div className="text-right">
-            <p className="text-white text-base font-semibold">שלום, {name.split(" ")[0]} 👋</p>
+            <p className="text-white text-base font-semibold">שלום, {name.split(" ")[0]}</p>
             <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>{bizName}</p>
           </div>
           <div className="flex items-center gap-3 flex-row">
@@ -120,7 +120,7 @@ export default function EmployeeDashboard() {
               style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>
               {TODAY_LABEL}
             </span>
-            <Logo size={22} />
+            <Logo size={22} color="#fff" />
           </div>
         </div>
 
@@ -243,7 +243,7 @@ export default function EmployeeDashboard() {
                 <p className="text-sm font-semibold text-right mb-1">{a.title}</p>
                 <p className="text-xs text-right mb-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>{a.text}</p>
                 <div className="flex items-center justify-between flex-row">
-                  <p className="text-[10px]" style={{ color: "#C4C2B8" }}>{a.createdAt}</p>
+                  <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>{a.createdAt}</p>
                   {a.confirmed ? (
                     <span className="flex items-center gap-1 text-xs font-medium" style={{ color: "var(--green)" }}>
                       <CheckCheck size={13} /> אישרת קריאה
@@ -268,7 +268,7 @@ export default function EmployeeDashboard() {
           onClick={() => setSwapPicker(false)}>
           <div className="w-full max-w-lg rounded-t-2xl bg-white" style={{ maxHeight: "75vh", overflowY: "auto", paddingBottom: 24 }}
             onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-3" style={{ background: "#C4C2B8" }} />
+            <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-3" style={{ background: "var(--border)" }} />
             <div className="flex items-center justify-between px-4 mb-3 flex-row">
               <button onClick={() => setSwapPicker(false)}><X size={18} style={{ color: "var(--text-secondary)" }} /></button>
               <p className="text-base font-semibold">בקש החלפה — מי יקח את המשמרת?</p>

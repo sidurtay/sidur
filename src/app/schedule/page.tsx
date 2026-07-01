@@ -173,7 +173,7 @@ function Schedule() {
       <div key={emp.id} className="relative rounded-lg px-2 py-1.5 flex flex-col gap-0.5"
         style={{
           background: isEmergency ? "var(--amber-light)" : "var(--blue-light)",
-          border: `1px solid ${isEmergency ? "#EBC395" : "var(--blue-border)"}`,
+          border: `1px solid ${isEmergency ? "var(--amber-border)" : "var(--blue-border)"}`,
         }}>
         {/* Top row — name + tiny remove/swap icons, no separate header band */}
         <div className="flex items-center justify-between gap-1 flex-row">
@@ -385,7 +385,7 @@ function Schedule() {
             </Link>
             <Link href="/constraints"
               className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0"
-              style={{ background: "var(--green-light)", color: "var(--green)", border: "1px solid #A8D9BB" }}>
+              style={{ background: "var(--green-light)", color: "var(--green)", border: "1px solid var(--green-border)" }}>
               <ClipboardList size={13} /> אילוצים
             </Link>
           </div>
@@ -537,7 +537,7 @@ function Schedule() {
                 <div className="grid grid-cols-2 gap-2 mb-2" style={{ gridAutoRows: "1fr" }}>
                   {dayOpenShifts.filter(s => s.role === key).map(shift => (
                     <div key={shift.id} className="relative rounded-lg px-2 py-1.5 flex flex-col gap-0.5"
-                      style={{ background: "var(--green-light)", border: "1px dashed #A8D9BB" }}>
+                      style={{ background: "var(--green-light)", border: "1px dashed var(--green-border)" }}>
                       <div className="flex items-center justify-between gap-1 flex-row">
                         {canEditSchedule && (
                           <button onClick={() => cancelOpenShift(shift.id)}>
@@ -571,7 +571,7 @@ function Schedule() {
               {canEditSchedule && (
                 <button onClick={() => publishOpenShift(key)}
                   className="w-full flex items-center justify-center gap-2 py-2 mt-1.5 rounded-xl flex-row"
-                  style={{ border: "1.5px dashed #A8D9BB", background: "var(--green-light)" }}>
+                  style={{ border: "1.5px dashed var(--green-border)", background: "var(--green-light)" }}>
                   <Plus size={12} style={{ color: "var(--green)" }} />
                   <span className="text-[11px] font-semibold" style={{ color: "var(--green)" }}>פרסם משמרת פתוחה</span>
                 </button>
@@ -629,7 +629,7 @@ function Schedule() {
         <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2000); }}
           className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-1"
           style={{ background: saved ? "var(--green)" : "var(--navy)" }}>
-          {saved ? "✓ הסידור נשמר" : "שמור סידור"}
+          {saved ? "הסידור נשמר" : "שמור סידור"}
         </button>
         </>
         )}
@@ -646,7 +646,7 @@ function Schedule() {
             <div className="w-full max-w-lg rounded-t-2xl pb-20"
               style={{ background: "var(--gray-bg)", maxHeight: "80vh", overflowY: "auto" }}
               onClick={e => e.stopPropagation()}>
-              <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-4" style={{ background: "#C4C2B8" }} />
+              <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-4" style={{ background: "var(--border)" }} />
               <div className="flex items-center justify-between px-4 mb-4 flex-row">
                 <button onClick={() => setAddRole(null)}><X size={18} style={{ color: "var(--text-secondary)" }} /></button>
                 <p className="text-base font-semibold">הוסף עובד — {jobRoles.find(r => r.key === addRole)?.label}</p>
@@ -671,7 +671,7 @@ function Schedule() {
                     <div className="flex items-center gap-2 mt-2 mb-1 flex-row">
                       <div className="flex-1" style={{ height: 1, background: "var(--border)" }} />
                       <div className="flex items-center gap-1.5 px-2 py-1 rounded-full"
-                        style={{ background: "var(--amber-light)", border: "1px solid #EBC395" }}>
+                        style={{ background: "var(--amber-light)", border: "1px solid var(--amber-border)" }}>
                         <AlertTriangle size={11} style={{ color: "var(--amber)" }} />
                         <span className="text-xs font-medium" style={{ color: "var(--amber)" }}>מקרה חירום</span>
                       </div>
@@ -681,7 +681,7 @@ function Schedule() {
                       {emergency.map(emp => (
                         <button key={emp.id} onClick={() => addEmployee(emp, addRole!)}
                           className="flex flex-col items-center rounded-xl py-2 px-2 gap-1"
-                          style={{ background: "var(--amber-light)", border: "1px solid #EBC395", flex: "1 1 calc(33% - 8px)", minWidth: 90 }}>
+                          style={{ background: "var(--amber-light)", border: "1px solid var(--amber-border)", flex: "1 1 calc(33% - 8px)", minWidth: 90 }}>
                           <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold"
                             style={{ background: emp.color, color: emp.textColor }}>{emp.initials}</div>
                           <p className="text-[11px] font-medium text-center leading-tight">{emp.name}</p>
@@ -711,7 +711,7 @@ function Schedule() {
             <div className="w-full max-w-lg rounded-t-2xl pb-20"
               style={{ background: "var(--gray-bg)", maxHeight: "80vh", overflowY: "auto" }}
               onClick={e => e.stopPropagation()}>
-              <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-4" style={{ background: "#C4C2B8" }} />
+              <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-4" style={{ background: "var(--border)" }} />
               <div className="flex items-center justify-between px-4 mb-1 flex-row">
                 <button onClick={() => setSwapTarget(null)}><X size={18} style={{ color: "var(--text-secondary)" }} /></button>
                 <p className="text-base font-semibold">החלף עובד</p>
@@ -734,7 +734,7 @@ function Schedule() {
                     <div className="flex items-center gap-2 mt-2 mb-1 flex-row">
                       <div className="flex-1" style={{ height: 1, background: "var(--border)" }} />
                       <div className="flex items-center gap-1.5 px-2 py-1 rounded-full"
-                        style={{ background: "var(--amber-light)", border: "1px solid #EBC395" }}>
+                        style={{ background: "var(--amber-light)", border: "1px solid var(--amber-border)" }}>
                         <AlertTriangle size={11} style={{ color: "var(--amber)" }} />
                         <span className="text-xs font-medium" style={{ color: "var(--amber)" }}>מקרה חירום</span>
                       </div>
@@ -744,7 +744,7 @@ function Schedule() {
                       {emergency.map(emp => (
                         <button key={emp.id} onClick={() => swapEmployee(emp)}
                           className="flex flex-col items-center rounded-xl py-2 px-2 gap-1"
-                          style={{ background: "var(--amber-light)", border: "1px solid #EBC395", flex: "1 1 calc(33% - 8px)", minWidth: 90 }}>
+                          style={{ background: "var(--amber-light)", border: "1px solid var(--amber-border)", flex: "1 1 calc(33% - 8px)", minWidth: 90 }}>
                           <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold"
                             style={{ background: emp.color, color: emp.textColor }}>{emp.initials}</div>
                           <p className="text-[11px] font-medium text-center leading-tight">{emp.name}</p>
@@ -766,7 +766,7 @@ function Schedule() {
           onClick={() => setEditTarget(null)}>
           <div className="w-full max-w-lg rounded-t-2xl p-4 pb-8" style={{ background: "var(--gray-bg)" }}
             onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "#C4C2B8" }} />
+            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--border)" }} />
             <div className="flex items-center justify-between mb-1 flex-row">
               <button onClick={() => setEditTarget(null)}><X size={18} style={{ color: "var(--text-secondary)" }} /></button>
               <p className="text-base font-semibold">שעות — {editTarget.name}</p>

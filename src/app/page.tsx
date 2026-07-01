@@ -2,9 +2,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, Users, Coins, BarChart3, Check, Zap, Rocket, Crown, ShieldCheck, Sparkles, Clock, Star, X, MessageCircle } from "lucide-react";
+import { CalendarDays, Users, Coins, BarChart3, Check, Zap, Rocket, Crown, ShieldCheck, Sparkles, Clock, Star, X, MessageCircle, Bot, Smartphone, Building2, Lightbulb } from "lucide-react";
 import InstagramIcon from "@/components/InstagramIcon";
-import LogoMark from "@/components/Logo";
 import { PLANS } from "@/lib/plans";
 
 const PLAN_ICONS: Record<string, typeof Zap> = { starter: Zap, plus: Rocket, business: Crown };
@@ -42,10 +41,9 @@ export default function Splash() {
           style={{ background: "rgba(249,115,22,0.15)", color: "var(--blue)", border: "1px solid rgba(249,115,22,0.3)" }}>
           ✦ לכל עסק שיש בו עובדים
         </span>
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 overflow-hidden"
-          style={{ boxShadow: "0 8px 24px rgba(249,115,22,0.35)" }}>
-          <LogoMark size={64} />
-        </div>
+        <span className="text-2xl font-extrabold tracking-tight mb-5" style={{ color: "#fff", direction: "ltr" }}>
+          Sidur
+        </span>
         <h1 className="text-white text-2xl font-bold leading-tight mb-3">
           תפסיק לבנות סידור.<br />תתחיל לאשר אותו.
         </h1>
@@ -113,68 +111,66 @@ export default function Splash() {
         style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
         <p className="text-sm font-bold text-right" style={{ color: "var(--text-main)" }}>למה Sidur?</p>
         {[
-          { emoji: "🤖", title: "AI שבונה את הסידור לך",     sub: "מזין את האילוצים פעם אחת — הסידור מוכן תוך שניות" },
-          { emoji: "📱", title: "התראות לעובדים",              sub: "כל עובד מקבל התראה על המשמרת שלו ישר לטלפון" },
-          { emoji: "⏱️", title: "נוכחות בזמן אמת",           sub: "כניסה ויציאה דרך QR, טביעת אצבע, או ידני" },
-          { emoji: "💸", title: "חלוקת טיפים הוגנת",         sub: "חישוב אוטומטי לפי שעות — בוקר וערב בנפרד" },
-          { emoji: "📊", title: "דוחות מוכנים לשכר",         sub: "ייצוא ל-Excel בלחיצה אחת, בלי להעתיק ידנית" },
-          { emoji: "🏢", title: "מולטי-סניף",                sub: "נהל כמה סניפים מחשבון אחד" },
+          { Icon: Bot,        title: "AI שבונה את הסידור לך",     sub: "מזין את האילוצים פעם אחת — הסידור מוכן תוך שניות" },
+          { Icon: Smartphone, title: "התראות לעובדים",              sub: "כל עובד מקבל התראה על המשמרת שלו ישר לטלפון" },
+          { Icon: Clock,      title: "נוכחות בזמן אמת",           sub: "כניסה ויציאה דרך QR, טביעת אצבע, או ידני" },
+          { Icon: Coins,      title: "חלוקת טיפים הוגנת",         sub: "חישוב אוטומטי לפי שעות — בוקר וערב בנפרד" },
+          { Icon: BarChart3,  title: "דוחות מוכנים לשכר",         sub: "ייצוא ל-Excel בלחיצה אחת, בלי להעתיק ידנית" },
+          { Icon: Building2,  title: "מולטי-סניף",                sub: "נהל כמה סניפים מחשבון אחד" },
         ].map(f => (
           <div key={f.title} className="flex items-center gap-3 flex-row">
             <div className="text-right flex-1">
               <p className="text-sm font-semibold" style={{ color: "var(--text-main)" }}>{f.title}</p>
               <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{f.sub}</p>
             </div>
-            <span className="text-2xl w-9 text-center flex-shrink-0">{f.emoji}</span>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: "var(--blue-light)" }}>
+              <f.Icon size={17} style={{ color: "var(--blue)" }} />
+            </div>
           </div>
         ))}
       </div>
 
       {/* ── Pricing ── */}
-      <div className="px-4 pt-6 pb-8" style={{ background: "var(--navy)" }}>
-        <div className="flex justify-center mb-3">
-          <span className="px-3 py-1 rounded-full text-[11px] font-bold tracking-wide"
-            style={{ background: "rgba(249,115,22,0.15)", color: "var(--blue)", border: "1px solid rgba(249,115,22,0.3)" }}>
-            מחירים שקופים — בלי הפתעות
-          </span>
-        </div>
-        <p className="text-center text-white text-xl font-bold mb-1">תוכנית לכל גודל עסק</p>
-        <p className="text-center text-xs mb-5" style={{ color: "rgba(255,255,255,0.5)" }}>
-          מתחילים בחינם, משלמים רק כשגדלים
+      <div className="px-4 pt-8 pb-8">
+        <p className="text-center text-xl font-bold mb-1" style={{ color: "var(--text-main)" }}>תוכנית לכל גודל עסק</p>
+        <p className="text-center text-xs mb-5" style={{ color: "var(--text-secondary)" }}>
+          מתחילים בחינם, משלמים רק כשגדלים — בלי הפתעות
         </p>
 
         {/* Annual toggle */}
-        <div className="flex items-center justify-center gap-3 flex-row mb-6">
+        <div className="flex items-center justify-center gap-2 flex-row mb-6">
           <button onClick={() => setAnnual(false)}
             className="text-xs font-semibold px-3 py-1.5 rounded-full transition-all"
             style={{
-              background: !annual ? "rgba(255,255,255,0.15)" : "transparent",
-              color: !annual ? "#fff" : "rgba(255,255,255,0.4)",
+              background: !annual ? "var(--navy)" : "transparent",
+              color: !annual ? "#fff" : "var(--text-secondary)",
+              border: "1px solid " + (!annual ? "var(--navy)" : "var(--border)"),
             }}>
             חודשי
           </button>
           <button onClick={() => setAnnual(true)}
             className="text-xs font-bold px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 flex-row"
             style={{
-              background: annual ? "#F97316" : "rgba(249,115,22,0.15)",
-              color: annual ? "#fff" : "#F97316",
-              border: annual ? "none" : "1px solid rgba(249,115,22,0.35)",
+              background: annual ? "var(--blue)" : "var(--blue-light)",
+              color: annual ? "#fff" : "var(--blue)",
+              border: "1px solid " + (annual ? "var(--blue)" : "var(--blue-border)"),
             }}>
             <span>שנתי</span>
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-              style={{ background: annual ? "rgba(255,255,255,0.2)" : "rgba(249,115,22,0.2)" }}>
+              style={{ background: annual ? "rgba(255,255,255,0.25)" : "rgba(249,115,22,0.18)" }}>
               חסכו 20%
             </span>
           </button>
         </div>
 
         {annual && (
-          <p className="text-center text-xs mb-4" style={{ color: "rgba(255,255,255,0.5)" }}>
-            ✦ שלם 10 חודשים — קבל 12
+          <p className="text-center text-xs mb-4" style={{ color: "var(--text-secondary)" }}>
+            שלם 10 חודשים — קבל 12
           </p>
         )}
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {PLANS.map(p => {
             const Icon = PLAN_ICONS[p.key] || Zap;
             const popular = !!p.badge;
@@ -183,49 +179,45 @@ export default function Splash() {
             const originalPrice = !isFree && annual ? `₪${p.monthlyPrice}` : null;
 
             return (
-              <div key={p.key} className="rounded-3xl relative"
+              <div key={p.key} className="rounded-2xl relative"
                 style={{
-                  background: popular ? "linear-gradient(165deg, #1F2937, #14181F)" : "#1B202B",
-                  border: popular ? "1px solid rgba(249,115,22,0.5)" : "1px solid rgba(255,255,255,0.08)",
-                  boxShadow: popular ? "0 12px 40px rgba(249,115,22,0.18)" : "none",
-                  transform: popular ? "scale(1.02)" : "none",
+                  background: "var(--surface)",
+                  border: popular ? "1.5px solid var(--blue)" : "1px solid var(--border)",
                 }}>
                 {popular && (
-                  <div className="absolute -top-3 left-0 right-0 flex justify-center">
-                    <span className="flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold text-white flex-row"
-                      style={{ background: "var(--blue)", boxShadow: "0 4px 12px rgba(249,115,22,0.4)" }}>
+                  <div className="absolute -top-3 right-5">
+                    <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold flex-row"
+                      style={{ background: "var(--blue)", color: "#fff" }}>
                       <Crown size={11} /> {p.badge}
                     </span>
                   </div>
                 )}
                 <div className="p-5 pt-6">
-                  <div className="flex items-center justify-between flex-row mb-3">
-                    <div className="flex items-center gap-2.5 flex-row">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: popular ? "rgba(249,115,22,0.18)" : "rgba(255,255,255,0.06)" }}>
-                        <Icon size={16} style={{ color: popular ? "var(--blue)" : "rgba(255,255,255,0.7)" }} />
-                      </div>
-                      <p className="text-base font-bold text-white">{p.name}</p>
+                  <div className="flex items-center justify-between flex-row mb-4">
+                    <p className="text-base font-bold" style={{ color: "var(--text-main)" }}>{p.name}</p>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: popular ? "var(--blue-light)" : "var(--gray-bg)" }}>
+                      <Icon size={15} style={{ color: popular ? "var(--blue)" : "var(--text-secondary)" }} />
                     </div>
                   </div>
 
                   <div className="flex items-end gap-2 flex-row mb-1" style={{ direction: "ltr" }}>
-                    <span className="text-3xl font-bold text-white tracking-tight">{displayPrice}</span>
+                    <span className="text-3xl font-bold tracking-tight" style={{ color: "var(--text-main)" }}>{displayPrice}</span>
                     {originalPrice && (
-                      <span className="text-base line-through mb-0.5" style={{ color: "rgba(255,255,255,0.3)" }}>
+                      <span className="text-base line-through mb-0.5" style={{ color: "var(--text-secondary)" }}>
                         {originalPrice}
                       </span>
                     )}
-                    <span className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.4)" }}>{isFree ? "לתמיד" : "לחודש"}</span>
+                    <span className="text-xs mb-1" style={{ color: "var(--text-secondary)" }}>{isFree ? "לתמיד" : "לחודש"}</span>
                   </div>
 
                   {!isFree && annual && (
-                    <p className="text-[10px] mb-3 text-right" style={{ color: "#4ADE80" }}>
+                    <p className="text-[10px] mb-3 text-right" style={{ color: "var(--green)" }}>
                       חסכון של ₪{(p.monthlyPrice - p.annualPrice) * 12} בשנה
                     </p>
                   )}
                   {!isFree && !annual && (
-                    <p className="text-[10px] mb-3 text-right" style={{ color: "rgba(249,115,22,0.8)" }}>
+                    <p className="text-[10px] mb-3 text-right" style={{ color: "var(--blue)" }}>
                       {p.key === "plus" ? "פחות מ-₪5 ליום" : "פחות מ-₪10 ליום — לרשת ללא הגבלה"}
                     </p>
                   )}
@@ -234,22 +226,16 @@ export default function Splash() {
                   <div className="flex flex-col gap-2 mb-4">
                     {p.features.map(f => (
                       <div key={f} className="flex items-center gap-2 flex-row justify-end">
-                        <p className="text-xs" style={{ color: "rgba(255,255,255,0.85)" }}>{f}</p>
-                        <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                          style={{ background: "rgba(34,197,94,0.15)" }}>
-                          <Check size={10} style={{ color: "#4ADE80" }} strokeWidth={3} />
-                        </div>
+                        <p className="text-xs" style={{ color: "var(--text-main)" }}>{f}</p>
+                        <Check size={13} style={{ color: "var(--blue)", flexShrink: 0 }} strokeWidth={2.5} />
                       </div>
                     ))}
                     {p.missing.length > 0 && (
-                      <div className="mt-1 pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                      <div className="mt-1 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
                         {p.missing.map(f => (
                           <div key={f} className="flex items-center gap-2 flex-row justify-end mb-1.5">
-                            <p className="text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>{f}</p>
-                            <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                              style={{ background: "rgba(255,255,255,0.03)" }}>
-                              <X size={8} style={{ color: "rgba(255,255,255,0.2)" }} />
-                            </div>
+                            <p className="text-xs" style={{ color: "var(--text-secondary)", opacity: 0.55 }}>{f}</p>
+                            <X size={11} style={{ color: "var(--text-secondary)", opacity: 0.4, flexShrink: 0 }} />
                           </div>
                         ))}
                       </div>
@@ -259,9 +245,9 @@ export default function Splash() {
                   <button onClick={() => router.push(`/register?plan=${p.key}`)}
                     className="w-full py-3 rounded-xl text-sm font-bold"
                     style={{
-                      background: popular ? "var(--blue)" : isFree ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.08)",
-                      color: "#fff",
-                      border: popular ? "none" : "1px solid rgba(255,255,255,0.15)",
+                      background: popular ? "var(--blue)" : "var(--gray-bg)",
+                      color: popular ? "#fff" : "var(--text-main)",
+                      border: popular ? "none" : "1px solid var(--border)",
                     }}>
                     {isFree ? "התחל בחינם — עכשיו" : popular ? `בחר ${p.name} — התחל 14 יום חינם` : `שדרג ל-${p.name}`}
                   </button>
@@ -281,8 +267,8 @@ export default function Splash() {
               "ללא קנסות",
             ].map(t => (
               <div key={t} className="flex items-center gap-1 flex-row">
-                <ShieldCheck size={11} style={{ color: "rgba(255,255,255,0.3)" }} />
-                <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>{t}</p>
+                <ShieldCheck size={11} style={{ color: "var(--text-secondary)" }} />
+                <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>{t}</p>
               </div>
             ))}
           </div>
@@ -317,8 +303,9 @@ function RoiCalculator() {
   return (
     <div className="mx-4 mb-4 rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
       <div className="px-5 pt-4 pb-3" style={{ background: "var(--surface)" }}>
-        <p className="text-sm font-bold text-right mb-1" style={{ color: "var(--text-main)" }}>
-          💡 כמה Sidur חוסך לך?
+        <p className="flex items-center justify-end gap-1.5 flex-row text-sm font-bold text-right mb-1" style={{ color: "var(--text-main)" }}>
+          כמה Sidur חוסך לך?
+          <Lightbulb size={15} style={{ color: "#F97316" }} />
         </p>
         <p className="text-xs text-right mb-4" style={{ color: "var(--text-secondary)" }}>
           הזז לפי מספר העובדים בעסק שלך
@@ -347,7 +334,7 @@ function RoiCalculator() {
       <div className="px-5 py-3 text-right" style={{ background: "rgba(249,115,22,0.06)", borderTop: "1px solid rgba(249,115,22,0.15)" }}>
         <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
           תוכנית Essential עולה <strong style={{ color: "#F97316" }}>₪149 לחודש</strong> —
-          {" "}החזר השקעה ביום השלישי של החודש. שאר החודש? רווח נקי. 🚀
+          {" "}החזר השקעה ביום השלישי של החודש. שאר החודש? רווח נקי.
         </p>
       </div>
     </div>

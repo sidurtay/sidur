@@ -382,7 +382,7 @@ export default function Employees() {
           onClick={() => setSelected(null)}>
           <div className="w-full max-w-lg rounded-t-2xl p-4 pb-10" style={{ background: "var(--gray-bg)" }}
             onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "#C4C2B8" }} />
+            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--border)" }} />
             <div className="flex items-center gap-3 mb-4 flex-row">
               <button onClick={() => setSelected(null)}><X size={18} style={{ color: "var(--text-secondary)" }} /></button>
               <div className="flex-1 text-right">
@@ -456,7 +456,7 @@ export default function Employees() {
                     <AlertTriangle size={12} /> השכר השמור מתחת לשכר המינימום הנוכחי (₪{MINIMUM_WAGE_HOURLY})
                   </p>
                 )}
-                <p className="text-[10px] mt-2 text-right" style={{ color: "#9A9890" }}>
+                <p className="text-[10px] mt-2 text-right" style={{ color: "var(--text-secondary)" }}>
                   שכר המינימום החוקי הנוכחי: ₪{MINIMUM_WAGE_HOURLY} לשעה
                 </p>
               </div>
@@ -475,9 +475,9 @@ export default function Employees() {
                 </button>
 
                 {resetResult && "tempPassword" in resetResult ? (
-                  <div className="rounded-xl px-3 py-3 mb-3 text-center" style={{ background: "var(--green-light)", border: "1px solid #A8D9BB" }}>
+                  <div className="rounded-xl px-3 py-3 mb-3 text-center" style={{ background: "var(--green-light)", border: "1px solid var(--green-border)" }}>
                     <p className="text-sm font-semibold" style={{ color: "var(--green)" }}>
-                      {resetResult.emailSent ? "הסיסמה אופסה ונשלחה במייל ✓" : "הסיסמה אופסה בהצלחה ✓"}
+                      {resetResult.emailSent ? "הסיסמה אופסה ונשלחה במייל" : "הסיסמה אופסה בהצלחה"}
                     </p>
                     <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
                       סיסמה זמנית: <span className="font-bold" style={{ direction: "ltr", display: "inline-block" }}>{resetResult.tempPassword}</span>
@@ -489,7 +489,7 @@ export default function Employees() {
                 ) : (
                   <button onClick={() => resetPassword(selected)} disabled={resetting}
                     className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 mb-3"
-                    style={{ background: resetting ? "#9CA3AF" : "var(--amber-light)", color: resetting ? "#fff" : "var(--amber)", border: resetting ? "none" : "1px solid #EBC395" }}>
+                    style={{ background: resetting ? "var(--border)" : "var(--amber-light)", color: resetting ? "#fff" : "var(--amber)", border: resetting ? "none" : "1px solid var(--amber-border)" }}>
                     <Lock size={14} /> {resetting ? "מאפס..." : "אפס סיסמה לעובד/ת"}
                   </button>
                 )}
@@ -497,12 +497,12 @@ export default function Employees() {
                   <p className="text-xs text-center mb-3" style={{ color: "var(--red)" }}>{resetResult.error}</p>
                 )}
 
-                <p className="text-xs flex items-center gap-1 justify-end mb-3" style={{ color: "#9A9890" }}>
+                <p className="text-xs flex items-center gap-1 justify-end mb-3" style={{ color: "var(--text-secondary)" }}>
                   <Lock size={11} /> שעות עבודה ונתונים נוספים גלויים למנהל בלבד
                 </p>
 
                 {deleteConfirm ? (
-                  <div className="rounded-xl p-3 mb-2" style={{ background: "var(--red-light)", border: "1px solid #F3B8B8" }}>
+                  <div className="rounded-xl p-3 mb-2" style={{ background: "var(--red-light)", border: "1px solid var(--red-border)" }}>
                     <p className="text-xs font-semibold text-right flex items-center gap-1.5 justify-end mb-1" style={{ color: "var(--red)" }}>
                       <AlertTriangle size={13} /> להסיר את {selected.name} לצמיתות?
                     </p>
@@ -512,7 +512,7 @@ export default function Employees() {
                     <div className="flex gap-2 flex-row">
                       <button onClick={() => deleteEmployee(selected)} disabled={deleting}
                         className="flex-1 py-2.5 rounded-lg text-xs font-bold text-white"
-                        style={{ background: deleting ? "#D08A8A" : "var(--red)" }}>
+                        style={{ background: deleting ? "var(--red-border)" : "var(--red)" }}>
                         {deleting ? "מסיר..." : "כן, הסר לצמיתות"}
                       </button>
                       <button onClick={() => setDeleteConfirm(false)} disabled={deleting}
@@ -525,7 +525,7 @@ export default function Employees() {
                 ) : (
                   <button onClick={() => setDeleteConfirm(true)}
                     className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 mb-2"
-                    style={{ background: "var(--red-light)", color: "var(--red)", border: "1px solid #F3B8B8" }}>
+                    style={{ background: "var(--red-light)", color: "var(--red)", border: "1px solid var(--red-border)" }}>
                     <Trash2 size={14} /> הסר עובד/ת מהעסק
                   </button>
                 )}
@@ -545,7 +545,7 @@ export default function Employees() {
           <div className="w-full max-w-lg rounded-t-2xl bg-white"
             style={{ maxHeight: "92vh", overflowY: "auto", paddingBottom: 32 }}
             onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ background: "#C4C2B8" }} />
+            <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ background: "var(--border)" }} />
 
             {/* Header */}
             <div className="px-4 pt-3 pb-3 flex items-center gap-3 flex-row"
@@ -591,7 +591,7 @@ export default function Employees() {
                 <p className="text-lg font-bold" style={{ color: "var(--blue)" }}>{totalShifts}</p>
                 <p className="text-[10px] mt-0.5" style={{ color: "var(--text-secondary)" }}>משמרות</p>
               </div>
-              <div className="rounded-xl p-2.5 text-center" style={{ background: "var(--green-light)", border: "1px solid #A8D9BB" }}>
+              <div className="rounded-xl p-2.5 text-center" style={{ background: "var(--green-light)", border: "1px solid var(--green-border)" }}>
                 <p className="text-lg font-bold" style={{ color: "var(--green)" }}>{formatHours(avgPerShift)}</p>
                 <p className="text-[10px] mt-0.5" style={{ color: "var(--text-secondary)" }}>ממוצע משמרת</p>
               </div>
@@ -768,7 +768,7 @@ export default function Employees() {
         <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setAttendanceEmp(null)}>
           <div className="w-full max-w-lg rounded-t-2xl bg-white p-6 text-center" onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "#C4C2B8" }} />
+            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--border)" }} />
             <p className="text-sm font-semibold mb-1">{attendanceEmp.name}</p>
             <p className="text-sm" style={{ color: "var(--text-secondary)" }}>אין עדיין נתוני נוכחות</p>
             <button onClick={() => setAttendanceEmp(null)}
@@ -786,7 +786,7 @@ export default function Employees() {
           onClick={() => setAddOpen(false)}>
           <div className="w-full max-w-lg rounded-t-2xl p-4" style={{ background: "var(--gray-bg)", maxHeight: "80vh", overflowY: "auto", paddingBottom: 24 }}
             onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "#C4C2B8" }} />
+            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--border)" }} />
             <div className="flex items-center justify-between mb-4 flex-row">
               <button onClick={() => setAddOpen(false)}><X size={18} style={{ color: "var(--text-secondary)" }} /></button>
               <p className="text-base font-semibold">הוספת עובד חדש</p>
@@ -870,12 +870,12 @@ export default function Employees() {
                 <div className="rounded-xl p-3 text-right"
                   style={{
                     background: sentResult.success ? "var(--green-light)" : "var(--amber-light)",
-                    border: `1px solid ${sentResult.success ? "#A8D9BB" : "#EBC395"}`,
+                    border: `1px solid ${sentResult.success ? "var(--green-border)" : "var(--amber-border)"}`,
                   }}>
                   {sentResult.success ? (
                     <>
                       <p className="text-sm font-semibold" style={{ color: "var(--green)" }}>
-                        ✓ פרטי הכניסה נשלחו במייל!
+                        פרטי הכניסה נשלחו במייל!
                       </p>
                       <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
                         סיסמה זמנית: <span className="font-bold" style={{ direction: "ltr", display: "inline-block" }}>{sentResult.tempPassword}</span>
@@ -900,7 +900,7 @@ export default function Employees() {
               {!sentResult && (
                 <button onClick={confirmAdd} disabled={sending || !newName.trim() || !newPhone.trim() || !newEmail.trim()}
                   className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-1 flex items-center justify-center gap-2"
-                  style={{ background: sending || !newName.trim() || !newPhone.trim() || !newEmail.trim() ? "#ADA89D" : "var(--navy)" }}>
+                  style={{ background: sending || !newName.trim() || !newPhone.trim() || !newEmail.trim() ? "var(--border)" : "var(--navy)" }}>
                   {sending ? "שולח פרטי כניסה..." : "הוסף עובד ושלח פרטי כניסה"}
                 </button>
               )}

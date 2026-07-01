@@ -21,14 +21,14 @@ type Channel = {
 };
 
 const PALETTE = [
-  { bg: "#E6F1FB", icon: "#185FA5" },
+  { bg: "#FDF0E4", icon: "#C2540C" },
   { bg: "#E1F5EE", icon: "#085041" },
   { bg: "#EEEDFE", icon: "#3C3489" },
   { bg: "#FAECE7", icon: "#712B13" },
   { bg: "#FFF3CC", icon: "#7A5800" },
   { bg: "#F1EFE8", icon: "#444441" },
   { bg: "#FFE4F0", icon: "#8B1A4A" },
-  { bg: "#E0F7FA", icon: "#006064" },
+  { bg: "#F2E4D8", icon: "#6B4226" },
 ];
 
 const EMOJIS = ["👥","🍽️","🍺","🫧","🧹","⭐","🔥","💬","🎯","🎉","📢","🍕"];
@@ -88,7 +88,7 @@ export default function Chat() {
         ]);
         if (chRes.success) {
           setChannels(chRes.channels.map((c: { id: string; name: string; emoji?: string; color: string; iconColor: string; pinned: boolean; last: string; time: string; memberIds: string[] }) => ({
-            id: c.id, name: c.name, iconName: "Users", emoji: c.emoji, color: c.color || "#E6F1FB", iconColor: c.iconColor || "#185FA5",
+            id: c.id, name: c.name, iconName: "Users", emoji: c.emoji, color: c.color || "#FDF0E4", iconColor: c.iconColor || "#C2540C",
             pinned: c.pinned, last: c.last, time: c.time, unread: 0, memberIds: c.memberIds,
           })));
         }
@@ -285,7 +285,7 @@ export default function Chat() {
           <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
             onClick={() => setEditingEmoji(false)}>
             <div className="w-full max-w-lg rounded-t-2xl pb-8 bg-white" onClick={e => e.stopPropagation()}>
-              <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-4" style={{ background: "#C4C2B8" }} />
+              <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-4" style={{ background: "var(--border)" }} />
               <p className="text-base font-semibold text-right px-4 mb-4">בחר תמונת קבוצה</p>
               {/* Current big avatar */}
               <div className="flex justify-center mb-4">
@@ -387,7 +387,7 @@ export default function Chat() {
                 {longPressId === msg.id && (
                   <button onClick={() => deleteMsg(msg.id)}
                     className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: "var(--red-light)", border: "1px solid #EFB3B3" }}>
+                    style={{ background: "var(--red-light)", border: "1px solid var(--red-border)" }}>
                     <Trash2 size={13} style={{ color: "var(--red)" }} />
                   </button>
                 )}
@@ -464,7 +464,7 @@ export default function Chat() {
                 style={{ border: "1px solid var(--border)" }}
                 onClick={() => openCh(ch)}>
                 <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                  <span className="text-xs" style={{ color: "#9A9890" }}>{ch.time}</span>
+                  <span className="text-xs" style={{ color: "var(--text-secondary)" }}>{ch.time}</span>
                   {ch.unread > 0 && (
                     <span className="text-xs font-semibold text-white px-1.5 py-0.5 rounded-full"
                       style={{ background: "var(--navy)", minWidth: 20, textAlign: "center" }}>
@@ -492,7 +492,7 @@ export default function Chat() {
           onClick={() => setShowWizard(false)}>
           <div className="w-full max-w-lg rounded-t-2xl bg-white" style={{ maxHeight: "90vh", overflowY: "auto", paddingBottom: 88 }}
             onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-2" style={{ background: "#C4C2B8" }} />
+            <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-2" style={{ background: "var(--border)" }} />
 
             {/* Wizard step indicator */}
             <div className="flex items-center justify-center gap-1.5 mb-4">
@@ -614,7 +614,7 @@ export default function Chat() {
                       style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}>← חזור</button>
                     <button onClick={createGroup}
                       className="flex-1 py-3 rounded-xl text-sm font-semibold text-white"
-                      style={{ background: "var(--navy)" }}>צור קבוצה ✓</button>
+                      style={{ background: "var(--navy)" }}>צור קבוצה</button>
                   </div>
                 </>
               )}

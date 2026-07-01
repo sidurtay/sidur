@@ -192,11 +192,11 @@ export default function Dashboard() {
     <div className="flex flex-col min-h-screen pb-28" style={{ background: "var(--gray-bg)" }}>
 
       {/* ── Header ────────────────────────────────────────── */}
-      <div style={{ background: "linear-gradient(160deg, #1B202B, #14181F)" }} className="px-4 pt-12 pb-5 rounded-b-[28px]">
+      <div style={{ background: "var(--navy)" }} className="px-4 pt-12 pb-5 rounded-b-[28px]">
         <div className="flex items-center justify-between flex-row mb-5">
-          <Logo size={26} />
+          <Logo size={26} color="#fff" />
           <div className="flex flex-col items-end gap-1.5">
-            <p className="text-white text-lg font-bold leading-tight">שלום, {managerName.split(" ")[0]} 👋</p>
+            <p className="text-white text-lg font-bold leading-tight">שלום, {managerName.split(" ")[0]}</p>
             {session && (session.phone as string) ? (
               <BranchSwitcher session={session as Parameters<typeof BranchSwitcher>[0]["session"]} />
             ) : (
@@ -495,7 +495,7 @@ export default function Dashboard() {
                     )}
                   </button>
 
-                  <p className="text-[10px] mt-1.5 text-right" style={{ color: "#C4C2B8" }}>{a.createdAt}</p>
+                  <p className="text-[10px] mt-1.5 text-right" style={{ color: "var(--text-secondary)" }}>{a.createdAt}</p>
                 </Card>
               );
             })}
@@ -509,7 +509,7 @@ export default function Dashboard() {
           onClick={() => setAnnouncementSheet(null)}>
           <div className="w-full max-w-lg rounded-t-2xl p-4 pb-10 bg-white"
             onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "#C4C2B8" }} />
+            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--border)" }} />
             <div className="flex items-center justify-between flex-row mb-4">
               <button onClick={() => setAnnouncementSheet(null)}>
                 <X size={18} style={{ color: "var(--text-secondary)" }} />
@@ -541,7 +541,7 @@ export default function Dashboard() {
               </div>
               <button onClick={saveAnnouncement}
                 className="w-full py-3 rounded-xl text-sm font-semibold text-white"
-                style={{ background: annTitle.trim() ? "var(--navy)" : "#C4C2B8" }}>
+                style={{ background: annTitle.trim() ? "var(--navy)" : "var(--border)" }}>
                 {announcementSheet === "add" ? "שלח הודעה לצוות" : "שמור שינויים"}
               </button>
             </div>
@@ -556,7 +556,7 @@ export default function Dashboard() {
           <div className="w-full max-w-lg rounded-t-2xl bg-white"
             style={{ maxHeight: "75vh", overflowY: "auto", paddingBottom: 24 }}
             onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-3" style={{ background: "#C4C2B8" }} />
+            <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-3" style={{ background: "var(--border)" }} />
             <div className="flex items-center justify-between px-4 mb-3 flex-row">
               <button onClick={() => setAnnouncementSheet(null)}>
                 <X size={18} style={{ color: "var(--text-secondary)" }} />
@@ -599,7 +599,7 @@ export default function Dashboard() {
 
               {/* Pending */}
               {employees.filter(e => !editingAnn.confirmedBy.includes(e.name)).length > 0 && (
-                <p className="text-xs font-semibold mt-2 mb-1" style={{ color: "var(--amber)", textAlign: "right" }}>⏳ טרם אישרו</p>
+                <p className="text-xs font-semibold mt-2 mb-1" style={{ color: "var(--amber)", textAlign: "right" }}>טרם אישרו</p>
               )}
               {employees.filter(e => !editingAnn.confirmedBy.includes(e.name)).map(emp => (
                 <div key={emp.name} className="flex items-center gap-3 px-3 py-2.5 rounded-xl flex-row"

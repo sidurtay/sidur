@@ -1,22 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 :root {
-  /* Two near-black neutrals carry the app; orange is a sparing accent — text, icons, thin borders only, never a fill */
-  --navy: #14181F;
-  --navy-soft: #2B313C;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --shadow-sm: 0 1px 2px rgba(20, 24, 31, 0.05);
+  --shadow-md: 0 4px 12px rgba(20, 24, 31, 0.08);
+  --shadow-lg: 0 12px 32px rgba(20, 24, 31, 0.12);
+
+  /* True neutrals (zero blue/cool undertone — pure black/white/gray) carry the app;
+     orange is the one and only accent — text, icons, thin borders, never a full-bleed fill */
+  --navy: #181818;
+  --navy-soft: #404040;
   --blue: #F97316;
-  --blue-light: #F3F4F6;
+  --blue-light: #FDF0E4;
   --blue-border: #F2D2B0;
   --green: #15803D;
   --green-light: #EAF7EE;
+  --green-border: #A8D9BB;
   --amber: #B45309;
   --amber-light: #FDF1E2;
+  --amber-border: #EBC395;
   --red: #B91C1C;
   --red-light: #FCEAEA;
-  --gray-bg: #F7F8F9;
-  --border: #E5E7EB;
-  --text-main: #1F2937;
-  --text-secondary: #6B7280;
+  --red-border: #F3B8B8;
+  --gray-bg: #FAFAFA;
+  --border: #E5E5E5;
+  --text-main: #181818;
+  --text-secondary: #737373;
   --surface: #FFFFFF;
   --nav-glass-bg: rgba(255, 255, 255, 0.72);
   --nav-glass-border: rgba(255, 255, 255, 0.6);
@@ -30,21 +43,24 @@
    chosen pills, primary buttons), and the page itself is now dark too — at
    its light-mode value it nearly disappears against the new dark surfaces. */
 [data-theme="dark"] {
-  --navy: #323A48;
-  --blue-light: #2A2F3A;
-  --blue-border: #4A3826;
+  --navy: #404040;
+  --blue-light: rgba(249, 115, 22, 0.14);
+  --blue-border: rgba(249, 115, 22, 0.35);
   --green: #4ADE80;
   --green-light: rgba(74, 222, 128, 0.14);
+  --green-border: rgba(74, 222, 128, 0.35);
   --amber: #FBBF24;
   --amber-light: rgba(251, 191, 36, 0.14);
+  --amber-border: rgba(251, 191, 36, 0.35);
   --red: #F87171;
   --red-light: rgba(248, 113, 113, 0.14);
-  --gray-bg: #0F1115;
-  --border: #2A2F3A;
-  --text-main: #F3F4F6;
-  --text-secondary: #9CA3AF;
-  --surface: #1B1F27;
-  --nav-glass-bg: rgba(27, 31, 39, 0.78);
+  --red-border: rgba(248, 113, 113, 0.35);
+  --gray-bg: #0A0A0A;
+  --border: #262626;
+  --text-main: #FAFAFA;
+  --text-secondary: #A3A3A3;
+  --surface: #171717;
+  --nav-glass-bg: rgba(23, 23, 23, 0.78);
   --nav-glass-border: rgba(255, 255, 255, 0.08);
 }
 
@@ -61,7 +77,7 @@
 
 html {
   direction: rtl;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: "Noto Sans Hebrew", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
 body {

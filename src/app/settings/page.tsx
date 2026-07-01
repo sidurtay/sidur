@@ -329,7 +329,7 @@ export default function Settings() {
                 {d.name}
               </span>
               <button onClick={() => toggleDay(i)} className="relative flex-shrink-0"
-                style={{ width: 32, height: 18, borderRadius: 9, background: d.open ? "var(--navy)" : "#C4C2B8", transition: "background 0.2s" }}>
+                style={{ width: 32, height: 18, borderRadius: 9, background: d.open ? "var(--navy)" : "var(--border)", transition: "background 0.2s" }}>
                 <span className="absolute top-1 rounded-full bg-white transition-all"
                   style={{ width: 12, height: 12, right: d.open ? 3 : 17, transition: "right 0.2s" }} />
               </button>
@@ -340,14 +340,14 @@ export default function Settings() {
                     <input type="time" value={d.from} onChange={e => updateTime(i, "from", e.target.value)}
                       className="text-xs py-1.5 font-medium bg-transparent border-0 outline-none text-center"
                       style={{ width: 72, color: "var(--text-main)", direction: "ltr" }} />
-                    <span className="text-xs select-none" style={{ color: "#9A9890" }}>–</span>
+                    <span className="text-xs select-none" style={{ color: "var(--text-secondary)" }}>–</span>
                     <input type="time" value={d.to} onChange={e => updateTime(i, "to", e.target.value)}
                       className="text-xs py-1.5 font-medium bg-transparent border-0 outline-none text-center"
                       style={{ width: 72, color: "var(--text-main)", direction: "ltr" }} />
                   </div>
                 ) : (
                   <span className="text-xs px-3 py-1.5 rounded-lg"
-                    style={{ background: "var(--gray-bg)", color: "#9A9890", border: "1px solid var(--border)" }}>סגור</span>
+                    style={{ background: "var(--gray-bg)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>סגור</span>
                 )}
               </div>
             </div>
@@ -463,7 +463,7 @@ export default function Settings() {
             {!addingRole ? (
               <button onClick={() => setAddingRole(true)}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs flex-row"
-                style={{ border: "1px dashed #C4C2B8", color: "var(--blue)" }}>
+                style={{ border: "1px dashed var(--border)", color: "var(--blue)" }}>
                 <Plus size={11} /> הוסף תפקיד
               </button>
             ) : (
@@ -498,7 +498,7 @@ export default function Settings() {
           </p>
           <div className="w-full flex items-center justify-between px-3 py-3 flex-row">
             <button onClick={toggleClockOutApproval} className="relative flex-shrink-0"
-              style={{ width: 36, height: 20, borderRadius: 10, background: clockOutApproval ? "var(--navy)" : "#C4C2B8", transition: "background 0.2s" }}>
+              style={{ width: 36, height: 20, borderRadius: 10, background: clockOutApproval ? "var(--navy)" : "var(--border)", transition: "background 0.2s" }}>
               <span className="absolute top-1 rounded-full bg-white transition-all"
                 style={{ width: 14, height: 14, right: clockOutApproval ? 3 : 19, transition: "right 0.2s" }} />
             </button>
@@ -546,14 +546,14 @@ export default function Settings() {
               <a href="mailto:sidur.support@gmail.com" className="text-xs font-medium" style={{ color: "var(--blue)", direction: "ltr" }}>
                 sidur.support@gmail.com
               </a>
-              <p className="text-[10px]" style={{ color: "#9A9890" }}>לפניות עסקיות / שיתופי פעולה:</p>
+              <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>לפניות עסקיות / שיתופי פעולה:</p>
             </div>
             <div className="flex items-center justify-end gap-1.5 px-3 pb-2.5 flex-row">
               <a href="https://instagram.com/sidur.app" target="_blank" rel="noopener noreferrer"
                 className="text-xs font-medium flex items-center gap-1 flex-row" style={{ color: "var(--blue)", direction: "ltr" }}>
                 <InstagramIcon size={12} /> sidur.app
               </a>
-              <p className="text-[10px]" style={{ color: "#9A9890" }}>עקבו אחרינו:</p>
+              <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>עקבו אחרינו:</p>
             </div>
             </Card>
           </div>
@@ -576,7 +576,7 @@ export default function Settings() {
         <div className="fixed inset-0 z-[60] flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setPermPopupRole(null)}>
           <div className="w-full max-w-lg rounded-t-2xl bg-white pb-8" onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-3" style={{ background: "#C4C2B8" }} />
+            <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-3" style={{ background: "var(--border)" }} />
             <div className="flex items-center justify-between px-4 mb-4 flex-row">
               <button onClick={() => setPermPopupRole(null)}>
                 <X size={18} style={{ color: "var(--text-secondary)" }} />
@@ -599,7 +599,7 @@ export default function Settings() {
                       background: enabled ? "var(--blue-light)" : "var(--surface)",
                     }}>
                     <div className="w-10 h-5 rounded-full relative flex-shrink-0"
-                      style={{ background: enabled ? "var(--navy)" : "#C4C2B8", transition: "background 0.2s" }}>
+                      style={{ background: enabled ? "var(--navy)" : "var(--border)", transition: "background 0.2s" }}>
                       <span className="absolute top-0.5 rounded-full bg-white"
                         style={{ width: 16, height: 16, right: enabled ? 2 : 20, transition: "right 0.2s", position: "absolute" }} />
                     </div>
@@ -620,7 +620,7 @@ export default function Settings() {
                     className="w-full flex items-center justify-between px-4 py-3.5 flex-row"
                     style={{ background: disabled ? "var(--amber-light)" : "var(--surface)" }}>
                     <div className="w-10 h-5 rounded-full relative flex-shrink-0"
-                      style={{ background: disabled ? "var(--amber)" : "#C4C2B8", transition: "background 0.2s" }}>
+                      style={{ background: disabled ? "var(--amber)" : "var(--border)", transition: "background 0.2s" }}>
                       <span className="absolute top-0.5 rounded-full bg-white"
                         style={{ width: 16, height: 16, right: disabled ? 2 : 20, transition: "right 0.2s", position: "absolute" }} />
                     </div>
@@ -654,7 +654,7 @@ export default function Settings() {
           style={{ background: "rgba(0,0,0,0.55)" }}
           onClick={() => setSaveModal(false)}>
           <div className="w-full max-w-lg rounded-t-2xl pb-8 bg-white" onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-4" style={{ background: "#C4C2B8" }} />
+            <div className="w-9 h-1 rounded-full mx-auto mt-3 mb-4" style={{ background: "var(--border)" }} />
             <div className="flex flex-col items-center gap-2 px-4 mb-5">
               <div className="w-12 h-12 rounded-full flex items-center justify-center"
                 style={{ background: "var(--amber-light)" }}>
@@ -699,7 +699,7 @@ export default function Settings() {
           onClick={() => setSupportOpen(false)}>
           <div className="w-full max-w-lg rounded-t-2xl p-4 pb-6 bg-white"
             onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "#C4C2B8" }} />
+            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--border)" }} />
             <div className="flex items-center justify-between flex-row mb-4">
               <button onClick={() => setSupportOpen(false)}>
                 <X size={18} style={{ color: "var(--text-secondary)" }} />
@@ -708,7 +708,7 @@ export default function Settings() {
             </div>
 
             {ticketResult?.success ? (
-              <div className="rounded-xl px-4 py-4 text-center" style={{ background: "var(--green-light)", border: "1px solid #A8D9BB" }}>
+              <div className="rounded-xl px-4 py-4 text-center" style={{ background: "var(--green-light)", border: "1px solid var(--green-border)" }}>
                 <Check size={20} style={{ color: "var(--green)" }} className="mx-auto mb-1" />
                 <p className="text-sm font-semibold" style={{ color: "var(--green)" }}>הפנייה נשלחה!</p>
                 <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>נחזור אליך בהקדם במייל או בטלפון</p>
@@ -718,7 +718,7 @@ export default function Settings() {
             ) : (
               <div className="flex flex-col gap-3">
                 {ticketResult && !ticketResult.success && (
-                  <div className="rounded-xl px-3 py-2.5 text-xs text-right" style={{ background: "var(--amber-light)", border: "1px solid #EBC395", color: "var(--amber)" }}>
+                  <div className="rounded-xl px-3 py-2.5 text-xs text-right" style={{ background: "var(--amber-light)", border: "1px solid var(--amber-border)", color: "var(--amber)" }}>
                     הפנייה נשמרה במכשיר ותישלח אוטומטית כשתתחבר כתובת המייל של התמיכה. בינתיים אפשר גם לפנות ישירות.
                   </div>
                 )}
@@ -744,7 +744,7 @@ export default function Settings() {
                 </div>
                 <button onClick={sendSupportTicket} disabled={sendingTicket || !ticketSubject.trim() || !ticketMessage.trim()}
                   className="w-full py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
-                  style={{ background: sendingTicket ? "#ADA89D" : (ticketSubject.trim() && ticketMessage.trim() ? "var(--navy)" : "#C4C2B8") }}>
+                  style={{ background: sendingTicket ? "var(--border)" : (ticketSubject.trim() && ticketMessage.trim() ? "var(--navy)" : "var(--border)") }}>
                   <Send size={14} />
                   {sendingTicket ? "שולח..." : "שלח פנייה"}
                 </button>
