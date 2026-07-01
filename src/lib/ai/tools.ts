@@ -1,5 +1,6 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { calcHours } from "@/lib/shiftData";
+import { upcomingHoliday } from "@/lib/israeliHolidays";
 
 // Matches the convention used across the rest of the app (schedule, tips, AI scheduler):
 // a frozen "current" week and the "next" week it's building toward.
@@ -14,7 +15,7 @@ type ToolCtx = { businessId: string; personId: string; isManager: boolean };
 // convention) and day_of_week — computed directly so this works for arbitrary
 // dates ("who works tomorrow / next Saturday / on 1.7"), not just the two
 // frozen weeks the rest of the app hardcodes.
-function weekInfoForDate(dateStr: string) {
+export function weekInfoForDate(dateStr: string) {
   const [y, m, d] = dateStr.split("-").map(Number);
   const date = new Date(Date.UTC(y, m - 1, d));
   const dayOfWeek = date.getUTCDay();
@@ -413,6 +414,50 @@ export async function getTipsForPeriod(ctx: ToolCtx, scope: "today" | "week" | "
   let total = 0;
   for (const date of dates) total += await tipsShareForDate(ctx, date);
   return { total };
+}
+
+// Proactive "watch out, a high-traffic holiday is coming" heads-up — manager
+// only. Flags it if the holiday's date currently has fewer scheduled shifts
+// than the business's typical daily coverage, so a thin schedule around a
+// chag eve/BBQ holiday gets caught before it becomes a bad night.
+export async function getHolidayInsight(ctx: ToolCtx) {
+  if (!ctx.isManager) return null;
+  const holiday = upcomingHoliday(TODAY_DATE, 10);
+  if (!holiday || holiday.demand !== "high") return null;
+
+  const supabase = createServiceRoleClient();
+  const { weekStart, dayOfWeek } = weekInfoForDate(holiday.date);
+  const { count: scheduledCount } = await supabase
+    .from("schedule_assignments")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", ctx.businessId)
+    .eq("week_start", weekStart)
+    .eq("day_of_week", dayOfWeek);
+
+  // "Typical" = average shifts/day for the current week, as a rough baseline
+  // to compare the holiday date against.
+  const { count: weekTotal } = await supabase
+    .from("schedule_assignments")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", ctx.businessId)
+    .eq("week_start", CURRENT_WEEK_START);
+
+  const typicalCount = Math.round((weekTotal || 0) / 7);
+  const actual = scheduledCount || 0;
+  if (typicalCount > 0 && actual >= typicalCount) return null; // coverage already looks fine
+
+  const d = new Date(`${holiday.date}T00:00:00Z`);
+  const dateLabel = d.toLocaleDateString("he-IL", { day: "numeric", month: "numeric", timeZone: "UTC" });
+
+  return {
+    type: "holiday" as const,
+    holidayName: holiday.name,
+    date: holiday.date,
+    dateLabel,
+    daysAway: holiday.daysAway,
+    scheduledCount: actual,
+    typicalCount,
+  };
 }
 
 export async function markNotificationRead(notificationId: string) {

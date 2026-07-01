@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyRegistrationResponse } from "@simplewebauthn/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getWebauthnConfig, CHALLENGE_TTL_MS } from "@/lib/webauthn";
+import { sendMail } from "@/lib/mailer";
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,7 +49,24 @@ export async function POST(req: NextRequest) {
       device_label: deviceLabel || null,
     });
     if (insertError) {
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+      console.error("webauthn credential insert error:", insertError.message);
+      return NextResponse.json({ error: "ההרשמה נכשלה" }, { status: 500 });
+    }
+
+    // There's no server session proving the caller who requested this really IS
+    // personId — so alert the account by email whenever a new device is added,
+    // the way banks alert on new-device logins. If it wasn't them, they now know.
+    const { data: person } = await supabase.from("people").select("name, email").eq("id", personId).maybeSingle();
+    if (person?.email) {
+      sendMail(
+        person.email,
+        "מכשיר חדש נוסף לכניסה בטביעת אצבע — Sidur",
+        `<div dir="rtl" style="font-family: sans-serif; text-align: right;">
+          <p>שלום ${person.name},</p>
+          <p>מכשיר חדש הופעל לכניסה בטביעת אצבע/Face ID לחשבון שלך ב-Sidur${deviceLabel ? ` (${deviceLabel})` : ""}.</p>
+          <p>אם זה לא היית את/ה — פנה/י אלינו מיד.</p>
+        </div>`
+      ).catch(() => {});
     }
 
     return NextResponse.json({ success: true });

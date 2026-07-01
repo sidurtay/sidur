@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("people")
-    .select("id, name, phone, email, role_key, initials, color, text_color, since_label, created_at, hourly_wage")
+    .select("id, name, phone, email, role_key, initials, color, text_color, since_label, created_at, hourly_wage, avatar_url")
     .eq("business_id", businessId)
     .eq("role_type", "employee")
     .order("created_at");
@@ -61,6 +61,7 @@ export async function GET(req: NextRequest) {
     textColor: e.text_color,
     since: e.since_label || sinceLabel(e.created_at),
     hourlyWage: e.hourly_wage != null ? Number(e.hourly_wage) : undefined,
+    avatarUrl: e.avatar_url || undefined,
   }));
 
   return NextResponse.json({ success: true, employees });

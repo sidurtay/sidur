@@ -37,7 +37,7 @@ export default function ChangePassword() {
       });
       const data = await res.json();
       if (!data.success) { setError(data.error || "שמירה נכשלה"); setLoading(false); return; }
-      router.replace("/dashboard");
+      router.replace("/welcome");
     } catch {
       setError("שגיאת רשת"); setLoading(false);
     }

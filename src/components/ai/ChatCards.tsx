@@ -1,4 +1,4 @@
-import { Clock, Coins, Users, CalendarOff, Phone, UserCheck, CalendarDays, ArrowLeftRight, Bell, Check, Info } from "lucide-react";
+import { Clock, Coins, Users, CalendarOff, Phone, UserCheck, CalendarDays, ArrowLeftRight, Bell, Check, Info, PartyPopper } from "lucide-react";
 import type { AnyCard } from "@/lib/ai/cards";
 
 const STATUS_LABEL: Record<string, string> = { all: "כל היום", morning: "בוקר", evening: "ערב" };
@@ -68,6 +68,23 @@ export function ChatCard({ card }: { card: AnyCard }) {
         <div className="flex-1 text-right">
           <p className="text-lg font-bold" style={{ color: "#fff" }}>₪{card.amount}</p>
           <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>{card.label}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (card.type === "holiday") {
+    return (
+      <div className="w-full max-w-[85%] rounded-2xl px-4 py-3.5 flex items-center gap-3 flex-row"
+        style={{ background: "linear-gradient(135deg, rgba(244,114,182,0.16), rgba(244,114,182,0.03))", border: "1px solid rgba(244,114,182,0.35)" }}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(244,114,182,0.2)" }}>
+          <PartyPopper size={16} style={{ color: "#F472B6" }} />
+        </div>
+        <div className="flex-1 text-right">
+          <p className="text-sm font-bold" style={{ color: "#fff" }}>{card.holidayName} בעוד {card.daysAway} ימים ({card.dateLabel})</p>
+          <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>
+            מתוכננות רק {card.scheduledCount} משמרות ל-{card.dateLabel}, פחות מהרגיל (~{card.typicalCount}) — יום עמוס בדרך כלל, כדאי לתגבר
+          </p>
         </div>
       </div>
     );

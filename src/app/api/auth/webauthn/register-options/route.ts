@@ -2,12 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateRegistrationOptions } from "@simplewebauthn/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getWebauthnConfig } from "@/lib/webauthn";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
     const { businessId, personId } = await req.json();
     if (!businessId || !personId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
+    }
+
+    // There's no server-side session proving the caller actually IS personId
+    // (the whole app trusts client-supplied IDs) — rate limiting is a stopgap
+    // against scripted abuse; the real detection is the email alert sent from
+    // register-verify once a credential is actually registered.
+    if (!rateLimit(`webauthn-register:${personId}`, 5, 60 * 60 * 1000).ok) {
+      return NextResponse.json({ error: "יותר מדי ניסיונות, נסה שוב מאוחר יותר" }, { status: 429 });
     }
 
     const supabase = createServiceRoleClient();

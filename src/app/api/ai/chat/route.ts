@@ -205,10 +205,13 @@ async function buildReply(
       // (read-only tools only; see claude.ts) before falling back to the
       // canned "didn't understand" message. Returns null if no API key is
       // configured yet, or the call fails, so this is purely additive.
-      // Claude calls cost money per request — cap how often one person can trigger
-      // the fallback so a spam script can't run up an unbounded API bill.
-      const limited = rateLimit(`ai-claude:${ctx.personId}`, 20, 60 * 60 * 1000);
-      const claudeReply = limited.ok ? await askClaude(message, ctx, history) : null;
+      // Claude calls cost money per request — cap both per-person and per-business
+      // usage so a spam script (or one chatty business) can't run up an unbounded
+      // API bill. Silent fallback to the canned reply below, not an error message,
+      // so hitting the cap just feels like "didn't understand" rather than a wall.
+      const personOk = rateLimit(`ai-claude-person:${ctx.personId}`, 8, 60 * 60 * 1000).ok;
+      const businessOk = rateLimit(`ai-claude-biz:${ctx.businessId}`, 60, 24 * 60 * 60 * 1000).ok;
+      const claudeReply = (personOk && businessOk) ? await askClaude(message, ctx, history) : null;
       if (claudeReply) return claudeReply;
 
       return pick([

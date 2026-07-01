@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as tools from "@/lib/ai/tools";
 import { isManager as checkIsManager } from "@/lib/auth/permissions";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import type { ShiftCard, HoursCard, TipsCard } from "@/lib/ai/cards";
+import type { ShiftCard, HoursCard, TipsCard, HolidayCard } from "@/lib/ai/cards";
 
 // Backs the chat drawer's proactive "home screen" — the three things people
 // open the assistant to check most (today's shift, hours this week, tips
@@ -17,10 +17,11 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceRoleClient();
   const ctx = { businessId, personId, isManager: await checkIsManager(supabase, businessId, personId) };
 
-  const [scheduleRes, hoursRes, tipsRes] = await Promise.all([
+  const [scheduleRes, hoursRes, tipsRes, holiday] = await Promise.all([
     tools.getScheduleForDate(ctx, tools.TODAY_DATE),
     tools.getEmployeeHours(ctx, { weekScope: true }),
     tools.getTipsToday(ctx),
+    tools.getHolidayInsight(ctx),
   ]);
 
   let shift: ShiftCard;
@@ -50,5 +51,5 @@ export async function GET(req: NextRequest) {
     tips = { type: "tips", amount: tipsRes.myShare, label: `משמרת ${tipsRes.shiftLabel} · היום` };
   }
 
-  return NextResponse.json({ success: true, shift, hours, tips });
+  return NextResponse.json({ success: true, shift, hours, tips, holiday: holiday as HolidayCard | null });
 }

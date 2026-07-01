@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendMail } from "@/lib/mailer";
+import { rateLimit, clientIp } from "@/lib/rateLimit";
 
+// Same alphabet as the employees route's generateTempPassword — kept in sync there.
+const TEMP_PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function generateTempPassword() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  let out = "";
+  for (let i = 0; i < 8; i++) out += TEMP_PASSWORD_ALPHABET[Math.floor(Math.random() * TEMP_PASSWORD_ALPHABET.length)];
+  return out;
 }
 
 function resetEmailHtml(name: string, phone: string, tempPassword: string) {
@@ -32,6 +37,12 @@ export async function POST(req: NextRequest) {
     const { phone } = await req.json();
     if (!phone?.trim()) {
       return NextResponse.json({ error: "יש להזין מספר טלפון" }, { status: 400 });
+    }
+
+    // Prevents mass-emailing a phone number's owner and slows brute-forcing the temp password.
+    const limited = rateLimit(`forgot-password:${clientIp(req)}:${phone.trim()}`, 3, 15 * 60 * 1000);
+    if (!limited.ok) {
+      return NextResponse.json({ success: true });
     }
 
     const supabase = createServiceRoleClient();

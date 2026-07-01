@@ -21,7 +21,11 @@ export type ListCard = { type: "list"; icon: "shifts" | "swap" | "pending"; titl
 // and approve/deny actions — instead of a plain sentence with an emoji.
 export type ConfirmCard = { type: "confirm"; tone: "success" | "info"; title: string; subtitle?: string };
 
-export type AnyCard = RosterCard | HoursCard | TipsCard | ShiftCard | AvailabilityCard | ListCard | ConfirmCard;
+// Proactive heads-up when a high-traffic Israeli holiday/event is coming up
+// and the current schedule looks thin for that date — see israeliHolidays.ts.
+export type HolidayCard = { type: "holiday"; holidayName: string; date: string; dateLabel: string; daysAway: number; scheduledCount: number; typicalCount: number };
+
+export type AnyCard = RosterCard | HoursCard | TipsCard | ShiftCard | AvailabilityCard | ListCard | ConfirmCard | HolidayCard;
 
 export function initialsFor(name: string): string {
   const parts = name.trim().split(/\s+/);

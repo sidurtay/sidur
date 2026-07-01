@@ -6,6 +6,7 @@ import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import PasskeyCard from "@/components/PasskeyCard";
 import PushNotificationCard from "@/components/PushNotificationCard";
+import AvatarUploadCard from "@/components/AvatarUploadCard";
 import FaqAccordion from "@/components/FaqAccordion";
 
 export default function EmployeeSettings() {
@@ -14,6 +15,7 @@ export default function EmployeeSettings() {
   const [phone, setPhone] = useState("");
   const [businessId, setBusinessId] = useState("");
   const [personId, setPersonId] = useState("");
+  const [avatar, setAvatar] = useState<{ initials: string; color: string; textColor: string; avatarUrl?: string } | null>(null);
 
   useEffect(() => {
     try {
@@ -22,6 +24,12 @@ export default function EmployeeSettings() {
       setPhone(s.phone || "");
       setBusinessId(s.businessId || "");
       setPersonId(s.personId || "");
+      if (s.businessId && s.personId) {
+        fetch(`/api/people/me?businessId=${s.businessId}&personId=${s.personId}`)
+          .then(r => r.json())
+          .then(res => { if (res.success) setAvatar(res); })
+          .catch(() => {});
+      }
     } catch {}
   }, []);
 
@@ -43,6 +51,13 @@ export default function EmployeeSettings() {
           <p className="text-sm font-semibold">{name}</p>
         </div>
 
+        {businessId && personId && avatar && (
+          <AvatarUploadCard
+            businessId={businessId} personId={personId}
+            initialAvatarUrl={avatar.avatarUrl} initials={avatar.initials}
+            color={avatar.color} textColor={avatar.textColor}
+          />
+        )}
         {businessId && personId && <PasskeyCard businessId={businessId} personId={personId} />}
         {businessId && personId && <PushNotificationCard businessId={businessId} personId={personId} />}
 

@@ -6,7 +6,7 @@ import { QUICK_ACTION_GROUPS } from "@/lib/ai/intentMatcher";
 import AiWalker from "./AiWalker";
 import ScheduleBuilderChat from "./ScheduleBuilderChat";
 import { ChatCard } from "./ChatCards";
-import type { AnyCard, ShiftCard, HoursCard, TipsCard } from "@/lib/ai/cards";
+import type { AnyCard, ShiftCard, HoursCard, TipsCard, HolidayCard } from "@/lib/ai/cards";
 
 const GROUP_ICON: Record<string, LucideIcon> = {
   hours: Clock,
@@ -17,7 +17,7 @@ const GROUP_ICON: Record<string, LucideIcon> = {
 
 type Action = { label: string; href: string };
 type Msg = { role: "user" | "assistant"; content: string; action?: Action; card?: AnyCard };
-type Snapshot = { shift: ShiftCard; hours: HoursCard | null; tips: TipsCard | null };
+type Snapshot = { shift: ShiftCard; hours: HoursCard | null; tips: TipsCard | null; holiday: HolidayCard | null };
 
 type Session = { businessId: string; personId: string; name: string; businessName: string; isManager: boolean };
 
@@ -44,7 +44,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
   useEffect(() => {
     fetch(`/api/ai/snapshot?businessId=${session.businessId}&personId=${session.personId}`)
       .then(r => r.json())
-      .then(res => { if (res.success) setSnapshot({ shift: res.shift, hours: res.hours, tips: res.tips }); })
+      .then(res => { if (res.success) setSnapshot({ shift: res.shift, hours: res.hours, tips: res.tips, holiday: res.holiday }); })
       .catch(() => {});
   }, [session.businessId, session.personId]);
 
@@ -201,6 +201,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
                   chat prompt waiting for a question. */}
               {showSnapshot && snapshot && (
                 <div className="flex flex-col items-end gap-2 mt-1">
+                  {snapshot.holiday && <ChatCard card={snapshot.holiday} />}
                   <ChatCard card={snapshot.shift} />
                   {snapshot.hours && <ChatCard card={snapshot.hours} />}
                   {snapshot.tips && <ChatCard card={snapshot.tips} />}

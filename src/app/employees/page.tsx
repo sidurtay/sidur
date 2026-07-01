@@ -12,7 +12,7 @@ import {
 } from "@/lib/shiftData";
 import { MINIMUM_WAGE_HOURLY, isBelowMinimumWage } from "@/lib/minimumWage";
 
-type Employee = { id?: string; name: string; initials: string; role: string; phone: string; email?: string; since: string; cat: string; color: string; textColor: string; hourlyWage?: number };
+type Employee = { id?: string; name: string; initials: string; role: string; phone: string; email?: string; since: string; cat: string; color: string; textColor: string; hourlyWage?: number; avatarUrl?: string };
 
 const DEFAULT_JOB_ROLES = ["מלצרים", "מטבח", "בר", "שטיפה"];
 
@@ -358,9 +358,12 @@ export default function Employees() {
           <Card key={emp.id || emp.name} padded={false}
             className="px-3 py-3 flex items-center gap-3 flex-row cursor-pointer"
             onClick={() => { setSelected(emp); setResetResult(null); setRoleChangeError(""); setDeleteConfirm(false); setDeleteError(""); setWageInput(emp.hourlyWage != null ? String(emp.hourlyWage) : String(MINIMUM_WAGE_HOURLY)); setWageError(""); }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden"
               style={{ background: emp.color, color: emp.textColor }}>
-              {emp.initials}
+              {emp.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={emp.avatarUrl} alt="" className="w-full h-full object-cover" />
+              ) : emp.initials}
             </div>
             <div className="flex-1 text-right">
               <p className="text-sm font-semibold flex items-center gap-1 justify-end">

@@ -6,6 +6,8 @@ import InstagramIcon from "@/components/InstagramIcon";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import PasskeyCard from "@/components/PasskeyCard";
+import AvatarUploadCard from "@/components/AvatarUploadCard";
+import PayrollExportCard from "@/components/PayrollExportCard";
 import PushNotificationCard from "@/components/PushNotificationCard";
 import FaqAccordion from "@/components/FaqAccordion";
 import EmployeeSettings from "./EmployeeSettings";
@@ -79,6 +81,7 @@ export default function Settings() {
   const [plan, setPlan] = useState("starter");
   const [shiftSplit, setShiftSplit] = useState<ShiftSplit>("none");
   const [theme, setThemeState] = useState<ThemeMode>("system");
+  const [avatar, setAvatar] = useState<{ initials: string; color: string; textColor: string; avatarUrl?: string } | null>(null);
 
   useEffect(() => {
     setThemeState(getStoredTheme());
@@ -115,6 +118,16 @@ export default function Settings() {
 
     setBusinessId(biz);
     if (!biz) { router.replace("/login"); return; }
+
+    try {
+      const s = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
+      if (biz && s.personId) {
+        fetch(`/api/people/me?businessId=${biz}&personId=${s.personId}`)
+          .then(r => r.json())
+          .then(res => { if (res.success) setAvatar(res); })
+          .catch(() => {});
+      }
+    } catch {}
 
     (async () => {
       try {
@@ -440,6 +453,9 @@ export default function Settings() {
           </Card>
         </div>
 
+        {/* Monthly payroll / accountant export */}
+        {businessId && personId && <PayrollExportCard businessId={businessId} callerId={personId} />}
+
         {/* Roles + permissions */}
         <div>
           <SectionHeader icon={Users} title="תפקידים והרשאות" />
@@ -483,6 +499,15 @@ export default function Settings() {
           </p>
           </Card>
         </div>
+
+        {/* Profile photo */}
+        {businessId && personId && avatar && (
+          <AvatarUploadCard
+            businessId={businessId} personId={personId}
+            initialAvatarUrl={avatar.avatarUrl} initials={avatar.initials}
+            color={avatar.color} textColor={avatar.textColor}
+          />
+        )}
 
         {/* Fingerprint / Face ID login for this device */}
         {businessId && personId && <PasskeyCard businessId={businessId} personId={personId} />}
