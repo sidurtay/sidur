@@ -7,6 +7,7 @@ import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import PasskeyCard from "@/components/PasskeyCard";
 import ProfileCard from "@/components/ProfileCard";
+import PasswordChangeCard from "@/components/PasswordChangeCard";
 import PayrollExportCard from "@/components/PayrollExportCard";
 import PushNotificationCard from "@/components/PushNotificationCard";
 import FaqAccordion from "@/components/FaqAccordion";
@@ -514,6 +515,9 @@ export default function Settings() {
             }}
           />
         )}
+
+        {/* Change password via emailed code */}
+        {businessId && personId && <PasswordChangeCard businessId={businessId} personId={personId} />}
 
         {/* Fingerprint / Face ID login for this device */}
         {businessId && personId && <PasskeyCard businessId={businessId} personId={personId} />}
