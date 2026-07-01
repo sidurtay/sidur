@@ -395,7 +395,7 @@ function Schedule() {
         <div className="flex items-center gap-2 flex-row">
           <button onClick={() => goToWeek(weekOffset - 1)}
             className="p-2 rounded-xl flex-shrink-0" style={{ background: "var(--gray-bg)", border: "1px solid var(--border)" }}>
-            <ChevronLeft size={16} style={{ color: "var(--text-secondary)" }} />
+            <ChevronRight size={16} style={{ color: "var(--text-secondary)" }} />
           </button>
           <div className="flex-1 text-center">
             <p className="text-sm font-semibold">{week.label}</p>
@@ -403,7 +403,7 @@ function Schedule() {
           </div>
           <button onClick={() => goToWeek(weekOffset + 1)}
             className="p-2 rounded-xl flex-shrink-0" style={{ background: "var(--gray-bg)", border: "1px solid var(--border)" }}>
-            <ChevronRight size={16} style={{ color: "var(--text-secondary)" }} />
+            <ChevronLeft size={16} style={{ color: "var(--text-secondary)" }} />
           </button>
         </div>
         {weekOffset !== 0 && (
