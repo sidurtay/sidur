@@ -3,40 +3,45 @@ import { mkdirSync } from "fs";
 
 mkdirSync("assets", { recursive: true });
 
-const svg = `<svg width="1024" height="1024" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100" height="100" rx="0" fill="#F97316"/>
-  <path
-    d="M64 38c-2-6-8-10-16-10-10 0-17 5-17 13 0 7 5 10 14 12l4 1c10 2 16 6 16 14 0 9-8 15-19 15-9 0-16-4-19-11"
-    stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" fill="none"
-  />
-  <g stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round">
-    <line x1="78" y1="20" x2="78" y2="32"/>
-    <line x1="90" y1="32" x2="80" y2="38"/>
-    <line x1="92" y1="48" x2="81" y2="45"/>
-  </g>
-</svg>`;
-
-// icon.png — used by @capacitor/assets for all app icon sizes
-await sharp(Buffer.from(svg))
-  .resize(1024, 1024)
+// icon.png — the new brand mark (public/logo.png) isn't square, so pad it to
+// a square canvas first (fit: "contain") before scaling to 1024 — resizing
+// directly would stretch/crop the mark. Apple also rejects App Store icons
+// with an alpha channel, so .flatten() here is load-bearing, not cosmetic.
+await sharp("public/logo.png")
+  .resize(880, 880, { fit: "contain", background: "#FFFFFF" })
+  .extend({ top: 72, bottom: 72, left: 72, right: 72, background: "#FFFFFF" })
+  .flatten({ background: "#FFFFFF" })
   .png()
   .toFile("assets/icon.png");
 
-// splash.png — 2732x2732 centered logo on dark background
-const logoSmall = await sharp(Buffer.from(svg)).resize(400, 400).png().toBuffer();
+// splash.png — logo on a rounded white badge, centered on the app's dark
+// background (a hard-edged white square would look like a rendering glitch)
+const badgeSize = 460;
+const roundedMask = Buffer.from(
+  `<svg width="${badgeSize}" height="${badgeSize}"><rect width="${badgeSize}" height="${badgeSize}" rx="${badgeSize * 0.22}" fill="#fff"/></svg>`
+);
+const innerSize = Math.round(badgeSize * 0.72);
+const pad = Math.round((badgeSize - innerSize) / 2);
+const badge = await sharp("public/logo.png")
+  .resize(innerSize, innerSize, { fit: "contain", background: "#FFFFFF" })
+  .extend({ top: pad, bottom: pad, left: pad, right: pad, background: "#FFFFFF" })
+  .resize(badgeSize, badgeSize)
+  .composite([{ input: roundedMask, blend: "dest-in" }])
+  .png()
+  .toBuffer();
 
 await sharp({
-  create: { width: 2732, height: 2732, channels: 4, background: { r: 15, g: 17, b: 23, alpha: 1 } }
+  create: { width: 2732, height: 2732, channels: 4, background: { r: 15, g: 17, b: 23, alpha: 1 } },
 })
-  .composite([{ input: logoSmall, gravity: "center" }])
+  .composite([{ input: badge, gravity: "center" }])
   .png()
   .toFile("assets/splash.png");
 
-// splash-dark.png — same (already dark)
+// splash-dark.png — same background is already dark
 await sharp({
-  create: { width: 2732, height: 2732, channels: 4, background: { r: 15, g: 17, b: 23, alpha: 1 } }
+  create: { width: 2732, height: 2732, channels: 4, background: { r: 15, g: 17, b: 23, alpha: 1 } },
 })
-  .composite([{ input: logoSmall, gravity: "center" }])
+  .composite([{ input: badge, gravity: "center" }])
   .png()
   .toFile("assets/splash-dark.png");
 
