@@ -57,7 +57,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
       .then(res => {
         if (sentRef.current) return;
         if (res.success && res.history.length > 0) {
-          setMessages(res.history.map((h: { role: "user" | "assistant"; content: string }) => ({ role: h.role, content: h.content })));
+          setMessages(res.history.map((h: { role: "user" | "assistant"; content: string; card?: AnyCard }) => ({ role: h.role, content: h.content, card: h.card })));
         } else {
           setMessages([{ role: "assistant", content: `היי ${session.name.split(" ")[0]}! 👋 איך אפשר לעזור?` }]);
         }

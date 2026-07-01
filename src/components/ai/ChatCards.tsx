@@ -1,7 +1,8 @@
-import { Clock, Coins, Users, CalendarOff, Phone, UserCheck } from "lucide-react";
+import { Clock, Coins, Users, CalendarOff, Phone, UserCheck, CalendarDays, ArrowLeftRight, Bell, Check, Info } from "lucide-react";
 import type { AnyCard } from "@/lib/ai/cards";
 
 const STATUS_LABEL: Record<string, string> = { all: "כל היום", morning: "בוקר", evening: "ערב" };
+const LIST_ICON = { shifts: CalendarDays, swap: ArrowLeftRight, pending: Bell };
 
 const PALETTE = ["#F97316", "#FBBF24", "#34D399", "#60A5FA", "#F472B6", "#A78BFA"];
 function colorFor(name: string) {
@@ -103,6 +104,47 @@ export function ChatCard({ card }: { card: AnyCard }) {
             ))}
           </div>
         )}
+      </div>
+    );
+  }
+
+  if (card.type === "list") {
+    const ListIcon = LIST_ICON[card.icon];
+    return (
+      <div className="w-full max-w-[85%] rounded-2xl overflow-hidden" style={{ background: "#20262F", border: "1px solid rgba(249,115,22,0.25)" }}>
+        <div className="flex items-center gap-1.5 px-3.5 py-2.5 flex-row" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <ListIcon size={13} style={{ color: "#F97316" }} />
+          <p className="text-xs font-bold" style={{ color: "#fff" }}>{card.title}</p>
+        </div>
+        <div className="flex flex-col">
+          {card.items.map((it, i) => (
+            <div key={i} className="px-3.5 py-2.5 text-right"
+              style={{ borderBottom: i < card.items.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+              <p className="text-xs font-semibold" style={{ color: "#fff" }}>{it.primary}</p>
+              <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>{it.secondary}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (card.type === "confirm") {
+    const success = card.tone === "success";
+    return (
+      <div className="w-full max-w-[85%] rounded-2xl px-4 py-3.5 flex items-center gap-3 flex-row"
+        style={{
+          background: success ? "linear-gradient(135deg, rgba(52,211,153,0.14), rgba(52,211,153,0.03))" : "linear-gradient(135deg, rgba(249,115,22,0.14), rgba(249,115,22,0.03))",
+          border: `1px solid ${success ? "rgba(52,211,153,0.3)" : "rgba(249,115,22,0.3)"}`,
+        }}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: success ? "rgba(52,211,153,0.18)" : "rgba(249,115,22,0.18)" }}>
+          {success ? <Check size={16} style={{ color: "#34D399" }} /> : <Info size={16} style={{ color: "#F97316" }} />}
+        </div>
+        <div className="flex-1 text-right">
+          <p className="text-sm font-bold" style={{ color: "#fff" }}>{card.title}</p>
+          {card.subtitle && <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>{card.subtitle}</p>}
+        </div>
       </div>
     );
   }

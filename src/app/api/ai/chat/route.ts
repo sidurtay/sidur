@@ -83,7 +83,13 @@ async function buildReply(
       if ("error" in res) return `הופ, נתקלתי בתקלה כשמשכתי את המשמרות 😕 (${res.error})`;
       if (res.shifts.length === 0) return pick(["אין לך משמרות קרובות מתוכננות כרגע — תהנה/י מהזמן הפנוי 😎", "כרגע לא רשומה לך אף משמרת קדימה."]);
       const intro = pick(["אלה המשמרות הקרובות שלך:", "הנה מה שיש לך קדימה:"]);
-      return intro + "\n" + res.shifts.map(s => `• ${s.week} — יום ${s.day}, ${s.role} (${s.timeIn}–${s.timeOut})`).join("\n");
+      return {
+        text: intro + "\n" + res.shifts.map(s => `• ${s.week} — יום ${s.day}, ${s.role} (${s.timeIn}–${s.timeOut})`).join("\n"),
+        card: {
+          type: "list", icon: "shifts", title: "המשמרות הקרובות שלך",
+          items: res.shifts.map(s => ({ primary: `יום ${s.day} · ${s.week}`, secondary: `${s.role} · ${s.timeIn}–${s.timeOut}` })),
+        },
+      };
     }
 
     case "schedule_for_date": {
@@ -106,9 +112,18 @@ async function buildReply(
       const res = await tools.getShiftSwapRequests(ctx);
       if ("error" in res) return `הופ, נתקלתי בתקלה כשמשכתי את הבקשות 😕 (${res.error})`;
       if (res.requests.length === 0) return "אין בקשות החלפה פתוחות כרגע ✨";
-      return "בקשות החלפה פתוחות:\n" + res.requests.map(r =>
-        `• ${r.requesterName} — ${r.role} (${r.timeIn}–${r.timeOut})${r.proposedToTakeOver ? ` · ${r.proposedToTakeOver} מבקש/ת לקחת` : ""}`
-      ).join("\n");
+      return {
+        text: "בקשות החלפה פתוחות:\n" + res.requests.map(r =>
+          `• ${r.requesterName} — ${r.role} (${r.timeIn}–${r.timeOut})${r.proposedToTakeOver ? ` · ${r.proposedToTakeOver} מבקש/ת לקחת` : ""}`
+        ).join("\n"),
+        card: {
+          type: "list", icon: "swap", title: "בקשות החלפה פתוחות",
+          items: res.requests.map(r => ({
+            primary: `${r.requesterName} — ${r.role}`,
+            secondary: `${r.timeIn}–${r.timeOut}${r.proposedToTakeOver ? ` · ${r.proposedToTakeOver} מבקש/ת לקחת` : ""}`,
+          })),
+        },
+      };
     }
 
     case "create_swap": {
@@ -140,20 +155,20 @@ async function buildReply(
       const target = upcoming.shifts[0];
       const res = await tools.createShiftSwapRequest(ctx, { assignmentId: target.id, proposedPersonName: match.proposedPersonName });
       if ("error" in res) return `הבקשה לא נשלחה 😕 (${res.error})`;
-      return pick([
-        `שלחתי בקשת החלפה למשמרת ${target.day} (${target.timeIn}–${target.timeOut})${match.proposedPersonName ? ` עם ${match.proposedPersonName}` : ""} 📨 המנהל יראה אותה ויאשר.`,
-        `סודר! בקשה להחלפת המשמרת ביום ${target.day} (${target.timeIn}–${target.timeOut})${match.proposedPersonName ? ` עם ${match.proposedPersonName}` : ""} יצאה למנהל 📨`,
-      ]);
+      return {
+        text: `שלחתי בקשת החלפה למשמרת ${target.day} (${target.timeIn}–${target.timeOut})${match.proposedPersonName ? ` עם ${match.proposedPersonName}` : ""} 📨 המנהל יראה אותה ויאשר.`,
+        card: { type: "confirm", tone: "success", title: "בקשת ההחלפה נשלחה", subtitle: `יום ${target.day} · ${target.timeIn}–${target.timeOut}${match.proposedPersonName ? ` · עם ${match.proposedPersonName}` : ""}` },
+      };
     }
 
     case "create_absence": {
       if (!match.date) return "באיזה תאריך תרצה/י לבקש להיעדר? אפשר לכתוב למשל \"חופש ב-1.7\" או \"חופש מחר\" 🗓️";
       const res = await tools.createAbsenceRequest(ctx, { date: match.date, reason: match.reason });
       if ("error" in res) return `הבקשה לא נשלחה 😕 (${res.error})`;
-      return pick([
-        `שלחתי למנהל בקשת היעדרות לתאריך ${match.date}${match.reason ? ` (${match.reason})` : ""} 📨 תקבל/י עדכון כשהיא תיענה.`,
-        `רשמתי בקשת חופש ל-${match.date}${match.reason ? ` (${match.reason})` : ""} והעברתי למנהל לאישור 📨`,
-      ]);
+      return {
+        text: `שלחתי למנהל בקשת היעדרות לתאריך ${match.date}${match.reason ? ` (${match.reason})` : ""} 📨 תקבל/י עדכון כשהיא תיענה.`,
+        card: { type: "confirm", tone: "success", title: "בקשת החופש נשלחה", subtitle: match.date + (match.reason ? ` · ${match.reason}` : "") },
+      };
     }
 
     case "manager_pending": {
@@ -161,7 +176,10 @@ async function buildReply(
       if ("error" in res) return `הופ, נתקלתי בתקלה כשמשכתי התראות 😕 (${res.error})`;
       const pending = res.notifications.filter(n => !n.read);
       if (pending.length === 0) return pick(["אין בקשות ממתינות כרגע. הכל נקי! 🎉", "הכל מטופל — אין כרגע שום דבר שמחכה לך 🎉"]);
-      return "בקשות ממתינות:\n" + pending.map(n => `• ${n.title} — ${n.body}`).join("\n") + "\n\nאפשר לכתוב \"אשר את הבקשה האחרונה\" או \"דחה את הבקשה האחרונה\".";
+      return {
+        text: "בקשות ממתינות:\n" + pending.map(n => `• ${n.title} — ${n.body}`).join("\n") + "\n\nאפשר לכתוב \"אשר את הבקשה האחרונה\" או \"דחה את הבקשה האחרונה\".",
+        card: { type: "list", icon: "pending", title: "בקשות ממתינות לאישור", items: pending.map(n => ({ primary: n.title, secondary: n.body })) },
+      };
     }
 
     case "approve_last":
@@ -175,9 +193,10 @@ async function buildReply(
       const res = await tools.respondToRequest(ctx, { requestId: n.ref_id, requestType, approve });
       if ("error" in res) return `הפעולה נכשלה 😕 (${res.error})`;
       await tools.markNotificationRead(n.id);
-      return approve
-        ? pick([`✅ אישרתי: "${n.title}".`, `✅ בוצע — "${n.title}" אושרה.`])
-        : pick([`🚫 דחיתי: "${n.title}".`, `🚫 בוצע — "${n.title}" נדחתה.`]);
+      return {
+        text: approve ? `✅ אישרתי: "${n.title}".` : `🚫 דחיתי: "${n.title}".`,
+        card: { type: "confirm", tone: approve ? "success" : "info", title: approve ? "הבקשה אושרה" : "הבקשה נדחתה", subtitle: n.title },
+      };
     }
 
     default: {
@@ -220,13 +239,11 @@ export async function POST(req: NextRequest) {
     const result = await buildReply(message.trim(), ctx, employeeName || "", history);
     const reply = typeof result === "string" ? result : result.text;
     const action = typeof result === "string" ? undefined : result.action;
-    // Cards aren't persisted (ai_conversations only stores plain text) — history
-    // reloads show the text version, only the live turn gets the rich card.
     const card = typeof result === "string" ? undefined : result.card;
 
     await supabase.from("ai_conversations").insert([
       { business_id: businessId, person_id: personId, role: "user", content: message.trim() },
-      { business_id: businessId, person_id: personId, role: "assistant", content: reply },
+      { business_id: businessId, person_id: personId, role: "assistant", content: reply, card: card || null },
     ]);
 
     return NextResponse.json({ success: true, reply, action, card });
@@ -245,7 +262,7 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("ai_conversations")
-    .select("role, content, created_at")
+    .select("role, content, card, created_at")
     .eq("business_id", businessId)
     .eq("person_id", personId)
     .order("created_at", { ascending: false })

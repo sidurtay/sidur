@@ -10,7 +10,18 @@ export type ShiftCard = { type: "shift"; role: string; timeIn: string; timeOut: 
 export type AvailablePerson = { name: string; initials: string; phone: string; role: string; status: string };
 export type AvailabilityCard = { type: "availability"; dateLabel: string; people: AvailablePerson[] };
 
-export type AnyCard = RosterCard | HoursCard | TipsCard | ShiftCard | AvailabilityCard;
+// A generic list card — reused for "my upcoming shifts", "pending swap
+// requests", and "pending manager notifications": all three are just a
+// titled list of rows with a primary + secondary line, so one flexible
+// shape covers them instead of three near-identical types.
+export type ListItem = { primary: string; secondary: string };
+export type ListCard = { type: "list"; icon: "shifts" | "swap" | "pending"; title: string; items: ListItem[] };
+
+// A small "it's done" acknowledgement — used for absence/swap requests sent,
+// and approve/deny actions — instead of a plain sentence with an emoji.
+export type ConfirmCard = { type: "confirm"; tone: "success" | "info"; title: string; subtitle?: string };
+
+export type AnyCard = RosterCard | HoursCard | TipsCard | ShiftCard | AvailabilityCard | ListCard | ConfirmCard;
 
 export function initialsFor(name: string): string {
   const parts = name.trim().split(/\s+/);
