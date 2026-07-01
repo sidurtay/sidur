@@ -44,7 +44,7 @@ export default function Employees() {
   const [newEmail,   setNewEmail]   = useState("");
   const [newRole,    setNewRole]    = useState("");
   const [sending,    setSending]    = useState(false);
-  const [sentResult, setSentResult] = useState<{ tempPassword: string; success: boolean; emailSent?: boolean; error?: string } | null>(null);
+  const [sentResult, setSentResult] = useState<{ tempPassword: string; success: boolean; created: boolean; emailSent?: boolean; error?: string } | null>(null);
   const [bizName,    setBizName]    = useState("Sidur");
   const [businessId, setBusinessId] = useState("");
   const [myPersonId, setMyPersonId] = useState("");
@@ -277,15 +277,15 @@ export default function Employees() {
       });
       const data = await res.json();
       if (!data.success) {
-        setSentResult({ tempPassword: "", success: false, error: data.error || "הוספת העובד נכשלה" });
+        setSentResult({ tempPassword: "", success: false, created: false, error: data.error || "הוספת העובד נכשלה" });
         setSending(false);
         return;
       }
       tempPassword = data.tempPassword;
       setEmployees(prev => [...prev, data.employee]);
-      setSentResult({ tempPassword, success: !!data.emailSent, emailSent: data.emailSent });
+      setSentResult({ tempPassword, success: !!data.emailSent, created: true, emailSent: data.emailSent });
     } catch {
-      setSentResult({ tempPassword: "", success: false, error: "שגיאת רשת — נסה שוב" });
+      setSentResult({ tempPassword: "", success: false, created: false, error: "שגיאת רשת — נסה שוב" });
       setSending(false);
       return;
     }
@@ -869,8 +869,8 @@ export default function Employees() {
               {sentResult && (
                 <div className="rounded-xl p-3 text-right"
                   style={{
-                    background: sentResult.success ? "var(--green-light)" : "var(--amber-light)",
-                    border: `1px solid ${sentResult.success ? "var(--green-border)" : "var(--amber-border)"}`,
+                    background: sentResult.success ? "var(--green-light)" : !sentResult.created ? "var(--red-light)" : "var(--amber-light)",
+                    border: `1px solid ${sentResult.success ? "var(--green-border)" : !sentResult.created ? "var(--red-border)" : "var(--amber-border)"}`,
                   }}>
                   {sentResult.success ? (
                     <>
@@ -881,18 +881,25 @@ export default function Employees() {
                         סיסמה זמנית: <span className="font-bold" style={{ direction: "ltr", display: "inline-block" }}>{sentResult.tempPassword}</span>
                       </p>
                     </>
+                  ) : !sentResult.created ? (
+                    <>
+                      <p className="text-sm font-semibold" style={{ color: "var(--red)" }}>הוספת העובד נכשלה</p>
+                      <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
+                        {sentResult.error || "נסה/י שוב"}
+                      </p>
+                    </>
                   ) : (
                     <>
-                      <p className="text-sm font-semibold" style={{ color: "var(--amber)" }}>לא ניתן לשלוח את המייל</p>
+                      <p className="text-sm font-semibold" style={{ color: "var(--amber)" }}>העובד נוסף, אך המייל לא נשלח</p>
                       <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
                         סיסמה זמנית: <span className="font-bold">{sentResult.tempPassword}</span> — שלח/י לעובד/ת ידנית
                       </p>
                       {sentResult.error && <p className="text-xs mt-0.5 opacity-60">{sentResult.error}</p>}
                     </>
                   )}
-                  <button onClick={() => { setSentResult(null); setAddOpen(false); }}
+                  <button onClick={() => { setSentResult(null); if (sentResult.created) setAddOpen(false); }}
                     className="mt-2 text-xs font-semibold" style={{ color: "var(--blue)" }}>
-                    סגור
+                    {sentResult.created ? "סגור" : "נסה שוב"}
                   </button>
                 </div>
               )}

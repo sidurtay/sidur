@@ -117,12 +117,25 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  function refreshSchedule() {
+    if (!businessId) return;
+    fetch(`/api/schedule?businessId=${businessId}&weekStart=${TODAY_WEEK_START}`).then(r => r.json()).then(schedRes => {
+      if (schedRes.success) {
+        setTodayWorkers(buildTodayWorkers(schedRes.assignments.filter((a: { dayOfWeek: number }) => a.dayOfWeek === TODAY_DAY_OF_WEEK)));
+        setUpcomingShifts(buildUpcomingShifts(schedRes.assignments));
+      }
+    }).catch(() => {});
+  }
+
   function respond(id: string, approve: boolean) {
     fetch("/api/clock-requests", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, approve, callerId: myPersonId }),
     }).then(r => r.json()).then(res => {
-      if (res.success) setClockRequests(prev => prev.map(r => r.id === id ? res.request : r));
+      if (res.success) {
+        setClockRequests(prev => prev.map(r => r.id === id ? res.request : r));
+        if (approve) refreshSchedule();
+      }
     }).catch(() => {});
   }
 
