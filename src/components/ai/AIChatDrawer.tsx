@@ -38,7 +38,17 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
   // Flattened into one scrollable strip (with each prompt's category icon
   // attached) instead of a tabbed grid — a persistent carousel above the
   // composer that's always there to tap, not just before the first message.
-  const carouselPrompts = groups.flatMap(g => g.prompts.map(p => ({ text: p, icon: GROUP_ICON[g.key] })));
+  // Each group has a larger pool of professionally-worded phrasings than what's
+  // shown at once — a random subset is sampled fresh every time the drawer
+  // mounts (it fully unmounts on close, see AIAssistant.tsx), so reopening the
+  // chat later doesn't show the exact same static menu every time.
+  const [carouselPrompts] = useState(() =>
+    groups.flatMap(g => {
+      const shuffled = [...g.prompts].sort(() => Math.random() - 0.5);
+      const count = Math.min(g.prompts.length, 3);
+      return shuffled.slice(0, count).map(p => ({ text: p, icon: GROUP_ICON[g.key] }));
+    })
+  );
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
 
   useEffect(() => {

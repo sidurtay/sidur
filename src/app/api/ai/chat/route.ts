@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { matchIntent, EXAMPLE_PROMPTS } from "@/lib/ai/intentMatcher";
+import { matchIntent, randomExamplePrompts } from "@/lib/ai/intentMatcher";
 import * as tools from "@/lib/ai/tools";
 import { isManager as checkIsManager } from "@/lib/auth/permissions";
 import { askClaude } from "@/lib/ai/claude";
@@ -217,7 +217,7 @@ async function buildReply(
       return pick([
         "לא בטוח שהבנתי 🙂 אפשר למשל לשאול אותי:\n",
         "הממ, זה לא משהו שאני מכיר בינתיים — אבל אפשר לנסות:\n",
-      ]) + EXAMPLE_PROMPTS.map(p => `• ${p}`).join("\n");
+      ]) + randomExamplePrompts(ctx.isManager).map(p => `• ${p}`).join("\n");
     }
   }
 }

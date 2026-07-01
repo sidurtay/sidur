@@ -213,44 +213,71 @@ export function matchIntent(rawText: string, isManager: boolean): MatchResult {
   return { intent: "unknown" };
 }
 
-export const EXAMPLE_PROMPTS = [
-  "כמה שעות עבדתי החודש?",
-  "כמה שעות עבדתי השבוע?",
-  "מתי המשמרות הקרובות שלי?",
-  "מי עובד היום?",
-  "מי עובד מחר?",
-  "כמה טיפים עשיתי השבוע?",
-  "כמה טיפים עשיתי החודש?",
-  "אני רוצה לבקש חופש ב-1.7",
-  "אני רוצה להחליף משמרת",
-  "יש בקשות החלפה פתוחות?",
-];
-
-// Same prompts as EXAMPLE_PROMPTS, but grouped for the chat drawer's
-// quick-action grid (category tabs + a grid of tappable prompts) instead
-// of one flat row of random chips.
+// Grouped, for the chat drawer's quick-action grid (category tabs + a grid of
+// tappable prompts) instead of one flat row of random chips.
 export type QuickActionGroup = { key: string; label: string; managerOnly?: boolean; prompts: string[] };
 
+// Larger, more varied pool per category (professionally worded, not just
+// literal duplicates) — the chat drawer samples a random subset from each on
+// open instead of always showing the same fixed order, so returning users
+// don't feel like they're looking at the same static menu every time.
 export const QUICK_ACTION_GROUPS: QuickActionGroup[] = [
   {
     key: "hours",
     label: "שעות ומשמרות",
-    prompts: ["כמה שעות עבדתי השבוע?", "כמה שעות עבדתי החודש?", "מתי המשמרות הקרובות שלי?", "מי עובד היום?", "מי עובד מחר?"],
+    prompts: [
+      "כמה שעות עבדתי השבוע?",
+      "כמה שעות עבדתי החודש?",
+      "מה סיכום שעות העבודה שלי החודש?",
+      "מתי המשמרות הקרובות שלי?",
+      "מתי המשמרת הבאה שלי?",
+      "מי עובד היום?",
+      "מי עובד מחר?",
+      "מי בסידור בסוף השבוע?",
+      "איזה משמרות יש לי השבוע?",
+    ],
   },
   {
     key: "tips",
     label: "טיפים",
-    prompts: ["כמה טיפים עשיתי השבוע?", "כמה טיפים עשיתי החודש?"],
+    prompts: [
+      "כמה טיפים עשיתי השבוע?",
+      "כמה טיפים עשיתי החודש?",
+      "מה הטיפים שלי היום?",
+      "כמה עשיתי בטיפים מהמשמרת האחרונה?",
+    ],
   },
   {
     key: "leave",
     label: "חופש והחלפות",
-    prompts: ["אני רוצה לבקש חופש ב-1.7", "אני רוצה להחליף משמרת", "יש בקשות החלפה פתוחות?"],
+    prompts: [
+      "אני רוצה לבקש חופש ב-1.7",
+      "אפשר לקחת יום חופש בסוף השבוע?",
+      "אני רוצה להחליף משמרת",
+      "מי פנוי להחליף איתי משמרת ביום שישי?",
+      "יש בקשות החלפה פתוחות?",
+      "מה מצב בקשות החלפה שלי?",
+    ],
   },
   {
     key: "manager",
     label: "ניהול",
     managerOnly: true,
-    prompts: ["יש בקשות שממתינות לאישור?", "תבנה לי סידור עבודה לשבוע הבא"],
+    prompts: [
+      "יש בקשות שממתינות לאישור?",
+      "יש משהו לאשר היום?",
+      "תבנה לי סידור עבודה לשבוע הבא",
+      "תכין לי סידור אוטומטי לשבוע הקרוב",
+      "יש בקשות חדשות שממתינות?",
+    ],
   },
 ];
+
+// A fresh random sample for the "didn't understand, try asking..." fallback
+// message — pulled from the same pool as the drawer's quick-action chips, so
+// the suggestions vary between messages instead of always listing the exact
+// same 10 examples.
+export function randomExamplePrompts(isManager: boolean, count = 5): string[] {
+  const pool = QUICK_ACTION_GROUPS.filter(g => !g.managerOnly || isManager).flatMap(g => g.prompts);
+  return [...pool].sort(() => Math.random() - 0.5).slice(0, count);
+}
