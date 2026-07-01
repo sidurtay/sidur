@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Store, Clock, Users, Plus, X, AlertTriangle, Check, Receipt, ShieldCheck, Mail, Send, Lock, Fingerprint, ChevronLeft, Sparkles, Layers, Crown, Sun, Moon, Monitor } from "lucide-react";
+import { Store, Clock, Users, Plus, X, AlertTriangle, Check, Receipt, ShieldCheck, Mail, Send, Lock, Fingerprint, ChevronLeft, Sparkles, Layers, Crown, Sun, Moon, Monitor, LogOut } from "lucide-react";
 import InstagramIcon from "@/components/InstagramIcon";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
@@ -46,6 +46,7 @@ const DEFAULT_PERMS: Record<string, PermMap> = {
 
 export default function Settings() {
   const router = useRouter();
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const [bizName, setBizName] = useState(DEFAULT_CONFIG.bizName);
   const [bizId,   setBizId]   = useState(DEFAULT_CONFIG.bizId);
   const [days,    setDays]    = useState<DayConfig[]>(DEFAULT_CONFIG.days);
@@ -569,7 +570,42 @@ export default function Settings() {
             initialized ? "שמור שינויים" : "שמור הגדרות ראשוניות"
           )}
         </button>
+
+        {/* Logout */}
+        <button onClick={() => setConfirmLogout(true)}
+          className="w-full py-3.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+          style={{ background: "var(--red-light)", color: "var(--red)", border: "1px solid var(--red-border)" }}>
+          <LogOut size={15} /> התנתקות
+        </button>
       </div>
+
+      {/* ── Logout confirm ─────────────────────────────────── */}
+      {confirmLogout && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-6" style={{ background: "rgba(0,0,0,0.5)" }}
+          onClick={() => setConfirmLogout(false)}>
+          <div className="w-full max-w-sm rounded-2xl p-5 bg-white" onClick={e => e.stopPropagation()}>
+            <div className="w-11 h-11 rounded-full flex items-center justify-center mb-3 mx-auto" style={{ background: "var(--red-light)" }}>
+              <LogOut size={20} style={{ color: "var(--red)" }} />
+            </div>
+            <p className="text-base font-bold text-center mb-1.5">להתנתק מהחשבון?</p>
+            <p className="text-xs text-center leading-relaxed mb-5" style={{ color: "var(--text-secondary)" }}>
+              תצטרך/י להיכנס שוב עם מספר הטלפון והסיסמה שלך
+            </p>
+            <div className="flex gap-2 flex-row">
+              <button onClick={() => setConfirmLogout(false)}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold"
+                style={{ background: "var(--gray-bg)", color: "var(--text-main)", border: "1px solid var(--border)" }}>
+                ביטול
+              </button>
+              <button onClick={() => { localStorage.removeItem("shiftpro_session"); router.replace("/login"); }}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold text-white"
+                style={{ background: "var(--red)" }}>
+                כן, התנתק
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Permissions popup ───────────────────────────────── */}
       {permPopupRole && (
