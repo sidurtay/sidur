@@ -6,7 +6,7 @@ import InstagramIcon from "@/components/InstagramIcon";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import PasskeyCard from "@/components/PasskeyCard";
-import AvatarUploadCard from "@/components/AvatarUploadCard";
+import ProfileCard from "@/components/ProfileCard";
 import PayrollExportCard from "@/components/PayrollExportCard";
 import PushNotificationCard from "@/components/PushNotificationCard";
 import FaqAccordion from "@/components/FaqAccordion";
@@ -81,7 +81,7 @@ export default function Settings() {
   const [plan, setPlan] = useState("starter");
   const [shiftSplit, setShiftSplit] = useState<ShiftSplit>("none");
   const [theme, setThemeState] = useState<ThemeMode>("system");
-  const [avatar, setAvatar] = useState<{ initials: string; color: string; textColor: string; avatarUrl?: string } | null>(null);
+  const [profile, setProfile] = useState<{ name: string; email: string; phone: string; initials: string; color: string; textColor: string; avatarUrl?: string } | null>(null);
 
   useEffect(() => {
     setThemeState(getStoredTheme());
@@ -124,7 +124,7 @@ export default function Settings() {
       if (biz && s.personId) {
         fetch(`/api/people/me?businessId=${biz}&personId=${s.personId}`)
           .then(r => r.json())
-          .then(res => { if (res.success) setAvatar(res); })
+          .then(res => { if (res.success) setProfile(res); })
           .catch(() => {});
       }
     } catch {}
@@ -500,12 +500,18 @@ export default function Settings() {
           </Card>
         </div>
 
-        {/* Profile photo */}
-        {businessId && personId && avatar && (
-          <AvatarUploadCard
-            businessId={businessId} personId={personId}
-            initialAvatarUrl={avatar.avatarUrl} initials={avatar.initials}
-            color={avatar.color} textColor={avatar.textColor}
+        {/* Profile */}
+        {businessId && personId && profile && (
+          <ProfileCard
+            businessId={businessId} personId={personId} profile={profile}
+            onSaved={update => {
+              setProfile(prev => prev ? { ...prev, ...update } : prev);
+              setSenderName(update.name);
+              try {
+                const s = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
+                localStorage.setItem("shiftpro_session", JSON.stringify({ ...s, name: update.name }));
+              } catch {}
+            }}
           />
         )}
 

@@ -6,32 +6,38 @@ import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import PasskeyCard from "@/components/PasskeyCard";
 import PushNotificationCard from "@/components/PushNotificationCard";
-import AvatarUploadCard from "@/components/AvatarUploadCard";
+import ProfileCard from "@/components/ProfileCard";
 import FaqAccordion from "@/components/FaqAccordion";
+
+type Profile = { name: string; email: string; phone: string; initials: string; color: string; textColor: string; avatarUrl?: string };
 
 export default function EmployeeSettings() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
   const [businessId, setBusinessId] = useState("");
   const [personId, setPersonId] = useState("");
-  const [avatar, setAvatar] = useState<{ initials: string; color: string; textColor: string; avatarUrl?: string } | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     try {
       const s = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
-      setName(s.name || "");
-      setPhone(s.phone || "");
       setBusinessId(s.businessId || "");
       setPersonId(s.personId || "");
       if (s.businessId && s.personId) {
         fetch(`/api/people/me?businessId=${s.businessId}&personId=${s.personId}`)
           .then(r => r.json())
-          .then(res => { if (res.success) setAvatar(res); })
+          .then(res => { if (res.success) setProfile(res); })
           .catch(() => {});
       }
     } catch {}
   }, []);
+
+  function handleProfileSaved(update: { name: string; email: string }) {
+    setProfile(prev => prev ? { ...prev, ...update } : prev);
+    try {
+      const s = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
+      localStorage.setItem("shiftpro_session", JSON.stringify({ ...s, name: update.name }));
+    } catch {}
+  }
 
   function logout() {
     localStorage.removeItem("shiftpro_session");
@@ -46,18 +52,10 @@ export default function EmployeeSettings() {
       </div>
 
       <div className="px-3 py-3 flex flex-col gap-4">
-        <div className="bg-white rounded-xl px-4 py-3 flex items-center justify-between flex-row" style={{ border: "1px solid var(--border)" }}>
-          <p className="text-xs" style={{ color: "var(--text-secondary)", direction: "ltr" }}>{phone}</p>
-          <p className="text-sm font-semibold">{name}</p>
-        </div>
-
-        {businessId && personId && avatar && (
-          <AvatarUploadCard
-            businessId={businessId} personId={personId}
-            initialAvatarUrl={avatar.avatarUrl} initials={avatar.initials}
-            color={avatar.color} textColor={avatar.textColor}
-          />
+        {businessId && personId && profile && (
+          <ProfileCard businessId={businessId} personId={personId} profile={profile} onSaved={handleProfileSaved} />
         )}
+
         {businessId && personId && <PasskeyCard businessId={businessId} personId={personId} />}
         {businessId && personId && <PushNotificationCard businessId={businessId} personId={personId} />}
 
