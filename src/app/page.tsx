@@ -48,7 +48,7 @@ export default function Splash() {
           תפסיק לבנות סידור.<br />תתחיל לאשר אותו.
         </h1>
         <p className="text-sm leading-relaxed mb-6" style={{ color: "rgba(255,255,255,0.55)", maxWidth: 300 }}>
-          Sidur בונה לך סידור עבודה שלם תוך שניות, עוקב אחרי נוכחות בזמן אמת, ומתריע לפני שמשהו ידלוף לך בין הידיים
+          בזמן שאתה קורא את זה, Sidur כבר יכול היה לבנות לך סידור שלם לשבוע הבא — עם נוכחות בזמן אמת, טיפים מחושבים, ועוזר חכם שעונה לעובדים במקומך.
         </p>
         <div className="flex flex-row gap-1.5 mb-7 flex-wrap justify-center" style={{ maxWidth: 340 }}>
           {BUSINESS_TYPES.map(b => (
@@ -111,12 +111,12 @@ export default function Splash() {
         style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
         <p className="text-sm font-bold text-right" style={{ color: "var(--text-main)" }}>למה Sidur?</p>
         {[
-          { Icon: Bot,        title: "AI שבונה את הסידור לך",     sub: "מזין את האילוצים פעם אחת — הסידור מוכן תוך שניות" },
-          { Icon: Smartphone, title: "התראות לעובדים",              sub: "כל עובד מקבל התראה על המשמרת שלו ישר לטלפון" },
-          { Icon: Clock,      title: "נוכחות בזמן אמת",           sub: "כניסה ויציאה דרך QR, טביעת אצבע, או ידני" },
-          { Icon: Coins,      title: "חלוקת טיפים הוגנת",         sub: "חישוב אוטומטי לפי שעות — בוקר וערב בנפרד" },
-          { Icon: BarChart3,  title: "דוחות מוכנים לשכר",         sub: "ייצוא ל-Excel בלחיצה אחת, בלי להעתיק ידנית" },
-          { Icon: Building2,  title: "מולטי-סניף",                sub: "נהל כמה סניפים מחשבון אחד" },
+          { Icon: Bot,        title: "סיד — העוזר החכם",           sub: "בונה סידור שלם, עונה לעובדים על שעות ומשמרות, ומקבל בקשות חופש — במקומך" },
+          { Icon: Smartphone, title: "התראות ישר לטלפון",          sub: "כל עובד יודע מתי הוא עובד בלי שתשלח הודעה אחת" },
+          { Icon: Clock,      title: "נוכחות בזמן אמת",           sub: "רואה מי הגיע, מי איחר ומי חסר — עוד לפני שנכנסת למשמרת" },
+          { Icon: Coins,      title: "חלוקת טיפים הוגנת",         sub: "מחושב אוטומטית לפי שעות, בוקר וערב בנפרד. אפס ויכוחים" },
+          { Icon: BarChart3,  title: "דוח שכר בלחיצה",            sub: "שעות, שכר וטיפים לכל עובד — מוכן לרואה החשבון בסוף החודש" },
+          { Icon: Building2,  title: "כמה סניפים, חשבון אחד",       sub: "עוברים בין הסניפים בלחיצה, בלי להתנתק ולהתחבר מחדש" },
         ].map(f => (
           <div key={f.title} className="flex items-center gap-3 flex-row">
             <div className="text-right flex-1">
@@ -129,6 +129,56 @@ export default function Splash() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ── How it works ── */}
+      <div className="px-4 pt-6 pb-2">
+        <p className="text-center text-xl font-bold mb-1" style={{ color: "var(--text-main)" }}>שלוש דקות. זהו.</p>
+        <p className="text-center text-xs mb-6" style={{ color: "var(--text-secondary)" }}>
+          בלי הדרכות, בלי אקסלים, בלי כאב ראש
+        </p>
+        <div className="flex flex-col gap-3">
+          {[
+            { n: "1", title: "מוסיפים את הצוות", sub: "שם וטלפון לכל עובד — הם מקבלים הזמנה ונכנסים לבד. בלי להסביר לאף אחד כלום." },
+            { n: "2", title: "סיד בונה את הסידור", sub: "העוזר החכם מזין את האילוצים ומרכיב שבוע שלם תוך שניות. אתה רק מאשר." },
+            { n: "3", title: "העבודה מתנהלת לבד", sub: "העובדים רואים משמרות, מדווחים נוכחות ומבקשים החלפות — הכל בלי שתרים טלפון." },
+          ].map(s => (
+            <div key={s.n} className="flex items-start gap-3 flex-row rounded-2xl px-4 py-3.5"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <div className="text-right flex-1">
+                <p className="text-sm font-bold" style={{ color: "var(--text-main)" }}>{s.title}</p>
+                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--text-secondary)" }}>{s.sub}</p>
+              </div>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-extrabold"
+                style={{ background: "var(--blue)", color: "#fff" }}>
+                {s.n}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Testimonial ── */}
+      <div className="mx-4 mt-6 mb-2 rounded-2xl px-5 py-5"
+        style={{ background: "var(--navy)" }}>
+        <div className="flex flex-row gap-0.5 justify-end mb-3">
+          {[...Array(5)].map((_, i) => (
+            <Star key={i} size={13} fill="#F97316" style={{ color: "#F97316" }} />
+          ))}
+        </div>
+        <p className="text-sm leading-relaxed text-right mb-3" style={{ color: "#fff" }}>
+          &ldquo;הייתי מבזבז שעתיים כל שבוע על הסידור, ועוד שעה על &apos;מי מחליף את מי&apos; בוואטסאפ. עכשיו זה נגמר בחמש דקות ואני בכלל לא במשחק. לא מבין איך ניהלתי בלי זה.&rdquo;
+        </p>
+        <div className="flex items-center gap-2 justify-end flex-row">
+          <div className="text-right">
+            <p className="text-xs font-bold" style={{ color: "#fff" }}>איתי אדרי</p>
+            <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>מנהל משמרת · קפה קפה נהריה</p>
+          </div>
+          <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
+            style={{ background: "#F97316", color: "#fff" }}>
+            אא
+          </div>
+        </div>
       </div>
 
       {/* ── Pricing ── */}
