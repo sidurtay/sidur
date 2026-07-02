@@ -18,6 +18,49 @@ const SOCIAL_PROOF = [
   "כושר פלוס ירושלים", "פיצה הגינה", "בוטיק רנה",
 ];
 
+// A pool of reviews to pick from — reorder or delete to choose which show, or
+// swap in a real customer quote. `avatar` is an optional illustrated profile
+// image (DiceBear, free, not a real person); leave it null to fall back to a
+// colored-initials circle. Replace an avatar URL with a real photo in /public
+// (e.g. "/reviews/maor.jpg") once you have one.
+const TESTIMONIALS: { name: string; role: string; quote: string; avatar: string | null; tint: string }[] = [
+  {
+    name: "מאור לוי", role: "בעלים · מסעדת לימאני",
+    quote: "הייתי מבזבז שעתיים כל שבוע על הסידור, ועוד שעה על 'מי מחליף את מי' בוואטסאפ. עכשיו זה נגמר בחמש דקות ואני בכלל לא במשחק.",
+    avatar: "https://api.dicebear.com/9.x/notionists/svg?seed=Maor&backgroundColor=ffdfbf", tint: "#F97316",
+  },
+  {
+    name: "יעל ברקוביץ'", role: "מנהלת · קפה נחמה",
+    quote: "העובדים מדווחים נוכחות לבד ורואים משמרות בטלפון. הפסקתי לרדוף אחרי אנשים, וזה לבד שווה את המחיר.",
+    avatar: "https://api.dicebear.com/9.x/notionists/svg?seed=Yael&backgroundColor=c0aede", tint: "#A78BFA",
+  },
+  {
+    name: "אבי שרעבי", role: "בעלים · בורגר בר תחנה",
+    quote: "חלוקת הטיפים הייתה סיוט של ריבים בכל סוף משמרת. Sidur מחשב לבד לפי שעות — אפס תלונות מאז.",
+    avatar: null, tint: "#34D399",
+  },
+  {
+    name: "נועה גרין", role: "מנהלת · גלידה בגן",
+    quote: "בניתי סידור לשבוע שלם בזמן שחיכיתי לקפה. סיד פשוט עשה את זה, ואני רק אישרתי. מטורף.",
+    avatar: "https://api.dicebear.com/9.x/notionists/svg?seed=Noa&backgroundColor=b6e3f4", tint: "#60A5FA",
+  },
+  {
+    name: "דני חדד", role: "בעלים · פאב העוגן",
+    quote: "ניהלתי 3 סניפים ב-3 קבוצות וואטסאפ שונות. עכשיו הכל בחשבון אחד, ואני עובר ביניהם בלחיצה.",
+    avatar: null, tint: "#F472B6",
+  },
+  {
+    name: "שירה מלכה", role: "מנהלת · סלון שירה סטייל",
+    quote: "הבנות מבקשות חופש והחלפות דרך האפליקציה, המנהל מאשר בשנייה. נגמרו ההודעות ב-2 בלילה.",
+    avatar: null, tint: "#FBBF24",
+  },
+];
+
+function reviewInitials(name: string) {
+  const parts = name.replace(/['"]/g, "").trim().split(/\s+/);
+  return ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase();
+}
+
 export default function Splash() {
   const router = useRouter();
   const [checked, setChecked]   = useState(false);
@@ -158,26 +201,38 @@ export default function Splash() {
         </div>
       </div>
 
-      {/* ── Testimonial ── */}
-      <div className="mx-4 mt-6 mb-2 rounded-2xl px-5 py-5"
-        style={{ background: "var(--navy)" }}>
-        <div className="flex flex-row gap-0.5 justify-end mb-3">
-          {[...Array(5)].map((_, i) => (
-            <Star key={i} size={13} fill="#F97316" style={{ color: "#F97316" }} />
-          ))}
-        </div>
-        <p className="text-sm leading-relaxed text-right mb-3" style={{ color: "#fff" }}>
-          &ldquo;הייתי מבזבז שעתיים כל שבוע על הסידור, ועוד שעה על &apos;מי מחליף את מי&apos; בוואטסאפ. עכשיו זה נגמר בחמש דקות ואני בכלל לא במשחק. לא מבין איך ניהלתי בלי זה.&rdquo;
+      {/* ── Testimonials ── */}
+      <div className="mt-6 mb-2">
+        <p className="text-center text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>
+          מה בעלי עסקים אומרים
         </p>
-        <div className="flex items-center gap-2 justify-end flex-row">
-          <div className="text-right">
-            <p className="text-xs font-bold" style={{ color: "#fff" }}>מאור לוי</p>
-            <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>בעלים · מסעדת לימאני</p>
-          </div>
-          <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
-            style={{ background: "#F97316", color: "#fff" }}>
-            מל
-          </div>
+        <div className="flex flex-row gap-3 overflow-x-auto px-4 pb-2 review-scroll" style={{ scrollSnapType: "x mandatory" }}>
+          {TESTIMONIALS.map(t => (
+            <div key={t.name} className="flex-shrink-0 rounded-2xl px-5 py-5 flex flex-col"
+              style={{ background: "var(--navy)", width: 280, scrollSnapAlign: "center" }}>
+              <div className="flex flex-row gap-0.5 justify-end mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} size={12} fill="#F97316" style={{ color: "#F97316" }} />
+                ))}
+              </div>
+              <p className="text-[13px] leading-relaxed text-right mb-4 flex-1" style={{ color: "#fff" }}>
+                &ldquo;{t.quote}&rdquo;
+              </p>
+              <div className="flex items-center gap-2 justify-end flex-row">
+                <div className="text-right">
+                  <p className="text-xs font-bold" style={{ color: "#fff" }}>{t.name}</p>
+                  <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>{t.role}</p>
+                </div>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden text-xs font-bold"
+                  style={{ background: t.tint, color: "#fff" }}>
+                  {t.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={t.avatar} alt="" className="w-full h-full object-cover" />
+                  ) : reviewInitials(t.name)}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

@@ -111,3 +111,7 @@ body {
 .animate-fade-slide-up {
   animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* Hidden scrollbar for horizontal review carousel on the landing page */
+.review-scroll { scrollbar-width: none; }
+.review-scroll::-webkit-scrollbar { display: none; }
