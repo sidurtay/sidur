@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { sendMail } from "@/lib/mailer";
+import { sendMail, emailLayout } from "@/lib/mailer";
 import { rateLimit } from "@/lib/rateLimit";
 
 const CODE_TTL_MS = 5 * 60 * 1000;
@@ -50,13 +50,17 @@ export async function POST(req: NextRequest) {
     const sent = await sendMail(
       person.email,
       "קוד לשינוי סיסמה — Sidur",
-      `<div dir="rtl" style="font-family: sans-serif; text-align: right;">
-        <p>שלום ${person.name},</p>
-        <p>קוד לשינוי הסיסמה שלך ב-Sidur:</p>
-        <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px;">${code}</p>
-        <p>הקוד תקף ל-5 דקות בלבד.</p>
-        <p>לא ביקשת לשנות סיסמה? אפשר להתעלם מהמייל הזה.</p>
-      </div>`
+      emailLayout({
+        heading: "קוד לשינוי סיסמה 🔐",
+        intro: `שלום ${person.name.split(" ")[0]}, הזן/י את הקוד הבא באפליקציה כדי לשנות את הסיסמה שלך:`,
+        bodyHtml: `
+          <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;padding:18px;margin:4px 0;text-align:center;">
+            <p style="margin:0;font-size:34px;font-weight:800;color:#F97316;letter-spacing:8px;direction:ltr;">${code}</p>
+          </div>
+          <p style="margin:14px 0 0;font-size:13px;color:#6B7280;">⏱️ הקוד תקף ל-5 דקות בלבד.</p>
+        `,
+        footnote: "לא ביקשת לשנות סיסמה? אפשר להתעלם מהמייל הזה.",
+      })
     );
     if (!sent) {
       return NextResponse.json({ error: "שליחת המייל נכשלה, נסה שוב" }, { status: 500 });

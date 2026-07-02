@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { sendMail } from "@/lib/mailer";
+import { sendMail, emailLayout } from "@/lib/mailer";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 
 // Same alphabet as the employees route's generateTempPassword — kept in sync there.
@@ -12,19 +12,20 @@ function generateTempPassword() {
 }
 
 function resetEmailHtml(name: string, phone: string, tempPassword: string) {
-  return `
-    <div dir="rtl" style="font-family: sans-serif; text-align: right;">
-      <p>שלום ${name},</p>
-      <p>קיבלנו בקשה לאיפוס הסיסמה שלך ל-Sidur.</p>
-      <p>📱 כניסה לאפליקציה:</p>
-      <ul>
-        <li>שם משתמש (טלפון): ${phone}</li>
-        <li>סיסמה זמנית: <strong>${tempPassword}</strong></li>
-      </ul>
-      <p>⚠️ תתבקש/י לבחור סיסמה חדשה בכניסה הראשונה.</p>
-      <p>לא ביקשת לאפס סיסמה? אפשר להתעלם מהמייל הזה.</p>
-    </div>
-  `;
+  return emailLayout({
+    heading: "איפוס סיסמה 🔑",
+    intro: `שלום ${name.split(" ")[0]}, קיבלנו בקשה לאיפוס הסיסמה שלך ל-Sidur. הנה סיסמה זמנית חדשה:`,
+    bodyHtml: `
+      <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;padding:16px;margin:4px 0;">
+        <p style="margin:0 0 4px;font-size:14px;color:#374151;">מספר טלפון (שם משתמש):</p>
+        <p style="margin:0 0 12px;font-size:16px;font-weight:700;color:#1A1F29;direction:ltr;text-align:right;">${phone}</p>
+        <p style="margin:0 0 4px;font-size:14px;color:#374151;">סיסמה זמנית:</p>
+        <p style="margin:0;font-size:22px;font-weight:800;color:#F97316;letter-spacing:2px;direction:ltr;text-align:right;">${tempPassword}</p>
+      </div>
+      <p style="margin:14px 0 0;font-size:13px;color:#6B7280;">🔒 בכניסה הבאה תתבקש/י לבחור סיסמה חדשה משלך.</p>
+    `,
+    footnote: "לא ביקשת לאפס סיסמה? אפשר להתעלם מהמייל הזה — לא בוצע שום שינוי בחשבון.",
+  });
 }
 
 // Works for any person (manager or employee) — same temp_password mechanism

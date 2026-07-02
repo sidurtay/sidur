@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyRegistrationResponse } from "@simplewebauthn/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getWebauthnConfig, CHALLENGE_TTL_MS } from "@/lib/webauthn";
-import { sendMail } from "@/lib/mailer";
+import { sendMail, emailLayout } from "@/lib/mailer";
 
 export async function POST(req: NextRequest) {
   try {
@@ -61,11 +61,12 @@ export async function POST(req: NextRequest) {
       sendMail(
         person.email,
         "מכשיר חדש נוסף לכניסה בטביעת אצבע — Sidur",
-        `<div dir="rtl" style="font-family: sans-serif; text-align: right;">
-          <p>שלום ${person.name},</p>
-          <p>מכשיר חדש הופעל לכניסה בטביעת אצבע/Face ID לחשבון שלך ב-Sidur${deviceLabel ? ` (${deviceLabel})` : ""}.</p>
-          <p>אם זה לא היית את/ה — פנה/י אלינו מיד.</p>
-        </div>`
+        emailLayout({
+          heading: "מכשיר חדש חובר לחשבון 📱",
+          intro: `שלום ${person.name.split(" ")[0]}, כניסה בטביעת אצבע / Face ID הופעלה זה עתה בחשבון שלך ב-Sidur${deviceLabel ? ` (${deviceLabel})` : ""}.`,
+          bodyHtml: `<p style="margin:0;font-size:14px;color:#374151;">אם זה היית את/ה — הכל בסדר, אין צורך לעשות כלום. ✅</p>`,
+          footnote: "לא את/ה חיברת מכשיר? השב/י למייל הזה מיד ונאבטח את החשבון.",
+        })
       ).catch(() => {});
     }
 

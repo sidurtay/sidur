@@ -1,24 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { paletteFor, initialsFor, sinceLabel } from "@/lib/avatarPalette";
-import { sendMail } from "@/lib/mailer";
+import { sendMail, emailLayout } from "@/lib/mailer";
 import { MINIMUM_WAGE_HOURLY } from "@/lib/minimumWage";
 import { isManager, canAddEmployee } from "@/lib/auth/permissions";
 import { EMPLOYEE_LIMIT } from "@/lib/plans";
 
 function credentialsEmailHtml(employeeName: string, businessName: string, phone: string, tempPassword: string) {
-  return `
-    <div dir="rtl" style="font-family: sans-serif; text-align: right;">
-      <p>שלום ${employeeName}! 👋</p>
-      <p>התווספת לצוות <strong>${businessName}</strong> דרך Sidur.</p>
-      <p>📱 כניסה לאפליקציה:</p>
-      <ul>
-        <li>שם משתמש (טלפון): ${phone}</li>
-        <li>סיסמה זמנית: <strong>${tempPassword}</strong></li>
-      </ul>
-      <p>⚠️ תתבקש/י לשנות סיסמה בכניסה הראשונה.</p>
-    </div>
-  `;
+  return emailLayout({
+    heading: `ברוך/ה הבא/ה לצוות, ${employeeName.split(" ")[0]}! 👋`,
+    intro: `צורפת לצוות של <strong>${businessName}</strong> ב-Sidur — כאן תראה/י את המשמרות שלך, תדווח/י נוכחות, תבדוק/י שעות וטיפים, והכל במקום אחד.`,
+    bodyHtml: `
+      <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;padding:16px;margin:4px 0 4px;">
+        <p style="margin:0 0 10px;font-size:12px;font-weight:700;color:#6B7280;">פרטי הכניסה שלך</p>
+        <p style="margin:0 0 4px;font-size:14px;color:#374151;">מספר טלפון (שם משתמש):</p>
+        <p style="margin:0 0 12px;font-size:16px;font-weight:700;color:#1A1F29;direction:ltr;text-align:right;">${phone}</p>
+        <p style="margin:0 0 4px;font-size:14px;color:#374151;">סיסמה זמנית:</p>
+        <p style="margin:0;font-size:22px;font-weight:800;color:#F97316;letter-spacing:2px;direction:ltr;text-align:right;">${tempPassword}</p>
+      </div>
+      <p style="margin:14px 0 0;font-size:13px;color:#6B7280;">🔒 בכניסה הראשונה תתבקש/י לבחור סיסמה אישית משלך — הסיסמה הזמנית היא רק בשביל הפעם הראשונה.</p>
+    `,
+    footnote: "נתקלת בבעיה? פשוט השב/י למייל הזה ונעזור.",
+  });
 }
 
 // 8 chars from a 31-char alphabet (~39 bits of entropy) — combined with the
