@@ -171,12 +171,12 @@ export default function Splash() {
         </p>
         <div className="flex items-center gap-2 justify-end flex-row">
           <div className="text-right">
-            <p className="text-xs font-bold" style={{ color: "#fff" }}>איתי אדרי</p>
-            <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>מנהל משמרת · קפה קפה נהריה</p>
+            <p className="text-xs font-bold" style={{ color: "#fff" }}>מאור לוי</p>
+            <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>בעלים · מסעדת לימאני</p>
           </div>
           <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
             style={{ background: "#F97316", color: "#fff" }}>
-            אא
+            מל
           </div>
         </div>
       </div>
