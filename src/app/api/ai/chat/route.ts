@@ -27,13 +27,19 @@ async function buildReply(
   switch (match.intent) {
     case "greeting":
       return pick([
-        `היי ${firstName}! 👋 זה סיד — במה אפשר לעזור? שעות, משמרות, מי עובד היום? תגיד/י ואני אבדוק.`,
-        `שלום ${firstName} 😊 אני סיד — אפשר לשאול אותי על שעות עבודה, משמרות קרובות, או לבקש חופש/החלפה.`,
-        `הי ${firstName}! סיד כאן, במה אפשר לעזור הפעם?`,
+        `אהלן ${firstName}! 👋 סיד על הקו. שעות, משמרות, טיפים — תגיד מה בא לך לדעת, אני היחיד פה שאף פעם לא מאחר למשמרת.`,
+        `היי ${firstName}! 😎 מה קורה? אני זמין 24/7 — בעיקר כי לא נותנים לי לצאת הביתה. במה לעזור?`,
+        `${firstName}! בדיוק חשבתי עליך 😄 (טוב, אני חושב על כולם, אני מערכת). מה צריך — שעות? משמרות? רכילות מהסידור?`,
+        `אהלן אהלן ${firstName} 👋 סיד כאן, העובד היחיד שלא לוקח הפסקת סיגריה. מה נבדוק?`,
       ]);
 
     case "thanks":
-      return pick(["בכל זמן! 🙌", "בשמחה 😊", "אין בעד מה, אני כאן אם תצטרך/י עוד משהו."]);
+      return pick([
+        "בכיף! תיתן חמש כוכבים למנהל 😄",
+        "בשביל זה אני פה. טוב, בשביל זה ובשביל לחשב טיפים 💰",
+        "אין בעד מה! זה לא כאילו יש לי עוד עבודה 😎",
+        "תמיד! אני כמו אחמ\"ש, רק בלי המצב רוח 😄",
+      ]);
 
     case "faq":
       return match.faqAnswer || "";
@@ -41,8 +47,8 @@ async function buildReply(
     case "build_schedule":
       return {
         text: pick([
-          "סבבה, בוא נבנה את שבוע 28.6–4.7 🪄 אני אשאל אותך כמה עובדים אתה צריך לכל משמרת ואתחשב באילוצים שהוגשו.",
-          "אשמח לעזור עם הסידור 🪄 בוא נעבור על כמה שאלות קצרות לגבי כמות העובדים הדרושה לשבוע 28.6–4.7.",
+          "אוהב סידורים כמו שאתה אוהב חופש 🪄 בוא נבנה את שבוע 28.6–4.7 — כמה עובדים לכל משמרת ואני מתחשב באילוצים לבד.",
+          "יאללה, בוא נעשה קסם 🪄 אני בונה לך את שבוע 28.6–4.7 תוך כמה שאלות. יותר מהר מהמנהל, מבטיח 😎",
         ]),
         action: { label: "בנה לי את הסידור 🪄", href: "/schedule/ai" },
       };
@@ -52,10 +58,11 @@ async function buildReply(
       if (scope === "today") {
         const res = await tools.getTipsToday(ctx);
         if ("error" in res) return `הופ, נתקלתי בתקלה כשבדקתי את הטיפים 😕 (${res.error})`;
-        if (!res.published) return "הטיפים של היום עדיין לא פורסמו — אעדכן אותך כשהם יהיו מוכנים 🕐";
-        if (!res.worked) return "לא רשומה לך משמרת היום, אז אין טיפים לחלוקה 🤷";
+        if (!res.published) return "הטיפים של היום עוד לא פורסמו — סבלנות, הכסף לא בורח 🕐💰";
+        if (!res.worked) return "לא עבדת היום, אז אין טיפים 🤷 (אי אפשר לקבל טיפ על משמרת שלא הייתה, ניסיון יפה 😄)";
+        const tipsQuip = pick(["לא רע! ☕", "קפה עלייך היום? 😏", "יופי, יש על מה לחייך 😄", "כל שקל שמח 💰"]);
         return {
-          text: `קיבלת בערך ₪${res.myShare} מטיפי משמרת ה${res.shiftLabel} של היום (${res.myHours} שעות) 💰`,
+          text: `${tipsQuip} קיבלת בערך ₪${res.myShare} מטיפי משמרת ה${res.shiftLabel} של היום (${res.myHours} שעות).`,
           card: { type: "tips", amount: res.myShare, label: `משמרת ${res.shiftLabel} · היום` },
         };
       }
@@ -71,10 +78,19 @@ async function buildReply(
     case "hours": {
       const res = await tools.getEmployeeHours(ctx, { month: match.month, weekScope: match.weekScope });
       if ("error" in res) return `הופ, נתקלתי בתקלה כשמשכתי את השעות 😕 (${res.error})`;
-      if (res.shiftsCount === 0) return "לא מצאתי משמרות מתועדות בתקופה הזו.";
+      if (res.shiftsCount === 0) return pick([
+        "לא מצאתי משמרות מתועדות בתקופה הזו 🤷 או שעבדת ממש בשקט, או שנחת קצת.",
+        "אפס משמרות בתקופה הזו — או חופשה או שכחת לדווח נוכחות 😄",
+      ]);
       const periodLabel = match.weekScope ? "השבוע" : match.month ? "בתקופה שנבחרה" : "בכל ההיסטוריה";
+      const hoursQuip = pick([
+        "עבד/ת יפה 💪",
+        "לא רע בכלל 🔥",
+        "הבוס אמור להיות מרוצה 😎",
+        "כל שעה נספרת (תרתי משמע) ⏱️",
+      ]);
       return {
-        text: `עבדת ${res.totalHours} שעות ב-${res.shiftsCount} משמרות (${periodLabel}) 💪`,
+        text: `${hoursQuip} — ${res.totalHours} שעות ב-${res.shiftsCount} משמרות (${periodLabel}).`,
         card: { type: "hours", totalHours: res.totalHours, shiftsCount: res.shiftsCount, periodLabel },
       };
     }
@@ -82,8 +98,16 @@ async function buildReply(
     case "upcoming_shifts": {
       const res = await tools.getUpcomingShifts(ctx);
       if ("error" in res) return `הופ, נתקלתי בתקלה כשמשכתי את המשמרות 😕 (${res.error})`;
-      if (res.shifts.length === 0) return pick(["אין לך משמרות קרובות מתוכננות כרגע — תהנה/י מהזמן הפנוי 😎", "כרגע לא רשומה לך אף משמרת קדימה."]);
-      const intro = pick(["אלה המשמרות הקרובות שלך:", "הנה מה שיש לך קדימה:"]);
+      if (res.shifts.length === 0) return pick([
+        "אין לך משמרות קרובות — תהנה מהחופש, מגיע לך 😎",
+        "לוח נקי לגמרי 🏖️ אל תתרגל לזה",
+        "כרגע אפס משמרות קדימה. או שאתה בחופש, או שהמנהל שכח אותך 😄",
+      ]);
+      const intro = pick([
+        "הנה מה שמחכה לך 👇 (אל תגיד שלא הכנתי אותך):",
+        "אלה המשמרות הקרובות שלך:",
+        "יאללה, הנה הלו״ז שלך 📋:",
+      ]);
       return {
         text: intro + "\n" + res.shifts.map(s => `• ${s.week} — יום ${s.day}, ${s.role} (${s.timeIn}–${s.timeOut})`).join("\n"),
         card: {
@@ -137,10 +161,10 @@ async function buildReply(
         if ("error" in res) return `הופ, נתקלתי בתקלה כשבדקתי זמינות 😕 (${res.error})`;
         const label = match.dateLabel || match.date;
         if (res.available.length === 0) {
-          return `לא מצאתי אף אחד בתפקיד שלך שסימן זמינות ל-${label} — אולי כדאי לשאול ידנית או לבדוק עם המנהל 🤔`;
+          return `אף אחד בתפקיד שלך לא סימן זמינות ל-${label} 🦗 כולם פתאום עסוקים, מפתיע. שווה לשאול ידנית או לתפוס את המנהל 🤔`;
         }
         return {
-          text: `מי סימן/ה זמינות ל-${label} בתפקיד שלך:\n` + res.available.map(p =>
+          text: `הנה מי שסימן זמינות ל-${label} בתפקיד שלך (לך תפתה אותם) 😏:\n` + res.available.map(p =>
             `• ${p.name} — ${p.status === "all" ? "כל היום" : p.status === "morning" ? "בוקר" : "ערב"}`
           ).join("\n"),
           card: {
@@ -152,22 +176,35 @@ async function buildReply(
       }
 
       const upcoming = await tools.getUpcomingShifts(ctx);
-      if ("error" in upcoming || upcoming.shifts.length === 0) return "לא מצאתי משמרת קרובה שלך להחליף 🤔";
+      if ("error" in upcoming || upcoming.shifts.length === 0) return "לא מצאתי משמרת קרובה שלך להחליף 🤔 (או שכבר ברחת לים בלי לספר לי?)";
       const target = upcoming.shifts[0];
       const res = await tools.createShiftSwapRequest(ctx, { assignmentId: target.id, proposedPersonName: match.proposedPersonName });
       if ("error" in res) return `הבקשה לא נשלחה 😕 (${res.error})`;
+      const swapQuip = pick([
+        "שוב מחפש לברוח לים? 🏖️ סבבה, שלחתי",
+        "מישהו פה מתכנן בריחה 😏 שלחתי את הבקשה",
+        "הבנתי, המשמרת הזאת לא מדברת אליך 😄 שלחתי",
+        "עוד אחד שהחיים קוראים לו 🌊 שלחתי בקשה",
+        "יאללה חופשי (כמעט) 😎 שלחתי",
+      ]);
       return {
-        text: `שלחתי בקשת החלפה למשמרת ${target.day} (${target.timeIn}–${target.timeOut})${match.proposedPersonName ? ` עם ${match.proposedPersonName}` : ""} 📨 המנהל יראה אותה ויאשר.`,
+        text: `${swapQuip} בקשת החלפה למשמרת ${target.day} (${target.timeIn}–${target.timeOut})${match.proposedPersonName ? ` עם ${match.proposedPersonName}` : ""} 📨 עכשיו רק צריך שהמנהל יסכים... בהצלחה 🤞`,
         card: { type: "confirm", tone: "success", title: "בקשת ההחלפה נשלחה", subtitle: `יום ${target.day} · ${target.timeIn}–${target.timeOut}${match.proposedPersonName ? ` · עם ${match.proposedPersonName}` : ""}` },
       };
     }
 
     case "create_absence": {
-      if (!match.date) return "באיזה תאריך תרצה/י לבקש להיעדר? אפשר לכתוב למשל \"חופש ב-1.7\" או \"חופש מחר\" 🗓️";
+      if (!match.date) return "באיזה תאריך בא לך להיעלם? 😄 תכתוב למשל \"חופש ב-1.7\" או \"חופש מחר\" ואני מסדר 🗓️";
       const res = await tools.createAbsenceRequest(ctx, { date: match.date, reason: match.reason });
       if ("error" in res) return `הבקשה לא נשלחה 😕 (${res.error})`;
+      const absenceQuip = pick([
+        "יום חופש? מכובד 🌴 שלחתי",
+        "מגיע לך ✌️ שלחתי",
+        "אחרי הכל אתה בן אדם ולא מכונת קפה ☕ שלחתי",
+        "סוף סוף לוקח נשימה 😎 שלחתי",
+      ]);
       return {
-        text: `שלחתי למנהל בקשת היעדרות לתאריך ${match.date}${match.reason ? ` (${match.reason})` : ""} 📨 תקבל/י עדכון כשהיא תיענה.`,
+        text: `${absenceQuip} למנהל בקשת היעדרות ל-${match.date}${match.reason ? ` (${match.reason})` : ""} 📨 אעדכן אותך כשהוא יחליט אם הוא בן אדם טוב או לא 🤞`,
         card: { type: "confirm", tone: "success", title: "בקשת החופש נשלחה", subtitle: match.date + (match.reason ? ` · ${match.reason}` : "") },
       };
     }
@@ -176,7 +213,11 @@ async function buildReply(
       const res = await tools.getPendingManagerNotifications(ctx);
       if ("error" in res) return `הופ, נתקלתי בתקלה כשמשכתי התראות 😕 (${res.error})`;
       const pending = res.notifications.filter(n => !n.read);
-      if (pending.length === 0) return pick(["אין בקשות ממתינות כרגע. הכל נקי! 🎉", "הכל מטופל — אין כרגע שום דבר שמחכה לך 🎉"]);
+      if (pending.length === 0) return pick([
+        "הכל נקי, אחי — אין בקשות ממתינות. לך תשתה קפה ☕😎",
+        "אפס בקשות ממתינות 🎉 מנהל בלי כאב ראש, נדיר.",
+        "הכל מטופל! אתה חופשי... עד שמישהו ירצה להחליף משמרת 😏",
+      ]);
       return {
         text: "בקשות ממתינות:\n" + pending.map(n => `• ${n.title} — ${n.body}`).join("\n") + "\n\nאפשר לכתוב \"אשר את הבקשה האחרונה\" או \"דחה את הבקשה האחרונה\".",
         card: { type: "list", icon: "pending", title: "בקשות ממתינות לאישור", items: pending.map(n => ({ primary: n.title, secondary: n.body })) },
@@ -194,8 +235,11 @@ async function buildReply(
       const res = await tools.respondToRequest(ctx, { requestId: n.ref_id, requestType, approve });
       if ("error" in res) return `הפעולה נכשלה 😕 (${res.error})`;
       await tools.markNotificationRead(n.id);
+      const decisionQuip = approve
+        ? pick(["✅ אישרתי! אתה מנהל טוב, יכתבו על זה שירים 😄", "✅ בוצע! עוד לב שמח בזכותך.", "✅ אישרתי. תרשום לעצמך נקודות זכות בשמיים."])
+        : pick(["🚫 דחיתי. קשוח אבל הוגן 😐", "🚫 בוצע. מישהו הולך להיות עצוב, אבל אתה הבוס.", "🚫 דחיתי. אל תדאג, הם ישרדו."]);
       return {
-        text: approve ? `✅ אישרתי: "${n.title}".` : `🚫 דחיתי: "${n.title}".`,
+        text: `${decisionQuip}\n"${n.title}"`,
         card: { type: "confirm", tone: approve ? "success" : "info", title: approve ? "הבקשה אושרה" : "הבקשה נדחתה", subtitle: n.title },
       };
     }
@@ -215,8 +259,9 @@ async function buildReply(
       if (claudeReply) return claudeReply;
 
       return pick([
-        "לא בטוח שהבנתי 🙂 אפשר למשל לשאול אותי:\n",
-        "הממ, זה לא משהו שאני מכיר בינתיים — אבל אפשר לנסות:\n",
+        "זה קצת מעליי, אני עוזר של סידורים לא של פילוסופיה 😅 אבל אפשר לשאול אותי:\n",
+        "הא? עברית בבקשה 😄 (סתם) — פשוט לא הבנתי. נסה משהו כזה:\n",
+        "לא תפסתי את זה 🤔 אבל אני מלך בדברים האלה:\n",
       ]) + randomExamplePrompts(ctx.isManager).map(p => `• ${p}`).join("\n");
     }
   }
