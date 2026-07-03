@@ -174,8 +174,8 @@ export default function Tips() {
     const totalLabel = tipsMode === "daily"
       ? `${tips.dailyTotal} ₪`
       : [hasMorning && `בוקר ${tips.morningTotal} ₪`, hasEvening && `ערב ${tips.eveningTotal} ₪`].filter(Boolean).join(" | ");
-    const title = `טיפים פורסמו — ${day.label}`;
-    const body  = `קיבלת טיפים (${totalLabel}) — ${now}`;
+    const title = `💰 הטיפים של ${day.label} בפנים!`;
+    const body  = `הרווחת ${totalLabel} — הקש/י לראות את החלק שלך 🤑`;
 
     const notify = unique.filter(w => w.personId).map(w => ({ personId: w.personId, title, body }));
     fetch("/api/tips", {

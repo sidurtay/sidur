@@ -79,8 +79,8 @@ export async function POST(req: NextRequest) {
 
     const mapped = mapRow(data as unknown as Row);
     sendPushToManagers(businessId, {
-      title: "בקשת החלפת משמרת חדשה",
-      body: `${mapped.requesterName} מבקש/ת להחליף משמרת`,
+      title: "🔄 בקשת החלפה ממתינה לך",
+      body: `${mapped.requesterName} רוצה להחליף משמרת — 2 שניות לאשר או לדחות 👀`,
       url: "/schedule",
     }).catch(() => {});
 
@@ -148,8 +148,8 @@ export async function PATCH(req: NextRequest) {
     }
 
     sendPushToPerson(existing.requested_by, {
-      title: approve ? "בקשת ההחלפה אושרה ✅" : "בקשת ההחלפה נדחתה",
-      body: approve ? "המנהל אישר את בקשת ההחלפה שלך" : "המנהל דחה את בקשת ההחלפה שלך",
+      title: approve ? "✅ ההחלפה אושרה!" : "בקשת ההחלפה נדחתה",
+      body: approve ? "יש לך אור ירוק — המשמרת הוחלפה בהצלחה 🎉" : "הפעם לא יצא. אפשר לנסות עם עובד אחר או תאריך אחר.",
       url: "/schedule",
     }).catch(() => {});
 

@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error?.message || "השמירה נכשלה" }, { status: 500 });
     }
 
-    sendPushToBusiness(businessId, { title: data.title, body: data.body || "הודעה חדשה מהמנהל", url: "/dashboard" }, createdBy || undefined).catch(() => {});
+    sendPushToBusiness(businessId, { title: `📣 ${data.title}`, body: data.body || "הודעה חדשה מהמנהל — הקש/י לצפייה", url: "/dashboard" }, createdBy || undefined).catch(() => {});
 
     return NextResponse.json({ success: true, announcement: { id: data.id, title: data.title, text: data.body, createdAt: data.created_at, confirmedBy: [] } });
   } catch (err) {

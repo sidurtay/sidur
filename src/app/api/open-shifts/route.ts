@@ -58,8 +58,8 @@ export async function POST(req: NextRequest) {
     }
 
     sendPushToBusiness(businessId, {
-      title: "משמרת פתוחה חדשה",
-      body: `יש משמרת פנויה ב${roleKey} (${timeIn}–${timeOut}) — מי שזמין יכול לתפוס אותה`,
+      title: "⚡ משמרת פנויה — כל הקודם זוכה",
+      body: `${roleKey} · ${timeIn}–${timeOut}. רוצה אותה? תפוס לפני שמישהו אחר 🏃`,
       url: "/schedule",
     }).catch(() => {});
 
