@@ -1,11 +1,19 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Clock, ChevronLeft, CheckCheck, X, AlertTriangle, ArrowLeftRight, Coins } from "lucide-react";
+import { Clock, ChevronLeft, CheckCheck, X, AlertTriangle, ArrowLeftRight, Coins, Pencil, Check } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import ClockInOutCard from "@/components/ClockInOutCard";
+import EditableSection from "@/components/dashboard/EditableSection";
+import { loadOrder, saveOrder, moveSection } from "@/lib/dashboardOrder";
+
+const DASH_ORDER_KEY = "shiftpro_dash_order_employee";
+const DEFAULT_SECTIONS = ["swap", "hours", "tips", "upcoming", "announcements"];
+const SECTION_LABELS: Record<string, string> = {
+  swap: "החלפת משמרת", hours: "השעות שלי", tips: "טיפים", upcoming: "משמרות קרובות", announcements: "הודעות מהמנהל",
+};
 import { calcHours, formatHours, buildRealAttendance, buildUpcomingShifts, type AttendanceMonth } from "@/lib/shiftData";
 
 const TODAY_LABEL = "שלישי, 23.6";
@@ -28,6 +36,14 @@ export default function EmployeeDashboard() {
   const [swapPicker, setSwapPicker] = useState(false);
   const [upcomingShifts, setUpcomingShifts] = useState<ReturnType<typeof buildUpcomingShifts>>([]);
   const [tipsToday, setTipsToday] = useState<{ published: boolean; worked?: boolean; myShare?: number; shiftLabel?: string } | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [order, setOrder] = useState<string[]>(DEFAULT_SECTIONS);
+
+  useEffect(() => { setOrder(loadOrder(DASH_ORDER_KEY, DEFAULT_SECTIONS)); }, []);
+
+  function moveCard(id: string, dir: -1 | 1, visible: string[]) {
+    setOrder(prev => { const next = moveSection(prev, id, dir, visible); saveOrder(DASH_ORDER_KEY, next); return next; });
+  }
 
   useEffect(() => {
     let biz = "", person = "";
@@ -106,6 +122,119 @@ export default function EmployeeDashboard() {
     setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, confirmed: true } : a));
   }
 
+  // Each reorderable card as a node; null when it has nothing to show. The
+  // clock-in card is intentionally NOT here — it stays pinned above this list.
+  const sectionNodes: Record<string, ReactNode> = {
+    swap: (businessId && myShift) ? (
+      <div className="bg-white rounded-xl p-4 flex flex-col gap-3" style={{ border: "1px solid var(--border)" }}>
+        <div className="flex items-center justify-between flex-row">
+          <ArrowLeftRight size={16} style={{ color: "var(--blue)" }} />
+          <p className="text-sm font-semibold">החלפת משמרת</p>
+        </div>
+        {!mySwapRequest ? (
+          <button onClick={() => setSwapPicker(true)}
+            className="w-full py-3 rounded-xl text-sm font-semibold"
+            style={{ background: "var(--gray-bg)", color: "var(--blue)", border: "1px solid var(--blue-border)" }}>
+            בקש החלפה למשמרת היום
+          </button>
+        ) : (
+          <div className="rounded-xl px-4 py-3 text-center"
+            style={{ background: mySwapRequest.status === "approved" ? "var(--green-light)" : mySwapRequest.status === "denied" ? "var(--gray-bg)" : "var(--blue-light)" }}>
+            <p className="text-sm font-semibold"
+              style={{ color: mySwapRequest.status === "approved" ? "var(--green)" : mySwapRequest.status === "denied" ? "var(--text-secondary)" : "var(--blue)" }}>
+              {mySwapRequest.status === "approved" ? "✓ ההחלפה אושרה" : mySwapRequest.status === "denied" ? "✗ הבקשה נדחתה" : "ממתין לאישור המנהל..."}
+            </p>
+            {mySwapRequest.proposerName && (
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{mySwapRequest.proposerName} מבקש/ת לקחת</p>
+            )}
+          </div>
+        )}
+      </div>
+    ) : null,
+
+    hours: (
+      <Link href="/my-hours" className="bg-white rounded-xl p-4 flex items-center justify-between flex-row" style={{ border: "1px solid var(--border)" }}>
+        <ChevronLeft size={16} style={{ color: "var(--text-secondary)" }} />
+        <div className="text-right flex-1 mx-3">
+          <p className="text-sm font-semibold">השעות שלי — {currentMonth?.label || "החודש"}</p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{allShifts.length} משמרות הוחל</p>
+        </div>
+        <div className="rounded-xl px-3 py-2 text-center" style={{ background: "var(--navy)" }}>
+          <p className="text-base font-bold text-white">{formatHours(monthHours)}</p>
+          <p className="text-[9px]" style={{ color: "rgba(255,255,255,0.65)" }}>שעות</p>
+        </div>
+      </Link>
+    ),
+
+    tips: (tipsToday?.published && tipsToday.worked) ? (
+      <div className="bg-white rounded-xl p-4 flex items-center justify-between flex-row" style={{ border: "1px solid var(--border)" }}>
+        <div className="rounded-xl px-3 py-2 text-center" style={{ background: "var(--green-light)" }}>
+          <p className="text-base font-bold" style={{ color: "var(--green)" }}>₪{tipsToday.myShare}</p>
+          <p className="text-[9px]" style={{ color: "var(--green)" }}>טיפים</p>
+        </div>
+        <div className="text-right flex-1 mx-3">
+          <p className="text-sm font-semibold">הטיפים שלי היום</p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>ממשמרת ה{tipsToday.shiftLabel}</p>
+        </div>
+        <Coins size={16} style={{ color: "var(--text-secondary)" }} />
+      </div>
+    ) : null,
+
+    upcoming: (
+      <div>
+        <div className="flex items-center justify-between flex-row mb-2">
+          <a href="/schedule" className="text-xs font-medium" style={{ color: "var(--blue)" }}>כל הסידור ←</a>
+          <p className="text-xs font-semibold" style={{ color: "var(--text-main)" }}>משמרות קרובות בעסק</p>
+        </div>
+        <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+          {upcomingShifts.map((s, i) => (
+            <div key={i} className="flex items-center px-3 py-3 flex-row"
+              style={{ borderBottom: i < upcomingShifts.length - 1 ? "1px solid var(--border)" : "none" }}>
+              <span className="text-xs font-medium mx-3" style={{ color: "var(--text-secondary)", direction: "ltr" }}>{s.time}</span>
+              <div className="flex-1 text-right"><p className="text-sm font-medium">{s.role}</p></div>
+              <p className="text-xs flex-shrink-0 mr-2" style={{ color: "var(--text-secondary)" }}>{s.day} · {s.date}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
+
+    announcements: (
+      <div>
+        <div className="flex items-center justify-between flex-row mb-2">
+          {pendingAnnouncements > 0 && (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "var(--amber-light)", color: "var(--amber)" }}>
+              {pendingAnnouncements} לאישור
+            </span>
+          )}
+          <p className="text-xs font-semibold" style={{ color: "var(--text-main)" }}>הודעות מהמנהל</p>
+        </div>
+        <div className="flex flex-col gap-2">
+          {announcements.map(a => (
+            <div key={a.id} className="bg-white rounded-xl p-3" style={{ border: "1px solid var(--border)" }}>
+              <p className="text-sm font-semibold text-right mb-1">{a.title}</p>
+              <p className="text-xs text-right mb-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>{a.text}</p>
+              <div className="flex items-center justify-between flex-row">
+                <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>{a.createdAt}</p>
+                {a.confirmed ? (
+                  <span className="flex items-center gap-1 text-xs font-medium" style={{ color: "var(--green)" }}>
+                    <CheckCheck size={13} /> אישרת קריאה
+                  </span>
+                ) : (
+                  <button onClick={() => confirmAnnouncement(a.id)}
+                    className="text-xs font-semibold px-3 py-1 rounded-full text-white" style={{ background: "var(--navy)" }}>
+                    אשר קריאה
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
+  };
+  const visibleIds = order.filter(id => sectionNodes[id]);
+
   return (
     <div className="flex flex-col min-h-screen pb-28" style={{ background: "var(--gray-bg)" }}>
       {/* Header */}
@@ -142,124 +271,37 @@ export default function EmployeeDashboard() {
 
       <div className="px-4 py-3 flex flex-col gap-4">
 
-        {/* Clock in/out — central fingerprint tap button */}
+        {/* Clock in/out — pinned at the top, not reorderable */}
         {myShiftToday && businessId && personId && (
           <ClockInOutCard businessId={businessId} personId={personId} />
         )}
 
-        {/* Swap request */}
-        {businessId && myShift && (
-          <div className="bg-white rounded-xl p-4 flex flex-col gap-3" style={{ border: "1px solid var(--border)" }}>
-            <div className="flex items-center justify-between flex-row">
-              <ArrowLeftRight size={16} style={{ color: "var(--blue)" }} />
-              <p className="text-sm font-semibold">החלפת משמרת</p>
-            </div>
-            {!mySwapRequest ? (
-              <button onClick={() => setSwapPicker(true)}
-                className="w-full py-3 rounded-xl text-sm font-semibold"
-                style={{ background: "var(--gray-bg)", color: "var(--blue)", border: "1px solid var(--blue-border)" }}>
-                בקש החלפה למשמרת היום
-              </button>
-            ) : (
-              <div className="rounded-xl px-4 py-3 text-center"
-                style={{
-                  background: mySwapRequest.status === "approved" ? "var(--green-light)" : mySwapRequest.status === "denied" ? "var(--gray-bg)" : "var(--blue-light)",
-                }}>
-                <p className="text-sm font-semibold"
-                  style={{ color: mySwapRequest.status === "approved" ? "var(--green)" : mySwapRequest.status === "denied" ? "var(--text-secondary)" : "var(--blue)" }}>
-                  {mySwapRequest.status === "approved" ? "✓ ההחלפה אושרה" : mySwapRequest.status === "denied" ? "✗ הבקשה נדחתה" : "ממתין לאישור המנהל..."}
-                </p>
-                {mySwapRequest.proposerName && (
-                  <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{mySwapRequest.proposerName} מבקש/ת לקחת</p>
-                )}
-              </div>
-            )}
-          </div>
+        {/* Customize toggle */}
+        <div className="flex justify-end -mb-1">
+          <button onClick={() => setEditing(v => !v)}
+            className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full flex-row"
+            style={{ background: editing ? "var(--blue)" : "var(--surface)", color: editing ? "#fff" : "var(--text-secondary)", border: "1px solid " + (editing ? "var(--blue)" : "var(--border)") }}>
+            {editing ? <><Check size={12} /> סיום</> : <><Pencil size={12} /> התאמה אישית</>}
+          </button>
+        </div>
+        {editing && (
+          <p className="text-[11px] text-center -mt-2" style={{ color: "var(--text-secondary)" }}>
+            סדר/י את הכרטיסים לפי הטעם שלך · דיווח הנוכחות תמיד למעלה
+          </p>
         )}
 
-        {/* My hours card */}
-        <Link href="/my-hours"
-          className="bg-white rounded-xl p-4 flex items-center justify-between flex-row"
-          style={{ border: "1px solid var(--border)" }}>
-          <ChevronLeft size={16} style={{ color: "var(--text-secondary)" }} />
-          <div className="text-right flex-1 mx-3">
-            <p className="text-sm font-semibold">השעות שלי — {currentMonth?.label || "החודש"}</p>
-            <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{allShifts.length} משמרות הוחל</p>
-          </div>
-          <div className="rounded-xl px-3 py-2 text-center" style={{ background: "var(--navy)" }}>
-            <p className="text-base font-bold text-white">{formatHours(monthHours)}</p>
-            <p className="text-[9px]" style={{ color: "rgba(255,255,255,0.65)" }}>שעות</p>
-          </div>
-        </Link>
-
-        {/* Today's tips — only shown once there's a real, published number to show */}
-        {tipsToday?.published && tipsToday.worked && (
-          <div className="bg-white rounded-xl p-4 flex items-center justify-between flex-row" style={{ border: "1px solid var(--border)" }}>
-            <div className="rounded-xl px-3 py-2 text-center" style={{ background: "var(--green-light)" }}>
-              <p className="text-base font-bold" style={{ color: "var(--green)" }}>₪{tipsToday.myShare}</p>
-              <p className="text-[9px]" style={{ color: "var(--green)" }}>טיפים</p>
-            </div>
-            <div className="text-right flex-1 mx-3">
-              <p className="text-sm font-semibold">הטיפים שלי היום</p>
-              <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>ממשמרת ה{tipsToday.shiftLabel}</p>
-            </div>
-            <Coins size={16} style={{ color: "var(--text-secondary)" }} />
-          </div>
-        )}
-
-        {/* Upcoming shifts */}
-        <div>
-          <div className="flex items-center justify-between flex-row mb-2">
-            <a href="/schedule" className="text-xs font-medium" style={{ color: "var(--blue)" }}>כל הסידור ←</a>
-            <p className="text-xs font-semibold" style={{ color: "var(--text-main)" }}>משמרות קרובות בעסק</p>
-          </div>
-          <div className="bg-white rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-            {upcomingShifts.map((s, i) => (
-              <div key={i} className="flex items-center px-3 py-3 flex-row"
-                style={{ borderBottom: i < upcomingShifts.length - 1 ? "1px solid var(--border)" : "none" }}>
-                <span className="text-xs font-medium mx-3" style={{ color: "var(--text-secondary)", direction: "ltr" }}>{s.time}</span>
-                <div className="flex-1 text-right">
-                  <p className="text-sm font-medium">{s.role}</p>
-                </div>
-                <p className="text-xs flex-shrink-0 mr-2" style={{ color: "var(--text-secondary)" }}>{s.day} · {s.date}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Announcements — read & confirm */}
-        <div>
-          <div className="flex items-center justify-between flex-row mb-2">
-            {pendingAnnouncements > 0 && (
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "var(--amber-light)", color: "var(--amber)" }}>
-                {pendingAnnouncements} לאישור
-              </span>
-            )}
-            <p className="text-xs font-semibold" style={{ color: "var(--text-main)" }}>הודעות מהמנהל</p>
-          </div>
-          <div className="flex flex-col gap-2">
-            {announcements.map(a => (
-              <div key={a.id} className="bg-white rounded-xl p-3" style={{ border: "1px solid var(--border)" }}>
-                <p className="text-sm font-semibold text-right mb-1">{a.title}</p>
-                <p className="text-xs text-right mb-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>{a.text}</p>
-                <div className="flex items-center justify-between flex-row">
-                  <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>{a.createdAt}</p>
-                  {a.confirmed ? (
-                    <span className="flex items-center gap-1 text-xs font-medium" style={{ color: "var(--green)" }}>
-                      <CheckCheck size={13} /> אישרת קריאה
-                    </span>
-                  ) : (
-                    <button onClick={() => confirmAnnouncement(a.id)}
-                      className="text-xs font-semibold px-3 py-1 rounded-full text-white"
-                      style={{ background: "var(--navy)" }}>
-                      אשר קריאה
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        {order.map(id => {
+          const node = sectionNodes[id];
+          if (!node) return null;
+          const pos = visibleIds.indexOf(id);
+          return (
+            <EditableSection key={id} editing={editing} label={SECTION_LABELS[id]}
+              isFirst={pos === 0} isLast={pos === visibleIds.length - 1}
+              onUp={() => moveCard(id, -1, visibleIds)} onDown={() => moveCard(id, 1, visibleIds)}>
+              {node}
+            </EditableSection>
+          );
+        })}
       </div>
 
       {/* Swap picker sheet */}

@@ -1,13 +1,21 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Clock, ArrowLeftRight, X, CheckCheck, Plus, Pencil, Trash2, ChevronLeft, Users, Fingerprint, LogIn, LogOut, CalendarClock, Megaphone } from "lucide-react";
+import { AlertTriangle, Clock, ArrowLeftRight, X, CheckCheck, Plus, Pencil, Trash2, ChevronLeft, Users, Fingerprint, LogIn, LogOut, CalendarClock, Megaphone, Check } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import BranchSwitcher from "@/components/BranchSwitcher";
 import ClockInOutCard from "@/components/ClockInOutCard";
+import EditableSection from "@/components/dashboard/EditableSection";
+import { loadOrder, saveOrder, moveSection } from "@/lib/dashboardOrder";
 import Card from "@/components/ui/Card";
 import SectionHeader from "@/components/ui/SectionHeader";
+
+const DASH_ORDER_KEY = "shiftpro_dash_order_manager";
+const DEFAULT_SECTIONS = ["today", "upcoming", "team", "swaps", "announcements"];
+const SECTION_LABELS: Record<string, string> = {
+  today: "משמרת היום", upcoming: "משמרות קרובות", team: "הצוות", swaps: "בקשות החלפה", announcements: "הודעות לצוות",
+};
 import { buildUpcomingShifts, type Employee } from "@/lib/shiftData";
 import EmployeeDashboard from "./EmployeeDashboard";
 import { type ClockRequest } from "@/lib/clockRequests";
@@ -69,6 +77,14 @@ export default function Dashboard() {
   const [jobRoleKeys, setJobRoleKeys] = useState<string[]>([]);
   const [myPersonId, setMyPersonId] = useState("");
   const [session, setSession] = useState<Record<string, unknown> | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [order, setOrder] = useState<string[]>(DEFAULT_SECTIONS);
+
+  useEffect(() => { setOrder(loadOrder(DASH_ORDER_KEY, DEFAULT_SECTIONS)); }, []);
+
+  function moveCard(id: string, dir: -1 | 1, visible: string[]) {
+    setOrder(prev => { const next = moveSection(prev, id, dir, visible); saveOrder(DASH_ORDER_KEY, next); return next; });
+  }
 
   useEffect(() => {
     let biz = "";
@@ -211,6 +227,232 @@ export default function Dashboard() {
     setDeleteConfirm(null);
   }
 
+  // Reorderable dashboard cards. The clock-in card and the urgent alert cluster
+  // (missing clock-in, pending approvals) stay pinned above this list.
+  const sectionNodes: Record<string, ReactNode> = {
+    today: (
+      <div>
+        <SectionHeader icon={Clock} title="משמרת היום" tint="var(--blue)" tintBg="var(--blue-light)"
+          action={
+            <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+              {todayWorkers.length} עובדים · {pendingCount} טרם הגיעו
+            </span>
+          } />
+        <Card padded={false} className="overflow-hidden">
+          {visible.map((emp, i) => {
+            const s = statusLabel[emp.status];
+            return (
+              <div key={emp.id} className="flex items-center gap-3 px-3 py-2.5 flex-row"
+                style={{ borderBottom: i < visible.length - 1 ? "1px solid var(--border)" : "none" }}>
+                <div className="flex flex-col items-start gap-0.5 flex-shrink-0">
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: s.bg, color: s.color }}>{s.label}</span>
+                  <span className="text-[10px] flex items-center gap-0.5" style={{ color: "var(--text-secondary)", direction: "ltr" }}>
+                    <Clock size={9} />{emp.timeIn}–{emp.timeOut}
+                  </span>
+                </div>
+                <div className="flex-1 text-right">
+                  <p className="text-sm font-medium">{emp.name}</p>
+                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{emp.role}</p>
+                </div>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
+                  style={{ background: emp.color, color: emp.textColor }}>
+                  {emp.initials}
+                </div>
+              </div>
+            );
+          })}
+          {todayWorkers.length > 3 && (
+            <button onClick={() => setShowAll(v => !v)}
+              className="w-full py-2.5 text-sm text-center font-medium"
+              style={{ color: "var(--blue)", borderTop: "1px solid var(--border)" }}>
+              {showAll ? "הצג פחות" : `הצג עוד ${todayWorkers.length - 3} עובדים`}
+            </button>
+          )}
+        </Card>
+      </div>
+    ),
+
+    upcoming: (
+      <div>
+        <SectionHeader icon={CalendarClock} title="משמרות קרובות" tint="var(--blue)" tintBg="var(--blue-light)"
+          action={<a href="/schedule" className="text-xs font-medium" style={{ color: "var(--blue)" }}>כל הסידור ←</a>} />
+        <Card padded={false} className="overflow-hidden">
+          {upcomingShifts.map((s, i) => (
+            <div key={i} className="flex items-center px-3 py-3 flex-row"
+              style={{ borderBottom: i < upcomingShifts.length - 1 ? "1px solid var(--border)" : "none" }}>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Users size={11} style={{ color: "var(--text-secondary)" }} />
+                <span className="text-xs font-medium" style={{ color: "var(--blue)" }}>{s.count}</span>
+              </div>
+              <span className="text-xs font-medium mx-3" style={{ color: "var(--text-secondary)", direction: "ltr" }}>{s.time}</span>
+              <div className="flex-1 text-right"><p className="text-sm font-medium">{s.role}</p></div>
+              <p className="text-xs flex-shrink-0 mr-2" style={{ color: "var(--text-secondary)" }}>{s.day} · {s.date}</p>
+            </div>
+          ))}
+        </Card>
+      </div>
+    ),
+
+    team: (
+      <div>
+        <SectionHeader icon={Users} title={`הצוות — ${employees.length} עובדים`} tint="var(--blue)" tintBg="var(--blue-light)"
+          action={<a href="/employees" className="text-xs font-medium" style={{ color: "var(--blue)" }}>כל העובדים ←</a>} />
+        <Card>
+          <div className="flex flex-row gap-2 flex-wrap">
+            {jobRoleKeys.map(role => {
+              const count = employees.filter(e => e.cat === role).length;
+              const sample = employees.filter(e => e.cat === role)[0];
+              return (
+                <div key={role} className="flex-1 rounded-xl py-2 px-3 text-center min-w-16"
+                  style={{ background: sample?.color || "var(--gray-bg)", border: "1px solid var(--border)" }}>
+                  <p className="text-xl font-bold" style={{ color: sample?.textColor }}>{count}</p>
+                  <p className="text-[10px]" style={{ color: sample?.textColor, opacity: 0.8 }}>{role}</p>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+    ),
+
+    swaps: (swapRequests || []).length > 0 ? (
+      <div>
+        <SectionHeader icon={ArrowLeftRight} title="בקשות החלפת משמרת" tint="var(--blue)" tintBg="var(--blue-light)" />
+        <div className="flex flex-col gap-2">
+          {(swapRequests || []).map(sr => (
+            <Card key={sr.id}>
+              <div className="flex items-center justify-between flex-row mb-2">
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                  style={sr.status === "pending"
+                    ? { background: "var(--blue-light)", color: "var(--blue)" }
+                    : sr.status === "approved"
+                    ? { background: "var(--green-light)", color: "var(--green)" }
+                    : { background: "var(--gray-bg)", color: "var(--text-secondary)" }}>
+                  {sr.status === "pending" ? "ממתין" : sr.status === "approved" ? "✓ אושר" : "✗ נדחה"}
+                </span>
+                <p className="text-sm font-semibold">
+                  {sr.dayOfWeek !== undefined ? `יום ${SWAP_DAY_LABELS[sr.dayOfWeek]} · ${sr.roleKey}` : "בקשת החלפה"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 mb-3 flex-row">
+                <div className="flex items-center gap-1.5 flex-row-reverse flex-1">
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                    style={{ background: sr.requesterColor, color: sr.requesterTextColor }}>{sr.requesterInitials}</div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{sr.requesterName}</p>
+                    <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{sr.timeIn}–{sr.timeOut}</p>
+                  </div>
+                </div>
+                <ArrowLeftRight size={14} style={{ color: "var(--blue)", flexShrink: 0 }} />
+                {sr.proposerName ? (
+                  <div className="flex items-center gap-1.5 flex-row-reverse flex-1">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                      style={{ background: sr.proposerColor, color: sr.proposerTextColor }}>{sr.proposerInitials}</div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{sr.proposerName}</p>
+                      <p className="text-xs" style={{ color: "var(--text-secondary)" }}>מבקש לקחת</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs flex-1 text-right" style={{ color: "var(--text-secondary)" }}>לא הוצע מחליף</p>
+                )}
+              </div>
+              {sr.status === "pending" && (
+                <div className="flex gap-2 flex-row">
+                  <button onClick={() => respondSwap(sr.id, false)}
+                    className="flex-1 py-2 rounded-lg text-sm font-medium"
+                    style={{ background: "var(--gray-bg)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+                    דחה
+                  </button>
+                  <button onClick={() => respondSwap(sr.id, true)} disabled={!sr.proposerName}
+                    className="flex-1 py-2 rounded-lg text-sm font-semibold text-white"
+                    style={{ background: sr.proposerName ? "var(--navy)" : "var(--border)" }}>
+                    אשר החלפה
+                  </button>
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+      </div>
+    ) : null,
+
+    announcements: (
+      <div>
+        <SectionHeader icon={Megaphone} title="הודעות לצוות" tint="var(--blue)" tintBg="var(--blue-light)" action={
+          <button onClick={openAdd}
+            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
+            style={{ background: "var(--navy)", color: "#fff" }}>
+            <Plus size={11} /> הודעה חדשה
+          </button>
+        } />
+
+        {announcements.length === 0 && (
+          <Card className="text-center">
+            <p className="text-sm font-semibold" style={{ color: "var(--text-main)" }}>אין הודעות פעילות 📣</p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>יש עדכון לצוות? פרסם הודעה וכולם יראו אותה בדשבורד.</p>
+          </Card>
+        )}
+
+        <div className="flex flex-col gap-2">
+          {announcements.map(a => {
+            const pending = employees.length - a.confirmedBy.length;
+            const pct     = Math.round((a.confirmedBy.length / employees.length) * 100);
+            return (
+              <Card key={a.id}>
+                <div className="flex items-start justify-between flex-row gap-2 mb-1.5">
+                  <div className="flex items-center gap-1.5 flex-row flex-shrink-0">
+                    <button onClick={() => setDeleteConfirm(a.id)}
+                      className="w-6 h-6 rounded-full flex items-center justify-center"
+                      style={{ background: "var(--red-light)" }}>
+                      <Trash2 size={11} style={{ color: "var(--red)" }} />
+                    </button>
+                    <button onClick={() => openEdit(a)}
+                      className="w-6 h-6 rounded-full flex items-center justify-center"
+                      style={{ background: "var(--blue-light)" }}>
+                      <Pencil size={11} style={{ color: "var(--blue)" }} />
+                    </button>
+                  </div>
+                  <p className="text-sm font-semibold text-right flex-1">{a.title}</p>
+                </div>
+
+                <p className="text-xs text-right mb-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>{a.text}</p>
+
+                <button onClick={() => { setEditingAnn(a); setAnnouncementSheet("viewers"); }}
+                  className="w-full text-right" style={{ cursor: "pointer" }}>
+                  <div className="flex items-center justify-between mb-1 flex-row">
+                    <div className="flex items-center gap-1 flex-row">
+                      <ChevronLeft size={11} style={{ color: "var(--text-secondary)" }} />
+                      <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>פרטי אישורים</span>
+                    </div>
+                    <div className="flex items-center gap-1 flex-row">
+                      <CheckCheck size={13} style={{ color: pending > 0 ? "var(--amber)" : "var(--green)" }} />
+                      <span className="text-xs font-semibold" style={{ color: pending > 0 ? "var(--amber)" : "var(--green)" }}>
+                        {a.confirmedBy.length}/{employees.length} אישרו
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full rounded-full overflow-hidden" style={{ height: 5, background: "var(--gray-bg)" }}>
+                    <div className="h-full rounded-full transition-all"
+                      style={{ width: `${pct}%`, background: pending > 0 ? "var(--amber)" : "var(--green)" }} />
+                  </div>
+                  {pending > 0 && (
+                    <p className="text-[10px] mt-1 text-right" style={{ color: "var(--text-secondary)" }}>
+                      {pending} עובדים טרם אישרו קריאה
+                    </p>
+                  )}
+                </button>
+
+                <p className="text-[10px] mt-1.5 text-right" style={{ color: "var(--text-secondary)" }}>{a.createdAt}</p>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+    ),
+  };
+  const visibleIds = order.filter(id => sectionNodes[id]);
+
   return (
     <div className="flex flex-col min-h-screen pb-28" style={{ background: "var(--gray-bg)" }}>
 
@@ -337,231 +579,32 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── Today's workers ───────────────────────────────── */}
-        <div>
-          <SectionHeader icon={Clock} title="משמרת היום" tint="var(--blue)" tintBg="var(--blue-light)"
-            action={
-              <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-                {todayWorkers.length} עובדים · {pendingCount} טרם הגיעו
-              </span>
-            } />
-          <Card padded={false} className="overflow-hidden">
-            {visible.map((emp, i) => {
-              const s = statusLabel[emp.status];
-              return (
-                <div key={emp.id} className="flex items-center gap-3 px-3 py-2.5 flex-row"
-                  style={{ borderBottom: i < visible.length - 1 ? "1px solid var(--border)" : "none" }}>
-                  <div className="flex flex-col items-start gap-0.5 flex-shrink-0">
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: s.bg, color: s.color }}>{s.label}</span>
-                    <span className="text-[10px] flex items-center gap-0.5" style={{ color: "var(--text-secondary)", direction: "ltr" }}>
-                      <Clock size={9} />{emp.timeIn}–{emp.timeOut}
-                    </span>
-                  </div>
-                  <div className="flex-1 text-right">
-                    <p className="text-sm font-medium">{emp.name}</p>
-                    <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{emp.role}</p>
-                  </div>
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
-                    style={{ background: emp.color, color: emp.textColor }}>
-                    {emp.initials}
-                  </div>
-                </div>
-              );
-            })}
-            {todayWorkers.length > 3 && (
-              <button onClick={() => setShowAll(v => !v)}
-                className="w-full py-2.5 text-sm text-center font-medium"
-                style={{ color: "var(--blue)", borderTop: "1px solid var(--border)" }}>
-                {showAll ? "הצג פחות" : `הצג עוד ${todayWorkers.length - 3} עובדים`}
-              </button>
-            )}
-          </Card>
+        {/* Customize toggle */}
+        <div className="flex justify-end -mb-1">
+          <button onClick={() => setEditing(v => !v)}
+            className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full flex-row"
+            style={{ background: editing ? "var(--blue)" : "var(--surface)", color: editing ? "#fff" : "var(--text-secondary)", border: "1px solid " + (editing ? "var(--blue)" : "var(--border)") }}>
+            {editing ? <><Check size={12} /> סיום</> : <><Pencil size={12} /> התאמה אישית</>}
+          </button>
         </div>
-
-        {/* ── Upcoming shifts ───────────────────────────────── */}
-        <div>
-          <SectionHeader icon={CalendarClock} title="משמרות קרובות" tint="var(--blue)" tintBg="var(--blue-light)"
-            action={<a href="/schedule" className="text-xs font-medium" style={{ color: "var(--blue)" }}>כל הסידור ←</a>} />
-          <Card padded={false} className="overflow-hidden">
-            {upcomingShifts.map((s, i) => (
-              <div key={i} className="flex items-center px-3 py-3 flex-row"
-                style={{ borderBottom: i < upcomingShifts.length - 1 ? "1px solid var(--border)" : "none" }}>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <Users size={11} style={{ color: "var(--text-secondary)" }} />
-                  <span className="text-xs font-medium" style={{ color: "var(--blue)" }}>{s.count}</span>
-                </div>
-                <span className="text-xs font-medium mx-3" style={{ color: "var(--text-secondary)", direction: "ltr" }}>{s.time}</span>
-                <div className="flex-1 text-right">
-                  <p className="text-sm font-medium">{s.role}</p>
-                </div>
-                <p className="text-xs flex-shrink-0 mr-2" style={{ color: "var(--text-secondary)" }}>{s.day} · {s.date}</p>
-              </div>
-            ))}
-          </Card>
-        </div>
-
-        {/* ── Team summary from employees ───────────────────── */}
-        <div>
-          <SectionHeader icon={Users} title={`הצוות — ${employees.length} עובדים`} tint="var(--blue)" tintBg="var(--blue-light)"
-            action={<a href="/employees" className="text-xs font-medium" style={{ color: "var(--blue)" }}>כל העובדים ←</a>} />
-          <Card>
-            <div className="flex flex-row gap-2 flex-wrap">
-              {jobRoleKeys.map(role => {
-                const count = employees.filter(e => e.cat === role).length;
-                const sample = employees.filter(e => e.cat === role)[0];
-                return (
-                  <div key={role} className="flex-1 rounded-xl py-2 px-3 text-center min-w-16"
-                    style={{ background: sample?.color || "var(--gray-bg)", border: "1px solid var(--border)" }}>
-                    <p className="text-xl font-bold" style={{ color: sample?.textColor }}>{count}</p>
-                    <p className="text-[10px]" style={{ color: sample?.textColor, opacity: 0.8 }}>{role}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-        </div>
-
-        {/* ── Swap requests ──────────────────────────────────── */}
-        {(swapRequests || []).length > 0 && (
-          <div>
-            <SectionHeader icon={ArrowLeftRight} title="בקשות החלפת משמרת" tint="var(--blue)" tintBg="var(--blue-light)" />
-            <div className="flex flex-col gap-2">
-              {(swapRequests || []).map(sr => (
-                <Card key={sr.id}>
-                  <div className="flex items-center justify-between flex-row mb-2">
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                      style={sr.status === "pending"
-                        ? { background: "var(--blue-light)", color: "var(--blue)" }
-                        : sr.status === "approved"
-                        ? { background: "var(--green-light)", color: "var(--green)" }
-                        : { background: "var(--gray-bg)", color: "var(--text-secondary)" }}>
-                      {sr.status === "pending" ? "ממתין" : sr.status === "approved" ? "✓ אושר" : "✗ נדחה"}
-                    </span>
-                    <p className="text-sm font-semibold">
-                      {sr.dayOfWeek !== undefined ? `יום ${SWAP_DAY_LABELS[sr.dayOfWeek]} · ${sr.roleKey}` : "בקשת החלפה"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 mb-3 flex-row">
-                    <div className="flex items-center gap-1.5 flex-row-reverse flex-1">
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-                        style={{ background: sr.requesterColor, color: sr.requesterTextColor }}>{sr.requesterInitials}</div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium">{sr.requesterName}</p>
-                        <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{sr.timeIn}–{sr.timeOut}</p>
-                      </div>
-                    </div>
-                    <ArrowLeftRight size={14} style={{ color: "var(--blue)", flexShrink: 0 }} />
-                    {sr.proposerName ? (
-                      <div className="flex items-center gap-1.5 flex-row-reverse flex-1">
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-                          style={{ background: sr.proposerColor, color: sr.proposerTextColor }}>{sr.proposerInitials}</div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">{sr.proposerName}</p>
-                          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>מבקש לקחת</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs flex-1 text-right" style={{ color: "var(--text-secondary)" }}>לא הוצע מחליף</p>
-                    )}
-                  </div>
-                  {sr.status === "pending" && (
-                    <div className="flex gap-2 flex-row">
-                      <button onClick={() => respondSwap(sr.id, false)}
-                        className="flex-1 py-2 rounded-lg text-sm font-medium"
-                        style={{ background: "var(--gray-bg)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
-                        דחה
-                      </button>
-                      <button onClick={() => respondSwap(sr.id, true)} disabled={!sr.proposerName}
-                        className="flex-1 py-2 rounded-lg text-sm font-semibold text-white"
-                        style={{ background: sr.proposerName ? "var(--navy)" : "var(--border)" }}>
-                        אשר החלפה
-                      </button>
-                    </div>
-                  )}
-                </Card>
-              ))}
-            </div>
-          </div>
+        {editing && (
+          <p className="text-[11px] text-center -mt-2" style={{ color: "var(--text-secondary)" }}>
+            סדר/י את הכרטיסים לפי הטעם שלך · דיווח הנוכחות והתראות דחופות תמיד למעלה
+          </p>
         )}
 
-        {/* ── Announcements (full CRUD) ──────────────────────── */}
-        <div>
-          <SectionHeader icon={Megaphone} title="הודעות לצוות" tint="var(--blue)" tintBg="var(--blue-light)" action={
-            <button onClick={openAdd}
-              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
-              style={{ background: "var(--navy)", color: "#fff" }}>
-              <Plus size={11} /> הודעה חדשה
-            </button>
-          } />
-
-          {announcements.length === 0 && (
-            <Card className="text-center">
-              <p className="text-sm font-semibold" style={{ color: "var(--text-main)" }}>אין הודעות פעילות 📣</p>
-              <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>יש עדכון לצוות? פרסם הודעה וכולם יראו אותה בדשבורד.</p>
-            </Card>
-          )}
-
-          <div className="flex flex-col gap-2">
-            {announcements.map(a => {
-              const pending = employees.length - a.confirmedBy.length;
-              const pct     = Math.round((a.confirmedBy.length / employees.length) * 100);
-              return (
-                <Card key={a.id}>
-                  {/* Title row */}
-                  <div className="flex items-start justify-between flex-row gap-2 mb-1.5">
-                    <div className="flex items-center gap-1.5 flex-row flex-shrink-0">
-                      {/* Delete */}
-                      <button onClick={() => setDeleteConfirm(a.id)}
-                        className="w-6 h-6 rounded-full flex items-center justify-center"
-                        style={{ background: "var(--red-light)" }}>
-                        <Trash2 size={11} style={{ color: "var(--red)" }} />
-                      </button>
-                      {/* Edit */}
-                      <button onClick={() => openEdit(a)}
-                        className="w-6 h-6 rounded-full flex items-center justify-center"
-                        style={{ background: "var(--blue-light)" }}>
-                        <Pencil size={11} style={{ color: "var(--blue)" }} />
-                      </button>
-                    </div>
-                    <p className="text-sm font-semibold text-right flex-1">{a.title}</p>
-                  </div>
-
-                  <p className="text-xs text-right mb-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>{a.text}</p>
-
-                  {/* Progress + viewers */}
-                  <button onClick={() => { setEditingAnn(a); setAnnouncementSheet("viewers"); }}
-                    className="w-full text-right"
-                    style={{ cursor: "pointer" }}>
-                    <div className="flex items-center justify-between mb-1 flex-row">
-                      <div className="flex items-center gap-1 flex-row">
-                        <ChevronLeft size={11} style={{ color: "var(--text-secondary)" }} />
-                        <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>פרטי אישורים</span>
-                      </div>
-                      <div className="flex items-center gap-1 flex-row">
-                        <CheckCheck size={13} style={{ color: pending > 0 ? "var(--amber)" : "var(--green)" }} />
-                        <span className="text-xs font-semibold"
-                          style={{ color: pending > 0 ? "var(--amber)" : "var(--green)" }}>
-                          {a.confirmedBy.length}/{employees.length} אישרו
-                        </span>
-                      </div>
-                    </div>
-                    <div className="w-full rounded-full overflow-hidden" style={{ height: 5, background: "var(--gray-bg)" }}>
-                      <div className="h-full rounded-full transition-all"
-                        style={{ width: `${pct}%`, background: pending > 0 ? "var(--amber)" : "var(--green)" }} />
-                    </div>
-                    {pending > 0 && (
-                      <p className="text-[10px] mt-1 text-right" style={{ color: "var(--text-secondary)" }}>
-                        {pending} עובדים טרם אישרו קריאה
-                      </p>
-                    )}
-                  </button>
-
-                  <p className="text-[10px] mt-1.5 text-right" style={{ color: "var(--text-secondary)" }}>{a.createdAt}</p>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
+        {order.map(id => {
+          const node = sectionNodes[id];
+          if (!node) return null;
+          const pos = visibleIds.indexOf(id);
+          return (
+            <EditableSection key={id} editing={editing} label={SECTION_LABELS[id]}
+              isFirst={pos === 0} isLast={pos === visibleIds.length - 1}
+              onUp={() => moveCard(id, -1, visibleIds)} onDown={() => moveCard(id, 1, visibleIds)}>
+              {node}
+            </EditableSection>
+          );
+        })}
       </div>
 
       {/* ── Announcement add/edit sheet ────────────────────── */}
