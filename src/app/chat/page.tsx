@@ -355,9 +355,10 @@ export default function Chat() {
         {/* Messages */}
         <div className="flex-1 px-4 py-4 flex flex-col gap-3 overflow-y-auto" style={{ paddingBottom: 100 }}>
           {openMessages.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 gap-2">
+            <div className="flex flex-col items-center justify-center py-12 gap-2 px-8 text-center">
               <span className="text-4xl">{openChannel.emoji}</span>
-              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>עדיין אין הודעות בקבוצה</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--text-main)" }}>שקט פה... בינתיים 🤫</p>
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>תהיה/י הראשון/ה לכתוב משהו לצוות.</p>
             </div>
           )}
           {openMessages.map(msg => (
@@ -446,7 +447,9 @@ export default function Chat() {
       <div className="px-3 py-3 flex flex-col gap-2">
         {channels.length === 0 && (
           <div className="bg-white rounded-xl p-6 text-center" style={{ border: "1px solid var(--border)" }}>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>אין עדיין קבוצות צ׳אט</p>
+            <p className="text-2xl mb-1">💬</p>
+            <p className="text-sm font-semibold" style={{ color: "var(--text-main)" }}>אין עדיין קבוצות צ׳אט</p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>פתח/י קבוצה כדי לתקשר עם הצוות במקום אחד.</p>
           </div>
         )}
         {channels.map(ch => {

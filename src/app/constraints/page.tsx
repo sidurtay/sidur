@@ -314,7 +314,10 @@ function ManagerConstraints() {
         )}
 
         {!loading && employees.length === 0 && (
-          <p className="text-sm text-center py-10" style={{ color: "var(--text-secondary)" }}>אין עדיין עובדים בעסק</p>
+          <div className="text-center py-10 px-8">
+            <p className="text-sm font-semibold" style={{ color: "var(--text-main)" }}>קודם מוסיפים צוות 👥</p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>אחרי שתוסיף עובדים בעמוד &quot;עובדים&quot;, תוכל לנהל כאן את האילוצים שלהם.</p>
+          </div>
         )}
 
         {employees.map(emp => {

@@ -54,8 +54,10 @@ export default function MyHours() {
 
   if (!emp || !currentMonth) {
     return (
-      <div className="flex flex-col min-h-screen pb-28 items-center justify-center" style={{ background: "var(--gray-bg)" }}>
-        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>אין עדיין נתוני נוכחות</p>
+      <div className="flex flex-col min-h-screen pb-28 items-center justify-center px-8 text-center" style={{ background: "var(--gray-bg)" }}>
+        <p className="text-3xl mb-2">🕓</p>
+        <p className="text-sm font-semibold" style={{ color: "var(--text-main)" }}>עוד אין שעות להצגה</p>
+        <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>ברגע שתדווח/י כניסה למשמרת הראשונה, השעות שלך יופיעו כאן.</p>
         <BottomNav />
       </div>
     );

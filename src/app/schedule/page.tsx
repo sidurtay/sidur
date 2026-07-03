@@ -718,7 +718,7 @@ function Schedule() {
               </div>
               <p className="text-xs text-right px-4 mb-4" style={{ color: "var(--text-secondary)" }}>מחליף את {swapTarget.name}</p>
               <div className="px-4 flex flex-col gap-2">
-                {sameRole.length === 0 && <p className="text-sm text-center py-2" style={{ color: "var(--text-secondary)" }}>אין עובדים פנויים באותו תפקיד</p>}
+                {sameRole.length === 0 && <p className="text-sm text-center py-3" style={{ color: "var(--text-secondary)" }}>אין כרגע עובד אחר באותו תפקיד להחלפה 🤷</p>}
                 {sameRole.map(emp => (
                   <button key={emp.id} onClick={() => swapEmployee(emp)}
                     className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white flex-row"

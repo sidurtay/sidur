@@ -135,7 +135,7 @@ export default function EmployeeDashboard() {
               <p className="text-sm text-white font-medium">המשמרת שלי היום</p>
             </div>
           ) : (
-            <p className="text-sm text-center" style={{ color: "rgba(255,255,255,0.75)" }}>אין לך משמרת היום</p>
+            <p className="text-sm text-center" style={{ color: "rgba(255,255,255,0.75)" }}>אין לך משמרת היום — תיהנה/י מהיום החופשי 😎</p>
           )}
         </div>
       </div>

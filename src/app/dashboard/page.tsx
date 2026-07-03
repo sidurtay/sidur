@@ -449,7 +449,8 @@ export default function Dashboard() {
 
           {announcements.length === 0 && (
             <Card className="text-center">
-              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>אין הודעות פעילות</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--text-main)" }}>אין הודעות פעילות 📣</p>
+              <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>יש עדכון לצוות? פרסם הודעה וכולם יראו אותה בדשבורד.</p>
             </Card>
           )}
 

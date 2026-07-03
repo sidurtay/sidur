@@ -352,7 +352,10 @@ export default function Employees() {
           <p className="text-sm text-center py-6" style={{ color: "var(--text-secondary)" }}>טוען עובדים...</p>
         )}
         {!loadingList && filtered.length === 0 && (
-          <p className="text-sm text-center py-6" style={{ color: "var(--text-secondary)" }}>אין עדיין עובדים — לחץ על + להוספה</p>
+          <div className="text-center py-8">
+            <p className="text-sm font-semibold" style={{ color: "var(--text-main)" }}>הצוות שלך יתחיל כאן 👥</p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>לחץ על + כדי להוסיף את העובד הראשון — הוא יקבל הזמנה ויתחבר לבד.</p>
+          </div>
         )}
         {filtered.map(emp => (
           <Card key={emp.id || emp.name} padded={false}
@@ -773,7 +776,7 @@ export default function Employees() {
           <div className="w-full max-w-lg rounded-t-2xl bg-white p-6 text-center" onClick={e => e.stopPropagation()}>
             <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--border)" }} />
             <p className="text-sm font-semibold mb-1">{attendanceEmp.name}</p>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>אין עדיין נתוני נוכחות</p>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>עדיין אין דיווחי נוכחות — ברגע שידווח/תדווח כניסה, הכל יופיע כאן 🕓</p>
             <button onClick={() => setAttendanceEmp(null)}
               className="w-full mt-4 py-3 rounded-xl text-sm font-semibold text-white"
               style={{ background: "var(--navy)" }}>
