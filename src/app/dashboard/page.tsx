@@ -166,6 +166,16 @@ export default function Dashboard() {
   const pendingCount = todayWorkers.filter(e => e.status === "pending").length;
   const visible      = showAll ? todayWorkers : todayWorkers.slice(0, 3);
 
+  // Workers whose shift already started but who still haven't clocked in — the
+  // one thing a manager actually needs pushed in their face each morning,
+  // instead of discovering a no-show at the end of the shift. "Now" is the real
+  // wall-clock time of day; anyone still "pending" past their start is flagged.
+  const nowMins = (() => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); })();
+  const missingClockIn = todayWorkers
+    .filter(e => e.status === "pending" && timeMins(e.timeIn) <= nowMins)
+    .map(e => ({ ...e, lateBy: nowMins - timeMins(e.timeIn) }))
+    .sort((a, b) => b.lateBy - a.lateBy);
+
   function openAdd() {
     setEditingAnn(null); setAnnTitle(""); setAnnText("");
     setAnnouncementSheet("add");
@@ -241,6 +251,43 @@ export default function Dashboard() {
             so this isn't gated on having a shift today. */}
         {businessId && myPersonId && (
           <ClockInOutCard businessId={businessId} personId={myPersonId} />
+        )}
+
+        {/* ── Missing clock-in alert — shift started, no attendance yet ── */}
+        {missingClockIn.length > 0 && (
+          <Card padded={false} className="overflow-hidden" style={{ border: "1px solid var(--red)" }}>
+            <div className="flex items-center gap-2 px-3 py-2.5 flex-row" style={{ background: "var(--red-light)" }}>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "var(--red)", color: "#fff" }}>
+                {missingClockIn.length}
+              </span>
+              <div className="flex items-center gap-1.5 flex-1 justify-end flex-row">
+                <p className="text-sm font-bold" style={{ color: "var(--red)" }}>לא דיווחו נוכחות</p>
+                <AlertTriangle size={15} style={{ color: "var(--red)" }} />
+              </div>
+            </div>
+            {missingClockIn.map((emp, i) => {
+              const h = Math.floor(emp.lateBy / 60), m = emp.lateBy % 60;
+              const lateLabel = h > 0 ? `${h} ש׳ ${m} דק׳` : `${m} דק׳`;
+              return (
+                <div key={emp.id} className="flex items-center gap-3 px-3 py-2.5 flex-row"
+                  style={{ borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+                  <span className="text-xs font-medium flex-shrink-0" style={{ color: "var(--red)" }}>
+                    באיחור {lateLabel}
+                  </span>
+                  <div className="flex-1 text-right">
+                    <p className="text-sm font-medium">{emp.name}</p>
+                    <p className="text-[11px]" style={{ color: "var(--text-secondary)", direction: "ltr", textAlign: "right" }}>
+                      {emp.role} · התחלה {emp.timeIn}
+                    </p>
+                  </div>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
+                    style={{ background: emp.color, color: emp.textColor }}>
+                    {emp.initials}
+                  </div>
+                </div>
+              );
+            })}
+          </Card>
         )}
 
         {/* ── Clock-in/out approval requests ──────────────────── */}
