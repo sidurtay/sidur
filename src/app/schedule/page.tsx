@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import { shiftBucket, SHIFT_BUCKET_LABEL, type ShiftSplit } from "@/lib/businessConfig";
+import ScheduleConstraintsStrip from "@/components/ScheduleConstraintsStrip";
 
 type ClockSource = "qr" | "fingerprint" | "manual";
 type ClockEvent  = { time: string; source: ClockSource };
@@ -420,6 +421,13 @@ function Schedule() {
           <p className="text-sm text-center py-10" style={{ color: "var(--text-secondary)" }}>טוען סידור...</p>
         ) : (
         <>
+        {/* Tiny per-employee constraints check — for managers building the week
+            by hand instead of using the AI builder. Deliberately minimal so it
+            doesn't compete with the schedule itself. */}
+        {canEditSchedule && (
+          <ScheduleConstraintsStrip businessId={businessId} weekStart={week.weekStart} employees={employees} shiftSplit={shiftSplit} />
+        )}
+
         {/* Day selector — sticky so it stays reachable while scrolling through roles */}
         <div className="sticky -mx-3 px-3 pt-1 flex flex-row gap-2 overflow-x-auto pb-1 z-10" style={{ top: 0, background: "var(--gray-bg)" }}>
           {week.days.map(d => {

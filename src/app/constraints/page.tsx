@@ -1,11 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, StickyNote, AlertTriangle, Users, ChevronLeft, X } from "lucide-react";
+import { ArrowRight, Check, StickyNote, AlertTriangle, Users, ChevronLeft } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import AvailabilityGrid from "@/components/AvailabilityGrid";
-import { getEffectiveConfig, bucketsForSplit, parseAvailabilityStatus, encodeAvailability, statusHasBucket, type ShiftSplit, type ShiftBucketKey } from "@/lib/businessConfig";
+import EmployeeConstraintsModal from "@/components/EmployeeConstraintsModal";
+import { getEffectiveConfig, bucketsForSplit, parseAvailabilityStatus, encodeAvailability, type ShiftSplit, type ShiftBucketKey } from "@/lib/businessConfig";
 
 const allDays = [
   { label: "ראשון", date: "28.6", d: 0 },
@@ -237,15 +238,6 @@ function ManagerConstraints() {
   }, []);
 
   const submittedCount = employees.filter(e => constraintsByPerson[e.id]).length;
-  const selectedEntry = selected ? constraintsByPerson[selected.id] : undefined;
-  const selectedAvailability: Record<number, Set<ShiftBucketKey>> = {};
-  if (selectedEntry) {
-    days.forEach(d => {
-      const set = new Set<ShiftBucketKey>();
-      buckets.forEach(b => { if (statusHasBucket(selectedEntry.availability[d.d], b)) set.add(b); });
-      selectedAvailability[d.d] = set;
-    });
-  }
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "var(--gray-bg)" }}>
@@ -318,42 +310,15 @@ function ManagerConstraints() {
         </div>
       </div>
 
-      {/* Detail sheet — one employee's full week, compact grid of squares */}
+      {/* Detail popup — one employee's full week, compact grid of squares, centered */}
       {selected && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
-          onClick={() => setSelected(null)}>
-          <div className="w-full max-w-lg rounded-t-2xl bg-white p-4" style={{ maxHeight: "80vh", overflowY: "auto", paddingBottom: 24 }}
-            onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mb-3" style={{ background: "var(--border)" }} />
-            <div className="flex items-center justify-between flex-row mb-3">
-              <button onClick={() => setSelected(null)}><X size={18} style={{ color: "var(--text-secondary)" }} /></button>
-              <div className="flex items-center gap-2 flex-row">
-                <div className="text-right">
-                  <p className="text-sm font-semibold">{selected.name}</p>
-                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{selected.role}</p>
-                </div>
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
-                  style={{ background: selected.color, color: selected.textColor }}>{selected.initials}</div>
-              </div>
-            </div>
-
-            {selectedEntry ? (
-              <>
-                <AvailabilityGrid days={days} buckets={buckets} value={selectedAvailability} readOnly />
-                {selectedEntry.weekNote && (
-                  <div className="flex items-start gap-2 px-3 py-2.5 mt-3 rounded-xl flex-row" style={{ background: "var(--blue-light)" }}>
-                    <StickyNote size={12} style={{ color: "var(--blue)", flexShrink: 0, marginTop: 2 }} />
-                    <p className="text-xs text-right" style={{ color: "var(--blue)" }}>{selectedEntry.weekNote}</p>
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="text-xs text-center py-6" style={{ color: "var(--text-secondary)" }}>
-                לא שלח אילוצים לשבוע הזה — מניחים זמינות מלאה בכל המשמרות
-              </p>
-            )}
-          </div>
-        </div>
+        <EmployeeConstraintsModal
+          employee={selected}
+          entry={constraintsByPerson[selected.id]}
+          days={days}
+          buckets={buckets}
+          onClose={() => setSelected(null)}
+        />
       )}
 
       <BottomNav />
