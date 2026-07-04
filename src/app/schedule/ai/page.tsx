@@ -4,12 +4,11 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Send } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import { getEffectiveConfig } from "@/lib/businessConfig";
+import { getEffectiveConfig, statusHasBucket } from "@/lib/businessConfig";
 
 type EmployeeRow = { personId: string; name: string; initials: string; role: string; color: string; textColor: string };
 
-type DayAvailability = "morning" | "evening" | "all" | "off";
-type ConstraintsMap = Record<string, { availability: Record<number, DayAvailability> }>;
+type ConstraintsMap = Record<string, { availability: Record<number, string> }>;
 
 const isWaiterRole = (r: string) => r.startsWith("מלצר");
 const isKitchenRole = (r: string) => r === "מטבח";
@@ -166,7 +165,7 @@ export default function AISchedule() {
         const consRes = await fetch(`/api/constraints?businessId=${biz}&weekStart=${AI_WEEK_START}`).then(r => r.json());
         if (consRes.success) {
           const map: ConstraintsMap = {};
-          consRes.people.forEach((p: { personId: string; availability: Record<number, DayAvailability> }) => {
+          consRes.people.forEach((p: { personId: string; availability: Record<number, string> }) => {
             map[p.personId] = { availability: p.availability };
           });
           setConstraintsMap(map);
@@ -232,10 +231,7 @@ export default function AISchedule() {
     // (and is already flagged separately as "missing constraints").
     function isAvailable(personId: string, dayIndex: number, part: "morning" | "evening"): boolean {
       const status = constraintsMap[personId]?.availability?.[dayIndex] ?? "all";
-      if (status === "off") return false;
-      if (status === "morning") return part === "morning";
-      if (status === "evening") return part === "evening";
-      return true;
+      return statusHasBucket(status, part);
     }
 
     function addHours(e: { name: string }, timeIn: string, timeOut: string) {

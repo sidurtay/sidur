@@ -28,6 +28,38 @@ export const SHIFT_BUCKET_LABEL: Record<"morning" | "evening" | "night", string>
   night: "לילה",
 };
 
+export type ShiftBucketKey = "morning" | "evening" | "night";
+
+// Which shift columns an availability grid should show, per the business's
+// shift-split setting — "none" businesses only run one shift a day, so a
+// single "morning" column stands in for "available that day at all".
+export function bucketsForSplit(split: ShiftSplit): ShiftBucketKey[] {
+  if (split === "morning_evening_night") return ["morning", "evening", "night"];
+  if (split === "morning_evening") return ["morning", "evening"];
+  return ["morning"];
+}
+
+// Constraints are stored as one `status` string per day (see /api/constraints).
+// New rows are a comma-joined bucket list ("morning,night") or "off" for none
+// selected; this also understands the older single-value enum ("all" |
+// "morning" | "evening" | "off") written before per-bucket selection existed.
+export function statusHasBucket(status: string | undefined | null, bucket: ShiftBucketKey): boolean {
+  if (!status || status === "off") return false;
+  if (status === "all") return true;
+  return status.split(",").includes(bucket);
+}
+
+export function parseAvailabilityStatus(status: string | undefined | null, split: ShiftSplit): Set<ShiftBucketKey> {
+  const buckets = bucketsForSplit(split);
+  const set = new Set<ShiftBucketKey>();
+  buckets.forEach(b => { if (statusHasBucket(status, b)) set.add(b); });
+  return set;
+}
+
+export function encodeAvailability(selected: Set<ShiftBucketKey>): string {
+  return selected.size === 0 ? "off" : [...selected].join(",");
+}
+
 export type BusinessConfig = {
   bizName: string;
   bizId: string;

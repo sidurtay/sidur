@@ -1,10 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, StickyNote, AlertTriangle, Users } from "lucide-react";
+import { ArrowRight, Check, StickyNote, AlertTriangle, Users, ChevronLeft, X } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import { getEffectiveConfig } from "@/lib/businessConfig";
+import AvailabilityGrid from "@/components/AvailabilityGrid";
+import { getEffectiveConfig, bucketsForSplit, parseAvailabilityStatus, encodeAvailability, statusHasBucket, type ShiftSplit, type ShiftBucketKey } from "@/lib/businessConfig";
 
 const allDays = [
   { label: "ראשון", date: "28.6", d: 0 },
@@ -16,25 +17,16 @@ const allDays = [
   { label: "שבת",   date: "4.7",  d: 6 },
 ];
 
-type DayStatus = "morning" | "evening" | "all" | "off";
-
-const statusLabels: Record<DayStatus, string> = {
-  all: "כל היום",
-  morning: "בוקר בלבד",
-  evening: "ערב בלבד",
-  off: "לא זמין",
-};
-
-const statusColors: Record<DayStatus, { bg: string; border: string; text: string }> = {
-  all: { bg: "var(--green-light)", border: "var(--green-border)", text: "var(--green)" },
-  morning: { bg: "var(--blue-light)", border: "var(--blue-border)", text: "var(--blue)" },
-  evening: { bg: "var(--gray-bg)", border: "var(--text-secondary)", text: "var(--text-main)" },
-  off: { bg: "var(--red-light)", border: "var(--red-border)", text: "var(--red)" },
-};
-
-const shortLabels: Record<DayStatus, string> = { all: "כל היום", morning: "בוקר", evening: "ערב", off: "לא זמין" };
-
 const WEEK_START = "2026-06-28"; // matches the "next week" the schedule + AI build for
+
+async function fetchShiftSplit(businessId: string): Promise<ShiftSplit> {
+  try {
+    const res = await fetch(`/api/business?businessId=${businessId}`).then(r => r.json());
+    return (res.business?.shiftSplit || "none") as ShiftSplit;
+  } catch {
+    return "none";
+  }
+}
 
 export default function Constraints() {
   const [role, setRole] = useState<"manager" | "employee" | null>(null);
@@ -54,15 +46,15 @@ export default function Constraints() {
 function EmployeeConstraints() {
   const router = useRouter();
   const [days, setDays] = useState(allDays.slice(0, 6)); // default: skip Saturday
-  const [availability, setAvailability] = useState<Record<number, DayStatus>>({
-    0: "all", 1: "all", 2: "all", 3: "all", 4: "all", 5: "morning",
-  });
+  const [buckets, setBuckets] = useState<ShiftBucketKey[]>(["morning"]);
+  const [availability, setAvailability] = useState<Record<number, Set<ShiftBucketKey>>>({});
   const [bizHours, setBizHours] = useState<Record<number, { from: string; to: string }>>({});
   const [weekNote, setWeekNote] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [businessId, setBusinessId] = useState("");
   const [personId, setPersonId] = useState("");
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const cfg = getEffectiveConfig();
@@ -73,34 +65,58 @@ function EmployeeConstraints() {
     const hours: Record<number, { from: string; to: string }> = {};
     cfg.days.forEach((d, i) => { if (d.open) hours[i] = { from: d.from, to: d.to }; });
     setBizHours(hours);
-
     try {
       const session = JSON.parse(localStorage.getItem("shiftpro_session") || "{}");
       if (!session.businessId || !session.personId) { router.replace("/login"); return; }
       setBusinessId(session.businessId);
       setPersonId(session.personId);
-      // Pre-fill with whatever was already submitted for this week, if anything
-      fetch(`/api/constraints?businessId=${session.businessId}&personId=${session.personId}&weekStart=${WEEK_START}`)
-        .then(r => r.json())
-        .then(data => {
+
+      (async () => {
+        const split = await fetchShiftSplit(session.businessId);
+        const bucketList = bucketsForSplit(split);
+        setBuckets(bucketList);
+
+        // Default: fully available (within the buckets this business actually has)
+        // on every open day, until real data loads (or the user edits it) — using
+        // only the valid buckets here matters, otherwise unchecking the sole
+        // visible column on a single-shift business wouldn't actually clear the
+        // day, since a bucket outside bucketsForSplit would silently stay set.
+        const defaultAvailability: Record<number, Set<ShiftBucketKey>> = {};
+        openDays.forEach(d => { defaultAvailability[d.d] = new Set(bucketList); });
+        setAvailability(defaultAvailability);
+
+        // Pre-fill with whatever was already submitted for this week, if anything
+        try {
+          const data = await fetch(`/api/constraints?businessId=${session.businessId}&personId=${session.personId}&weekStart=${WEEK_START}`).then(r => r.json());
           if (data.success && Object.keys(data.availability).length > 0) {
-            setAvailability(data.availability);
+            const parsed: Record<number, Set<ShiftBucketKey>> = {};
+            openDays.forEach(d => { parsed[d.d] = parseAvailabilityStatus(data.availability[d.d], split); });
+            setAvailability(parsed);
             setWeekNote(data.weekNote || "");
           }
-        })
-        .catch(() => {});
+        } catch {}
+        setLoaded(true);
+      })();
     } catch { router.replace("/login"); }
   }, []);
 
-  const options: DayStatus[] = ["all", "morning", "evening", "off"];
+  function toggle(day: number, bucket: ShiftBucketKey) {
+    setAvailability(prev => {
+      const next = new Set(prev[day] || []);
+      if (next.has(bucket)) next.delete(bucket); else next.add(bucket);
+      return { ...prev, [day]: next };
+    });
+  }
 
   async function handleSubmit() {
     setSubmitting(true);
     try {
+      const encoded: Record<number, string> = {};
+      Object.entries(availability).forEach(([day, set]) => { encoded[Number(day)] = encodeAvailability(set); });
       await fetch("/api/constraints", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, personId, weekStart: WEEK_START, availability, weekNote, callerId: personId }),
+        body: JSON.stringify({ businessId, personId, weekStart: WEEK_START, availability: encoded, weekNote, callerId: personId }),
       });
     } catch {}
     setSubmitting(false);
@@ -138,61 +154,17 @@ function EmployeeConstraints() {
 
       <div className="px-4 py-4 flex flex-col gap-3 pb-28">
         <p className="text-sm text-right" style={{ color: "var(--text-secondary)" }}>
-          סמן את הזמינות שלך לכל יום. המנהל יראה ויבנה סידור בהתאם.
+          סמן/י את המשמרות שבהן את/ה זמין/ה בכל יום. המנהל יראה ויבנה סידור בהתאם.
         </p>
 
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-          {/* Table header */}
-          <div className="grid items-center" style={{ gridTemplateColumns: "1fr 46px 46px 46px 46px", background: "var(--gray-bg)" }}>
-            <span className="text-[10px] font-semibold text-right pr-3 py-2" style={{ color: "var(--text-secondary)" }}>יום</span>
-            {options.map(opt => (
-              <span key={opt} className="text-[9px] font-semibold text-center" style={{ color: "var(--text-secondary)" }}>
-                {shortLabels[opt]}
-              </span>
-            ))}
-            <span />
-          </div>
-
-          {days.map((day, di) => {
-            const status = availability[day.d] ?? "all";
-            return (
-              <div key={day.d} className="grid items-center"
-                style={{
-                  gridTemplateColumns: "1fr 46px 46px 46px 46px",
-                  borderTop: "1px solid var(--border)",
-                  background: di % 2 === 1 ? "var(--gray-bg)" : "transparent",
-                }}>
-                <div className="text-right pr-3 py-2.5">
-                  <p className="text-xs font-semibold">{day.label}</p>
-                  <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
-                    {day.date}
-                    {bizHours[day.d] && (
-                      <span style={{ direction: "ltr", display: "inline-block", marginRight: 3 }}>
-                        {" "}{bizHours[day.d].from}–{bizHours[day.d].to}
-                      </span>
-                    )}
-                  </p>
-                </div>
-                {options.map(opt => {
-                  const c = statusColors[opt];
-                  const isActive = status === opt;
-                  return (
-                    <button key={opt} onClick={() => setAvailability(prev => ({ ...prev, [day.d]: opt }))}
-                      className="flex items-center justify-center py-2.5">
-                      <span className="w-6 h-6 rounded-full flex items-center justify-center transition-colors"
-                        style={{
-                          background: isActive ? c.bg : "transparent",
-                          border: `1.5px solid ${isActive ? c.border : "var(--border)"}`,
-                        }}>
-                        {isActive && <Check size={12} style={{ color: c.text }} />}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
+        {loaded && (
+          <AvailabilityGrid
+            days={days.map(d => ({ ...d, date: bizHours[d.d] ? `${d.date} · ${bizHours[d.d].from}–${bizHours[d.d].to}` : d.date }))}
+            buckets={buckets}
+            value={availability}
+            onToggle={toggle}
+          />
+        )}
 
         {/* General weekly note */}
         <div className="bg-white rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
@@ -210,24 +182,6 @@ function EmployeeConstraints() {
           />
         </div>
 
-        {/* Summary */}
-        <div className="bg-white rounded-2xl px-4 py-3" style={{ border: "1px solid var(--border)" }}>
-          <p className="text-sm font-semibold text-right mb-2">סיכום</p>
-          <div className="flex flex-col gap-1">
-            {days.map(d => {
-              const s = availability[d.d] ?? "all";
-              const c = statusColors[s];
-              return (
-                <div key={d.d} className="flex items-center justify-between flex-row">
-                  <span className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ background: c.bg, color: c.text }}>{statusLabels[s]}</span>
-                  <span className="text-xs font-medium">{d.label} {d.date}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
         <button onClick={handleSubmit} disabled={submitting}
           className="w-full py-3.5 rounded-xl text-sm font-semibold text-white"
           style={{ background: submitting ? "var(--border)" : "var(--navy)" }}>
@@ -241,14 +195,16 @@ function EmployeeConstraints() {
 }
 
 type EmployeeRow = { id: string; name: string; initials: string; role: string; color: string; textColor: string };
-type ConstraintEntry = { personId: string; name: string; availability: Record<number, DayStatus>; weekNote: string };
+type ConstraintEntry = { personId: string; name: string; availability: Record<number, string>; weekNote: string };
 
 function ManagerConstraints() {
   const router = useRouter();
   const [days, setDays] = useState(allDays.slice(0, 6));
+  const [buckets, setBuckets] = useState<ShiftBucketKey[]>(["morning"]);
   const [employees, setEmployees] = useState<EmployeeRow[]>([]);
   const [constraintsByPerson, setConstraintsByPerson] = useState<Record<string, ConstraintEntry>>({});
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<EmployeeRow | null>(null);
 
   useEffect(() => {
     const cfg = getEffectiveConfig();
@@ -263,9 +219,10 @@ function ManagerConstraints() {
 
     (async () => {
       try {
-        const [empRes, consRes] = await Promise.all([
+        const [empRes, consRes, split] = await Promise.all([
           fetch(`/api/employees?businessId=${biz}`).then(r => r.json()),
           fetch(`/api/constraints?businessId=${biz}&weekStart=${WEEK_START}`).then(r => r.json()),
+          fetchShiftSplit(biz),
         ]);
         if (empRes.success) setEmployees(empRes.employees);
         if (consRes.success) {
@@ -273,13 +230,22 @@ function ManagerConstraints() {
           consRes.people.forEach((p: ConstraintEntry) => { map[p.personId] = p; });
           setConstraintsByPerson(map);
         }
+        setBuckets(bucketsForSplit(split));
       } catch {}
       setLoading(false);
     })();
   }, []);
 
-  const options: DayStatus[] = ["all", "morning", "evening", "off"];
   const submittedCount = employees.filter(e => constraintsByPerson[e.id]).length;
+  const selectedEntry = selected ? constraintsByPerson[selected.id] : undefined;
+  const selectedAvailability: Record<number, Set<ShiftBucketKey>> = {};
+  if (selectedEntry) {
+    days.forEach(d => {
+      const set = new Set<ShiftBucketKey>();
+      buckets.forEach(b => { if (statusHasBucket(selectedEntry.availability[d.d], b)) set.add(b); });
+      selectedAvailability[d.d] = set;
+    });
+  }
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "var(--gray-bg)" }}>
@@ -304,7 +270,7 @@ function ManagerConstraints() {
             </span>
             <div className="flex items-center gap-2 flex-row">
               <Users size={13} style={{ color: "var(--blue)" }} />
-              <p className="text-sm font-semibold">סיכום אילוצים</p>
+              <p className="text-sm font-semibold">אילוצי הצוות</p>
             </div>
           </div>
         )}
@@ -320,69 +286,75 @@ function ManagerConstraints() {
           </div>
         )}
 
-        {employees.map(emp => {
-          const entry = constraintsByPerson[emp.id];
-          return (
-            <div key={emp.id} className="bg-white rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-              <div className="flex items-center gap-3 px-3 py-2.5 flex-row" style={{ borderBottom: "1px solid var(--border)" }}>
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
-                  style={{ background: emp.color, color: emp.textColor }}>{emp.initials}</div>
+        {/* Compact employee list — tap a row to see their full week */}
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+          {employees.map((emp, i) => {
+            const entry = constraintsByPerson[emp.id];
+            return (
+              <button key={emp.id} onClick={() => setSelected(emp)}
+                className="w-full flex items-center gap-3 px-3 py-3 flex-row"
+                style={{ borderTop: i > 0 ? "1px solid var(--border)" : "none" }}>
+                <ChevronLeft size={15} style={{ color: "var(--text-secondary)" }} />
                 <div className="flex-1 text-right">
                   <p className="text-sm font-semibold">{emp.name}</p>
                   <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{emp.role}</p>
                 </div>
-                {!entry && (
+                {entry ? (
+                  <span className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full"
+                    style={{ background: "var(--green-light)", color: "var(--green)" }}>
+                    <Check size={11} /> הוגש
+                  </span>
+                ) : (
                   <span className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full"
                     style={{ background: "var(--amber-light)", color: "var(--amber)" }}>
                     <AlertTriangle size={11} /> לא הוגש
                   </span>
                 )}
-              </div>
-
-              {entry ? (
-                <>
-                  <div className="flex flex-row flex-wrap gap-1.5 px-3 py-2.5">
-                    {days.map(d => {
-                      const status = entry.availability[d.d] ?? "all";
-                      const c = statusColors[status];
-                      return (
-                        <span key={d.d} className="text-[10px] px-2 py-1 rounded-full font-medium"
-                          style={{ background: c.bg, color: c.text }}>
-                          {d.label} · {shortLabels[status]}
-                        </span>
-                      );
-                    })}
-                  </div>
-                  {entry.weekNote && (
-                    <div className="flex items-start gap-2 px-3 py-2 flex-row" style={{ borderTop: "1px solid var(--border)", background: "var(--blue-light)" }}>
-                      <StickyNote size={12} style={{ color: "var(--blue)", flexShrink: 0, marginTop: 2 }} />
-                      <p className="text-xs text-right" style={{ color: "var(--blue)" }}>{entry.weekNote}</p>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="text-xs px-3 py-2.5 text-right" style={{ color: "var(--text-secondary)" }}>
-                  לא שלח אילוצים — מניחים זמינות מלאה בכל המשמרות
-                </p>
-              )}
-            </div>
-          );
-        })}
-
-        <div className="bg-white rounded-2xl px-4 py-3 flex items-center gap-2 flex-row" style={{ border: "1px solid var(--border)" }}>
-          <div className="flex-1 flex flex-row flex-wrap gap-1.5 justify-end">
-            {options.map(opt => {
-              const c = statusColors[opt];
-              return (
-                <span key={opt} className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: c.bg, color: c.text }}>
-                  {shortLabels[opt]}
-                </span>
-              );
-            })}
-          </div>
-          <p className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>מקרא</p>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
+                  style={{ background: emp.color, color: emp.textColor }}>{emp.initials}</div>
+              </button>
+            );
+          })}
         </div>
       </div>
+
+      {/* Detail sheet — one employee's full week, compact grid of squares */}
+      {selected && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}
+          onClick={() => setSelected(null)}>
+          <div className="w-full max-w-lg rounded-t-2xl bg-white p-4" style={{ maxHeight: "80vh", overflowY: "auto", paddingBottom: 24 }}
+            onClick={e => e.stopPropagation()}>
+            <div className="w-9 h-1 rounded-full mx-auto mb-3" style={{ background: "var(--border)" }} />
+            <div className="flex items-center justify-between flex-row mb-3">
+              <button onClick={() => setSelected(null)}><X size={18} style={{ color: "var(--text-secondary)" }} /></button>
+              <div className="flex items-center gap-2 flex-row">
+                <div className="text-right">
+                  <p className="text-sm font-semibold">{selected.name}</p>
+                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{selected.role}</p>
+                </div>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
+                  style={{ background: selected.color, color: selected.textColor }}>{selected.initials}</div>
+              </div>
+            </div>
+
+            {selectedEntry ? (
+              <>
+                <AvailabilityGrid days={days} buckets={buckets} value={selectedAvailability} readOnly />
+                {selectedEntry.weekNote && (
+                  <div className="flex items-start gap-2 px-3 py-2.5 mt-3 rounded-xl flex-row" style={{ background: "var(--blue-light)" }}>
+                    <StickyNote size={12} style={{ color: "var(--blue)", flexShrink: 0, marginTop: 2 }} />
+                    <p className="text-xs text-right" style={{ color: "var(--blue)" }}>{selectedEntry.weekNote}</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-center py-6" style={{ color: "var(--text-secondary)" }}>
+                לא שלח אילוצים לשבוע הזה — מניחים זמינות מלאה בכל המשמרות
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>
