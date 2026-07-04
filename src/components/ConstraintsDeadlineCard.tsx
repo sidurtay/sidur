@@ -16,38 +16,49 @@ export default function ConstraintsDeadlineCard({ businessId, callerId }: { busi
   const [time, setTime] = useState("20:00");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!businessId) return;
-    fetch(`/api/business?businessId=${businessId}`)
-      .then(r => r.json())
-      .then(res => {
-        if (!res.success) return;
-        const b = res.business;
-        if (b.constraintsDeadlineDay != null && b.constraintsDeadlineTime) {
-          setEnabled(true);
-          setDay(b.constraintsDeadlineDay);
-          setTime(b.constraintsDeadlineTime);
-        }
-      })
-      .catch(() => {});
-  }, [businessId]);
+  async function syncFromServer() {
+    try {
+      const res = await fetch(`/api/business?businessId=${businessId}`).then(r => r.json());
+      if (!res.success) return;
+      const b = res.business;
+      if (b.constraintsDeadlineDay != null && b.constraintsDeadlineTime) {
+        setEnabled(true);
+        setDay(b.constraintsDeadlineDay);
+        setTime(b.constraintsDeadlineTime);
+      } else {
+        setEnabled(false);
+      }
+    } catch {}
+  }
+
+  useEffect(() => { if (businessId) syncFromServer(); }, [businessId]);
 
   async function save(nextEnabled: boolean, nextDay = day, nextTime = time) {
     setSaving(true);
     setSaved(false);
+    setError("");
     try {
-      await fetch("/api/business", {
+      const res = await fetch("/api/business", {
         method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           businessId, callerId,
           constraintsDeadlineDay: nextEnabled ? nextDay : null,
           constraintsDeadlineTime: nextEnabled ? nextTime : null,
         }),
-      });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {}
+      }).then(r => r.json());
+      if (!res.success) {
+        setError(res.error || "השמירה נכשלה");
+        await syncFromServer(); // resync the UI to whatever's actually saved, not a guess
+      } else {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch {
+      setError("שגיאת רשת — נסה שוב");
+      await syncFromServer();
+    }
     setSaving(false);
   }
 
@@ -87,6 +98,9 @@ export default function ConstraintsDeadlineCard({ businessId, callerId }: { busi
           </div>
         )}
 
+        {error && (
+          <p className="text-[11px] px-3 pb-1.5 text-right font-medium" style={{ color: "var(--red)" }}>{error}</p>
+        )}
         <p className="text-[10px] px-3 pb-2.5 text-right" style={{ color: "var(--text-secondary)" }}>
           {saving ? "שומר..." : "העובדים יראו \"יש להגיש עד...\" בעמוד האילוצים שלהם. לא חוסם הגשה מאוחרת."}
         </p>
