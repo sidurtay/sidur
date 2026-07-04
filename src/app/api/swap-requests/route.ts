@@ -112,6 +112,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const finalProposed = proposedPerson || existing.proposed_person;
+    let warning: string | undefined;
 
     if (approve) {
       if (!finalProposed) {
@@ -121,13 +122,36 @@ export async function PATCH(req: NextRequest) {
       // arrives from the request body and must be re-checked server-side.
       const { data: proposedPersonRow } = await supabase
         .from("people")
-        .select("id")
+        .select("id, name")
         .eq("id", finalProposed)
         .eq("business_id", existing.business_id)
         .maybeSingle();
       if (!proposedPersonRow) {
         return NextResponse.json({ error: "העובד המוצע לא שייך לעסק הזה" }, { status: 400 });
       }
+
+      // Awareness-only check — never blocks the approval — for whether the
+      // takeover person already has a different shift that same day.
+      const { data: targetAssignment } = await supabase
+        .from("schedule_assignments")
+        .select("week_start, day_of_week")
+        .eq("id", existing.assignment_id)
+        .maybeSingle();
+      if (targetAssignment) {
+        const { data: sameDayShift } = await supabase
+          .from("schedule_assignments")
+          .select("id")
+          .eq("business_id", existing.business_id)
+          .eq("week_start", targetAssignment.week_start)
+          .eq("day_of_week", targetAssignment.day_of_week)
+          .eq("person_id", finalProposed)
+          .neq("id", existing.assignment_id)
+          .maybeSingle();
+        if (sameDayShift) {
+          warning = `${proposedPersonRow.name} כבר משובץ/ת למשמרת אחרת באותו יום`;
+        }
+      }
+
       const { error: assignError } = await supabase
         .from("schedule_assignments")
         .update({ person_id: finalProposed })
@@ -153,7 +177,7 @@ export async function PATCH(req: NextRequest) {
       url: "/schedule",
     }).catch(() => {});
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, warning });
   } catch (err) {
     console.error("update swap request error:", err);
     return NextResponse.json({ error: "שגיאת שרת" }, { status: 500 });

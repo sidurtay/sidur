@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("businesses")
-    .select("name, business_id_num, tips_mode, clockout_requires_approval, plan, shift_split")
+    .select("name, business_id_num, tips_mode, clockout_requires_approval, plan, shift_split, constraints_deadline_day, constraints_deadline_time")
     .eq("id", businessId)
     .single();
 
@@ -25,13 +25,15 @@ export async function GET(req: NextRequest) {
       name: data.name, businessIdNum: data.business_id_num || "",
       tipsMode: data.tips_mode, clockoutRequiresApproval: data.clockout_requires_approval,
       plan: data.plan || "starter", shiftSplit: data.shift_split || "none",
+      constraintsDeadlineDay: data.constraints_deadline_day,
+      constraintsDeadlineTime: data.constraints_deadline_time ? data.constraints_deadline_time.slice(0, 5) : null,
     },
   });
 }
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { businessId, name, businessIdNum, tipsMode, clockoutRequiresApproval, shiftSplit, callerId } = await req.json();
+    const { businessId, name, businessIdNum, tipsMode, clockoutRequiresApproval, shiftSplit, constraintsDeadlineDay, constraintsDeadlineTime, callerId } = await req.json();
     if (!businessId || !callerId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
@@ -46,6 +48,9 @@ export async function PATCH(req: NextRequest) {
     if (businessIdNum !== undefined) update.business_id_num = businessIdNum;
     if (tipsMode !== undefined) update.tips_mode = tipsMode;
     if (clockoutRequiresApproval !== undefined) update.clockout_requires_approval = clockoutRequiresApproval;
+    // null clears the deadline (no reminder shown); a day requires 0–6.
+    if (constraintsDeadlineDay !== undefined) update.constraints_deadline_day = constraintsDeadlineDay;
+    if (constraintsDeadlineTime !== undefined) update.constraints_deadline_time = constraintsDeadlineTime;
 
     // Shift-split is a paid-plan feature — enforce that server-side too, not just
     // in the settings UI, so a starter-plan business can't enable it by calling

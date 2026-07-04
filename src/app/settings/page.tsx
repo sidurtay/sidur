@@ -8,6 +8,7 @@ import Logo from "@/components/Logo";
 import SecurityRow from "@/components/SecurityRow";
 import ProfileCard from "@/components/ProfileCard";
 import PayrollExportCard from "@/components/PayrollExportCard";
+import ConstraintsDeadlineCard from "@/components/ConstraintsDeadlineCard";
 import FaqAccordion from "@/components/FaqAccordion";
 import EmployeeSettings from "./EmployeeSettings";
 import Card from "@/components/ui/Card";
@@ -454,6 +455,9 @@ export default function Settings() {
 
         {/* Monthly payroll / accountant export */}
         {businessId && personId && <PayrollExportCard businessId={businessId} callerId={personId} />}
+
+        {/* Deadline for employees to submit their weekly availability constraints */}
+        {businessId && personId && <ConstraintsDeadlineCard businessId={businessId} callerId={personId} />}
 
         {/* Roles + permissions */}
         <div>

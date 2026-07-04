@@ -19,13 +19,20 @@ const allDays = [
 ];
 
 const WEEK_START = "2026-06-28"; // matches the "next week" the schedule + AI build for
+const DAY_LABELS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 
-async function fetchShiftSplit(businessId: string): Promise<ShiftSplit> {
+type BusinessMeta = { shiftSplit: ShiftSplit; deadlineDay: number | null; deadlineTime: string | null };
+
+async function fetchBusinessMeta(businessId: string): Promise<BusinessMeta> {
   try {
     const res = await fetch(`/api/business?businessId=${businessId}`).then(r => r.json());
-    return (res.business?.shiftSplit || "none") as ShiftSplit;
+    return {
+      shiftSplit: (res.business?.shiftSplit || "none") as ShiftSplit,
+      deadlineDay: res.business?.constraintsDeadlineDay ?? null,
+      deadlineTime: res.business?.constraintsDeadlineTime ?? null,
+    };
   } catch {
-    return "none";
+    return { shiftSplit: "none", deadlineDay: null, deadlineTime: null };
   }
 }
 
@@ -56,6 +63,7 @@ function EmployeeConstraints() {
   const [businessId, setBusinessId] = useState("");
   const [personId, setPersonId] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [deadline, setDeadline] = useState<{ day: number; time: string } | null>(null);
 
   useEffect(() => {
     const cfg = getEffectiveConfig();
@@ -73,9 +81,10 @@ function EmployeeConstraints() {
       setPersonId(session.personId);
 
       (async () => {
-        const split = await fetchShiftSplit(session.businessId);
-        const bucketList = bucketsForSplit(split);
+        const meta = await fetchBusinessMeta(session.businessId);
+        const bucketList = bucketsForSplit(meta.shiftSplit);
         setBuckets(bucketList);
+        if (meta.deadlineDay != null && meta.deadlineTime) setDeadline({ day: meta.deadlineDay, time: meta.deadlineTime });
 
         // Default: fully available (within the buckets this business actually has)
         // on every open day, until real data loads (or the user edits it) — using
@@ -91,7 +100,7 @@ function EmployeeConstraints() {
           const data = await fetch(`/api/constraints?businessId=${session.businessId}&personId=${session.personId}&weekStart=${WEEK_START}`).then(r => r.json());
           if (data.success && Object.keys(data.availability).length > 0) {
             const parsed: Record<number, Set<ShiftBucketKey>> = {};
-            openDays.forEach(d => { parsed[d.d] = parseAvailabilityStatus(data.availability[d.d], split); });
+            openDays.forEach(d => { parsed[d.d] = parseAvailabilityStatus(data.availability[d.d], meta.shiftSplit); });
             setAvailability(parsed);
             setWeekNote(data.weekNote || "");
           }
@@ -158,6 +167,15 @@ function EmployeeConstraints() {
           סמן/י את המשמרות שבהן את/ה זמין/ה בכל יום. המנהל יראה ויבנה סידור בהתאם.
         </p>
 
+        {deadline && (
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl flex-row" style={{ background: "var(--amber-light)", border: "1px solid var(--amber-border)" }}>
+            <AlertTriangle size={14} style={{ color: "var(--amber)", flexShrink: 0 }} />
+            <p className="flex-1 text-xs text-right" style={{ color: "var(--amber)" }}>
+              יש להגיש עד יום {DAY_LABELS[deadline.day]}, {deadline.time}
+            </p>
+          </div>
+        )}
+
         {loaded && (
           <AvailabilityGrid
             days={days.map(d => ({ ...d, date: bizHours[d.d] ? `${d.date} · ${bizHours[d.d].from}–${bizHours[d.d].to}` : d.date }))}
@@ -220,10 +238,10 @@ function ManagerConstraints() {
 
     (async () => {
       try {
-        const [empRes, consRes, split] = await Promise.all([
+        const [empRes, consRes, meta] = await Promise.all([
           fetch(`/api/employees?businessId=${biz}`).then(r => r.json()),
           fetch(`/api/constraints?businessId=${biz}&weekStart=${WEEK_START}`).then(r => r.json()),
-          fetchShiftSplit(biz),
+          fetchBusinessMeta(biz),
         ]);
         if (empRes.success) setEmployees(empRes.employees);
         if (consRes.success) {
@@ -231,7 +249,7 @@ function ManagerConstraints() {
           consRes.people.forEach((p: ConstraintEntry) => { map[p.personId] = p; });
           setConstraintsByPerson(map);
         }
-        setBuckets(bucketsForSplit(split));
+        setBuckets(bucketsForSplit(meta.shiftSplit));
       } catch {}
       setLoading(false);
     })();

@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import { shiftBucket, SHIFT_BUCKET_LABEL, type ShiftSplit } from "@/lib/businessConfig";
+import { shiftBucket, SHIFT_BUCKET_LABEL, statusHasBucket, bucketsForSplit, type ShiftSplit, type ShiftBucketKey } from "@/lib/businessConfig";
 import ScheduleConstraintsStrip from "@/components/ScheduleConstraintsStrip";
+import { checkLaborWarnings } from "@/lib/laborLaw";
 
 type ClockSource = "qr" | "fingerprint" | "manual";
 type ClockEvent  = { time: string; source: ClockSource };
@@ -97,20 +98,30 @@ function Schedule() {
   const [openShiftError, setOpenShiftError] = useState("");
   const [isManager, setIsManager] = useState(false);
   const [rolePerms, setRolePerms] = useState<Record<string, Record<string, boolean>>>({});
+  // Awareness-only (never blocking) flags — constraint conflicts + Israeli labor-law
+  // heuristics, surfaced to the manager/אחמ"ש while building the schedule by hand.
+  const [constraintsByPerson, setConstraintsByPerson] = useState<Record<string, { availability: Record<number, string> }>>({});
+  const [laborWarning, setLaborWarning] = useState<string | null>(null);
 
   const myRoleKey = employees.find(e => e.id === myPersonId)?.role || "";
   const canEditSchedule = isManager || !!rolePerms[myRoleKey]?.editSchedule;
 
   async function loadWeek(biz: string, weekStart: string) {
     try {
-      const [schedRes, swapRes, openRes] = await Promise.all([
+      const [schedRes, swapRes, openRes, consRes] = await Promise.all([
         fetch(`/api/schedule?businessId=${biz}&weekStart=${weekStart}`).then(r => r.json()),
         fetch(`/api/swap-requests?businessId=${biz}`).then(r => r.json()),
         fetch(`/api/open-shifts?businessId=${biz}&weekStart=${weekStart}`).then(r => r.json()),
+        fetch(`/api/constraints?businessId=${biz}&weekStart=${weekStart}`).then(r => r.json()),
       ]);
       if (schedRes.success) setAssignments(schedRes.assignments);
       if (swapRes.success) setPendingSwaps(swapRes.requests.filter((r: { status: string }) => r.status === "pending"));
       if (openRes.success) setOpenShifts(openRes.openShifts);
+      if (consRes.success) {
+        const map: Record<string, { availability: Record<number, string> }> = {};
+        consRes.people.forEach((p: { personId: string; availability: Record<number, string> }) => { map[p.personId] = { availability: p.availability }; });
+        setConstraintsByPerson(map);
+      }
     } catch {}
   }
 
@@ -229,6 +240,16 @@ function Schedule() {
     return employees.filter(e => e.role === role && !assignedIds.has(e.id));
   }
 
+  // Does this employee's own submitted constraint say they're unavailable for
+  // the shift bucket being staffed right now? Awareness only — never hides or
+  // blocks the pick, just flags it in the picker.
+  function hasConstraintConflict(personId: string): boolean {
+    const entry = constraintsByPerson[personId];
+    if (!entry) return false;
+    const bucket: ShiftBucketKey = shiftSplit === "none" ? "morning" : selectedShift;
+    return !statusHasBucket(entry.availability[activeDay], bucket);
+  }
+
   async function addEmployee(emp: EmployeeRow, targetRole: string) {
     if (!canEditSchedule) return;
     const homeRole = targetRole !== emp.role ? emp.role : undefined;
@@ -244,7 +265,18 @@ function Schedule() {
         }),
       });
       const data = await res.json();
-      if (data.success) setAssignments(prev => [...prev, data.assignment]);
+      if (data.success) {
+        // Israeli labor-law awareness check across this person's whole week,
+        // now that this new shift is included — flagged, never blocked.
+        const theirShifts = [...assignments, data.assignment].filter(a => a.personId === emp.id);
+        const laborFlags = checkLaborWarnings(theirShifts.map(a => ({ dayOfWeek: a.dayOfWeek, timeIn: a.timeIn, timeOut: a.timeOut })));
+        if (laborFlags.length > 0) {
+          setLaborWarning(`${emp.name}: ${laborFlags[0].message}`);
+        } else if (hasConstraintConflict(emp.id)) {
+          setLaborWarning(`${emp.name} סימן/ה זמינות שלילית ליום זה — שובץ/ה בכל זאת`);
+        }
+        setAssignments(prev => [...prev, data.assignment]);
+      }
     } catch {}
     setAddRole(null);
   }
@@ -415,6 +447,15 @@ function Schedule() {
           </button>
         )}
       </div>
+
+      {laborWarning && (
+        <div className="mx-3 mt-3 flex items-start gap-2 px-3 py-2.5 rounded-xl flex-row"
+          style={{ background: "var(--amber-light)", border: "1px solid var(--amber-border)" }}>
+          <button onClick={() => setLaborWarning(null)} className="flex-shrink-0"><X size={13} style={{ color: "var(--amber)" }} /></button>
+          <p className="flex-1 text-xs text-right leading-relaxed" style={{ color: "var(--amber)" }}>{laborWarning}</p>
+          <AlertTriangle size={14} style={{ color: "var(--amber)", flexShrink: 0 }} />
+        </div>
+      )}
 
       <div className="px-3 py-3 flex flex-col gap-4">
         {loading ? (
@@ -661,19 +702,28 @@ function Schedule() {
               </div>
               <div className="px-4 flex flex-col gap-2">
                 {primary.length === 0 && <p className="text-sm text-center py-2" style={{ color: "var(--text-secondary)" }}>כל העובדים בתפקיד זה כבר משובצים</p>}
-                {primary.map(emp => (
-                  <button key={emp.id} onClick={() => addEmployee(emp, addRole!)}
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white flex-row"
-                    style={{ border: "1px solid var(--border)" }}>
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: "var(--blue-light)" }}>
-                      <Plus size={11} style={{ color: "var(--blue)" }} />
-                    </div>
-                    <p className="flex-1 text-right text-sm font-medium">{emp.name}</p>
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
-                      style={{ background: emp.color, color: emp.textColor }}>{emp.initials}</div>
-                  </button>
-                ))}
+                {primary.map(emp => {
+                  const conflict = hasConstraintConflict(emp.id);
+                  return (
+                    <button key={emp.id} onClick={() => addEmployee(emp, addRole!)}
+                      className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white flex-row"
+                      style={{ border: `1px solid ${conflict ? "var(--amber-border)" : "var(--border)"}` }}>
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ background: "var(--blue-light)" }}>
+                        <Plus size={11} style={{ color: "var(--blue)" }} />
+                      </div>
+                      <p className="flex-1 text-right text-sm font-medium">{emp.name}</p>
+                      {conflict && (
+                        <span className="flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
+                          style={{ background: "var(--amber-light)", color: "var(--amber)" }}>
+                          <AlertTriangle size={9} /> סימן/ה לא זמין/ה
+                        </span>
+                      )}
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
+                        style={{ background: emp.color, color: emp.textColor }}>{emp.initials}</div>
+                    </button>
+                  );
+                })}
                 {emergency.length > 0 && (
                   <>
                     <div className="flex items-center gap-2 mt-2 mb-1 flex-row">

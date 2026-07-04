@@ -5,6 +5,7 @@ import { ArrowRight, Send } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import { getEffectiveConfig, statusHasBucket } from "@/lib/businessConfig";
+import { MAX_WEEKLY_HOURS, MAX_WORK_DAYS_PER_WEEK } from "@/lib/laborLaw";
 
 type EmployeeRow = { personId: string; name: string; initials: string; role: string; color: string; textColor: string };
 
@@ -226,6 +227,7 @@ export default function AISchedule() {
     const schedule: Record<number, ScheduleEntry[]> = {};
     const warnings: string[] = [];
     const weeklyHours: Record<string, number> = {};
+    const weeklyDays: Record<string, Set<number>> = {};
 
     // An employee with no submitted constraints is treated as fully available
     // (and is already flagged separately as "missing constraints").
@@ -234,11 +236,13 @@ export default function AISchedule() {
       return statusHasBucket(status, part);
     }
 
-    function addHours(e: { name: string }, timeIn: string, timeOut: string) {
+    function addHours(e: { name: string }, timeIn: string, timeOut: string, dayIndex: number) {
       const [hi] = timeIn.split(":").map(Number);
       let [ho] = timeOut.split(":").map(Number);
       if (ho <= hi) ho += 24;
       weeklyHours[e.name] = (weeklyHours[e.name] || 0) + (ho - hi);
+      if (!weeklyDays[e.name]) weeklyDays[e.name] = new Set();
+      weeklyDays[e.name].add(dayIndex);
     }
 
     nextWeekDays.forEach(day => {
@@ -263,11 +267,11 @@ export default function AISchedule() {
 
         morningPool.slice(0, wantMorning).forEach((e, i) => {
           dayList.push({ id: `${day.d}-${group.key}-m-${i}`, ...e, timeIn: bh.from, timeOut: midStr });
-          addHours(e, bh.from, midStr);
+          addHours(e, bh.from, midStr, day.d);
         });
         eveningPool.filter(e => !dayList.find(d => d.personId === e.personId)).slice(0, wantEvening).forEach((e, i) => {
           dayList.push({ id: `${day.d}-${group.key}-e-${i}`, ...e, timeIn: midStr, timeOut: bh.to || "00:00" });
-          addHours(e, midStr, bh.to || "00:00");
+          addHours(e, midStr, bh.to || "00:00", day.d);
         });
 
         if (roleEmployees.length === 0) {
@@ -286,6 +290,16 @@ export default function AISchedule() {
     const maxHours = aiConfig.maxHours || 48;
     Object.entries(weeklyHours).forEach(([name, hours]) => {
       if (hours > maxHours) warnings.push(`${name}: שובץ ל-${hours} שעות השבוע, מעל המגבלה (${maxHours})`);
+    });
+
+    // Israeli labor-law awareness (חוק שעות עבודה ומנוחה) — informational only,
+    // the AI never avoids building a schedule like this, just flags it so the
+    // אחמ"ש/manager can decide with eyes open.
+    Object.entries(weeklyHours).forEach(([name, hours]) => {
+      if (hours > MAX_WEEKLY_HOURS) warnings.push(`${name}: ${Math.round(hours * 10) / 10} שעות השבוע — מעל שבוע העבודה הרגיל בחוק (${MAX_WEEKLY_HOURS} שעות)`);
+    });
+    Object.entries(weeklyDays).forEach(([name, days]) => {
+      if (days.size > MAX_WORK_DAYS_PER_WEEK) warnings.push(`${name}: משובץ/ת ${days.size} ימים השבוע — החוק דורש לפחות יום מנוחה שבועי אחד`);
     });
 
     return { schedule, warnings };

@@ -69,6 +69,7 @@ export default function Dashboard() {
   const [clockRequests, setClockRequests] = useState<ClockRequest[]>([]);
   const [businessId, setBusinessId] = useState("");
   const [swapRequests, setSwapRequests] = useState<SwapRequest[] | null>(null);
+  const [swapWarning, setSwapWarning] = useState<string | null>(null);
   const [managerName, setManagerName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [employees, setEmployees] = useState<(Employee & { id?: string })[]>([]);
@@ -160,7 +161,10 @@ export default function Dashboard() {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, approve, callerId: myPersonId }),
     }).then(r => r.json()).then(res => {
-      if (res.success) setSwapRequests(prev => (prev || []).map(r => r.id === id ? { ...r, status: approve ? "approved" : "denied" } : r));
+      if (res.success) {
+        setSwapRequests(prev => (prev || []).map(r => r.id === id ? { ...r, status: approve ? "approved" : "denied" } : r));
+        if (res.warning) setSwapWarning(res.warning);
+      }
     }).catch(() => {});
   }
 
@@ -318,6 +322,14 @@ export default function Dashboard() {
     swaps: (swapRequests || []).length > 0 ? (
       <div>
         <SectionHeader icon={ArrowLeftRight} title="בקשות החלפת משמרת" tint="var(--blue)" tintBg="var(--blue-light)" />
+        {swapWarning && (
+          <div className="flex items-start gap-2 px-3 py-2.5 mb-2 rounded-xl flex-row"
+            style={{ background: "var(--amber-light)", border: "1px solid var(--amber-border)" }}>
+            <button onClick={() => setSwapWarning(null)} className="flex-shrink-0"><X size={13} style={{ color: "var(--amber)" }} /></button>
+            <p className="flex-1 text-xs text-right leading-relaxed" style={{ color: "var(--amber)" }}>{swapWarning}</p>
+            <AlertTriangle size={14} style={{ color: "var(--amber)", flexShrink: 0 }} />
+          </div>
+        )}
         <div className="flex flex-col gap-2">
           {(swapRequests || []).map(sr => (
             <Card key={sr.id}>
