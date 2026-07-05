@@ -8,14 +8,14 @@ import { getEffectiveConfig, statusHasBucket } from "@/lib/businessConfig";
 import { MAX_WEEKLY_HOURS, MAX_WORK_DAYS_PER_WEEK } from "@/lib/laborLaw";
 
 type EmployeeRow = { personId: string; name: string; initials: string; role: string; color: string; textColor: string };
+type RoleRow = { key: string; label: string };
 
 type ConstraintsMap = Record<string, { availability: Record<number, string> }>;
 
-const isWaiterRole = (r: string) => r.startsWith("מלצר");
-const isKitchenRole = (r: string) => r === "מטבח";
-const isBarRole = (r: string) => r === "בר";
-const isWashRole = (r: string) => r === "שטיפה";
-const isManagerRole = (r: string) => r === "אחמ\"ש" || r === "אחמ״ש";
+// A role reading as "shift lead" gets asked about last and phrased slightly
+// differently ("כמה אחמ\"שים" vs "כמה עובדי X") — purely cosmetic, every
+// other role is treated identically regardless of what business this is.
+const isLeadRole = (label: string) => /אחמ["׳]?ש/.test(label);
 
 const AI_WEEK_START = "2026-06-28"; // matches the schedule page's "next" week
 
@@ -50,63 +50,47 @@ type Msg = {
   status?: "info" | "warn" | "success";
 };
 
+// Per-role staffing target, keyed by the business's own role key — so a
+// gym asks about "מאמנים"/"קבלה" and a restaurant asks about "מלצרים"/"מטבח",
+// instead of one fixed restaurant-shaped question set for every business.
 type Config = {
-  morningWaiters: number;
-  morningKitchen: number;
-  eveningWaiters: number;
-  eveningKitchen: number;
-  morningBar: number;
-  eveningBar: number;
-  morningWash: number;
-  eveningWash: number;
-  morningManagers: number;
-  eveningManagers: number;
+  counts: Record<string, { morning: number; evening: number }>;
   fridayExtra: boolean;
   maxHours: number;
   specialEvent: boolean;
 };
 
-type Step =
-  | "use-last" | "morning-waiters" | "morning-kitchen"
-  | "evening-waiters" | "evening-kitchen"
-  | "morning-bar" | "evening-bar" | "morning-wash" | "evening-wash"
-  | "morning-managers" | "evening-managers"
-  | "max-hours" | "special-event" | "friday-extra"
-  | "free-chat" | "generating" | "done";
+// Fixed steps that exist regardless of the business's roles, plus a dynamic
+// "r:<roleKey>:morning" / "r:<roleKey>:evening" step per actual role.
+type Step = string;
+const FIXED_STEPS = ["use-last", "max-hours", "special-event", "friday-extra", "free-chat", "generating", "done"] as const;
 
-const LAST_CONFIG_KEY = "shiftpro_last_ai_config";
+const LAST_CONFIG_KEY_PREFIX = "shiftpro_last_ai_config";
 
-function getLastConfig(): Config | null {
-  if (typeof window === "undefined") return null;
-  try { return JSON.parse(localStorage.getItem(LAST_CONFIG_KEY) || ""); } catch { return null; }
+// Scoped per business — a manager who runs multiple branches (or this browser
+// having been used for a different demo business) must never be offered
+// another business's staffing config, since role keys and headcounts don't
+// carry over at all.
+function getLastConfig(businessId: string): Config | null {
+  if (typeof window === "undefined" || !businessId) return null;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(`${LAST_CONFIG_KEY_PREFIX}:${businessId}`) || "");
+    // Ignore anything saved in the old fixed-shape format — this is just a
+    // convenience shortcut, safe to fall back to asking fresh if it doesn't look right.
+    if (parsed && typeof parsed === "object" && parsed.counts && typeof parsed.counts === "object") return parsed as Config;
+    return null;
+  } catch { return null; }
 }
-function saveConfig(c: Config) { localStorage.setItem(LAST_CONFIG_KEY, JSON.stringify(c)); }
+function saveConfig(businessId: string, c: Config) {
+  if (!businessId) return;
+  localStorage.setItem(`${LAST_CONFIG_KEY_PREFIX}:${businessId}`, JSON.stringify(c));
+}
 
-// Fills in 0/false for any field missing from a partial or older-shaped config
-// (e.g. one saved to localStorage before bar/wash/manager questions existed) —
-// generateSchedule's `.slice(0, want)` treats `undefined` as "no limit", so an
-// unset count would silently schedule every available employee in that role.
-function withDefaults(c: Partial<Config>): Config {
-  return {
-    morningWaiters: c.morningWaiters ?? 0,
-    morningKitchen: c.morningKitchen ?? 0,
-    eveningWaiters: c.eveningWaiters ?? 0,
-    eveningKitchen: c.eveningKitchen ?? 0,
-    morningBar: c.morningBar ?? 0,
-    eveningBar: c.eveningBar ?? 0,
-    morningWash: c.morningWash ?? 0,
-    eveningWash: c.eveningWash ?? 0,
-    morningManagers: c.morningManagers ?? 0,
-    eveningManagers: c.eveningManagers ?? 0,
-    fridayExtra: c.fridayExtra ?? false,
-    maxHours: c.maxHours || 48,
-    specialEvent: c.specialEvent ?? false,
-  };
+function emptyConfig(): Config {
+  return { counts: {}, fridayExtra: false, maxHours: 48, specialEvent: false };
 }
 
 type ScheduleEntry = { id: string; personId: string; name: string; initials: string; role: string; color: string; textColor: string; timeIn: string; timeOut: string };
-
-// generateSchedule is defined inside the component to access bizHours / nextWeekDays state
 
 const NUM_CHIPS = ["1", "2", "3", "4", "5+"];
 
@@ -114,7 +98,7 @@ export default function AISchedule() {
   const router = useRouter();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [step, setStep] = useState<Step>("use-last");
-  const [config, setConfig] = useState<Partial<Config>>({});
+  const [config, setConfig] = useState<Config>(emptyConfig());
   const [inputVal, setInputVal] = useState("");
   const [customNumStep, setCustomNumStep] = useState<Step | null>(null);
   const [customNumVal, setCustomNumVal] = useState("");
@@ -130,7 +114,14 @@ export default function AISchedule() {
   const [businessId, setBusinessId] = useState("");
   const [myPersonId, setMyPersonId] = useState("");
   const [employees, setEmployees] = useState<EmployeeRow[]>([]);
+  const [roles, setRoles] = useState<RoleRow[]>([]);
   const missingConstraints = employees.filter(e => !constraintsMap[e.personId]);
+
+  // Only ask about roles this business actually has employees in, and put
+  // shift-lead-style roles (אחמ"ש) last — everything else keeps the order
+  // the business defined its roles in.
+  const staffedRoles = roles.filter(r => employees.some(e => e.role === r.key));
+  const orderedRoles = [...staffedRoles].sort((a, b) => Number(isLeadRole(a.label)) - Number(isLeadRole(b.label)));
 
   useEffect(() => {
     const cfg = getEffectiveConfig();
@@ -157,11 +148,17 @@ export default function AISchedule() {
 
     (async () => {
       try {
-        const empRes = await fetch(`/api/employees?businessId=${biz}`).then(r => r.json());
+        const [empRes, rolesRes] = await Promise.all([
+          fetch(`/api/employees?businessId=${biz}`).then(r => r.json()),
+          fetch(`/api/roles?businessId=${biz}`).then(r => r.json()),
+        ]);
         if (empRes.success) {
           setEmployees(empRes.employees.map((e: { id: string; name: string; initials: string; role: string; color: string; textColor: string }) => ({
             personId: e.id, name: e.name, initials: e.initials, role: e.role, color: e.color, textColor: e.textColor,
           })));
+        }
+        if (rolesRes.success) {
+          setRoles(rolesRes.roles.map((r: { key: string; label: string }) => ({ key: r.key, label: r.label })));
         }
         const consRes = await fetch(`/api/constraints?businessId=${biz}&weekStart=${AI_WEEK_START}`).then(r => r.json());
         if (consRes.success) {
@@ -203,9 +200,11 @@ export default function AISchedule() {
 
   useEffect(() => {
     if (started.current) return;
+    if (roles.length === 0 && employees.length === 0) return; // wait for the initial fetch before greeting
     started.current = true;
     startConversation();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roles, employees]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -216,14 +215,6 @@ export default function AISchedule() {
   }
 
   function generateSchedule(aiConfig: Config) {
-    const roleGroups: { key: string; label: string; filter: (r: string) => boolean; wantMorning: number; wantEvening: number }[] = [
-      { key: "w",   label: "מלצרים",  filter: isWaiterRole,  wantMorning: aiConfig.morningWaiters,  wantEvening: aiConfig.eveningWaiters },
-      { key: "k",   label: "מטבח",    filter: isKitchenRole, wantMorning: aiConfig.morningKitchen,  wantEvening: aiConfig.eveningKitchen },
-      { key: "bar", label: "בר",      filter: isBarRole,     wantMorning: aiConfig.morningBar,      wantEvening: aiConfig.eveningBar },
-      { key: "wash",label: "שטיפה",   filter: isWashRole,    wantMorning: aiConfig.morningWash,     wantEvening: aiConfig.eveningWash },
-      { key: "mgr", label: "אחמ\"ש",  filter: isManagerRole, wantMorning: aiConfig.morningManagers, wantEvening: aiConfig.eveningManagers },
-    ];
-
     const schedule: Record<number, ScheduleEntry[]> = {};
     const warnings: string[] = [];
     const weeklyHours: Record<string, number> = {};
@@ -257,31 +248,32 @@ export default function AISchedule() {
       const dayList: ScheduleEntry[] = [];
       const dayLabel = `${day.label} ${day.date}`;
 
-      roleGroups.forEach(group => {
-        const roleEmployees = employees.filter(e => group.filter(e.role));
+      orderedRoles.forEach((role, roleIdx) => {
+        const roleEmployees = employees.filter(e => e.role === role.key);
         const morningPool = roleEmployees.filter(e => isAvailable(e.personId, day.d, "morning"));
         const eveningPool = roleEmployees.filter(e => !dayList.find(d => d.personId === e.personId) && isAvailable(e.personId, day.d, "evening"));
 
-        const wantMorning = group.wantMorning + (isFriday && group.key === "w" && aiConfig.fridayExtra ? 1 : 0);
-        const wantEvening = group.wantEvening;
+        const want = aiConfig.counts[role.key] || { morning: 0, evening: 0 };
+        const wantMorning = want.morning + (isFriday && roleIdx === 0 && aiConfig.fridayExtra ? 1 : 0);
+        const wantEvening = want.evening;
 
         morningPool.slice(0, wantMorning).forEach((e, i) => {
-          dayList.push({ id: `${day.d}-${group.key}-m-${i}`, ...e, timeIn: bh.from, timeOut: midStr });
+          dayList.push({ id: `${day.d}-${role.key}-m-${i}`, ...e, timeIn: bh.from, timeOut: midStr });
           addHours(e, bh.from, midStr, day.d);
         });
         eveningPool.filter(e => !dayList.find(d => d.personId === e.personId)).slice(0, wantEvening).forEach((e, i) => {
-          dayList.push({ id: `${day.d}-${group.key}-e-${i}`, ...e, timeIn: midStr, timeOut: bh.to || "00:00" });
+          dayList.push({ id: `${day.d}-${role.key}-e-${i}`, ...e, timeIn: midStr, timeOut: bh.to || "00:00" });
           addHours(e, midStr, bh.to || "00:00", day.d);
         });
 
         if (roleEmployees.length === 0) {
-          if ((wantMorning > 0 || wantEvening > 0) && !warnings.some(w => w.includes(`אין עובד ${group.label}`))) {
-            warnings.push(`אין עובד ${group.label} מוגדר במערכת — לא ישובץ אף אחד למשמרות ${group.label}`);
+          if ((wantMorning > 0 || wantEvening > 0) && !warnings.some(w => w.includes(`אין עובד ${role.label}`))) {
+            warnings.push(`אין עובד ${role.label} מוגדר במערכת — לא ישובץ אף אחד למשמרות ${role.label}`);
           }
           return;
         }
-        if (morningPool.length < wantMorning) warnings.push(`${dayLabel}: רק ${morningPool.length}/${wantMorning} עובדי ${group.label} זמינים בבוקר`);
-        if (eveningPool.length < wantEvening) warnings.push(`${dayLabel}: רק ${eveningPool.length}/${wantEvening} עובדי ${group.label} זמינים בערב`);
+        if (morningPool.length < wantMorning) warnings.push(`${dayLabel}: רק ${morningPool.length}/${wantMorning} עובדי ${role.label} זמינים בבוקר`);
+        if (eveningPool.length < wantEvening) warnings.push(`${dayLabel}: רק ${eveningPool.length}/${wantEvening} עובדי ${role.label} זמינים בערב`);
       });
 
       schedule[day.d] = dayList;
@@ -306,77 +298,82 @@ export default function AISchedule() {
   }
 
   function startConversation() {
-    const lc = getLastConfig();
-    setTimeout(() => addMsg({ from: "ai", text: "שלום! אני אעזור לך לבנות את סידור שבוע 28.6–4.7 🗓️" }), 300);
+    const lc = getLastConfig(businessId);
+    setTimeout(() => addMsg({ from: "ai", text: "היי! אני כאן כדי לעזור לך לבנות את סידור שבוע 28.6–4.7 🗓️" }), 300);
+
+    if (orderedRoles.length === 0) {
+      setTimeout(() => addMsg({
+        from: "ai",
+        text: "לא מצאתי עדיין עובדים משובצים לתפקידים בעסק שלך — כדאי להוסיף עובדים ותפקידים לפני שנבנה סידור יחד.",
+        status: "warn",
+      }), 900);
+      return;
+    }
 
     if (lc) {
       setTimeout(() => {
         addMsg({
           from: "ai",
-          text: `שבוע שעבר: ${lc.morningWaiters} מלצרים בוקר, ${lc.eveningWaiters} מלצרים ערב, ${lc.morningKitchen} מטבח. רוצה אותן הגדרות?`,
-          chips: ["כן, אותן הגדרות", "לא, בנה מחדש"],
+          text: "יש לי את ההגדרות שקבעת בפעם הקודמת. רוצה להשתמש באותן כמויות עובדים לכל תפקיד?",
+          chips: ["כן, אותן הגדרות", "לא, בוא נקבע מחדש"],
         });
         setStep("use-last");
       }, 900);
     } else {
-      setTimeout(() => askStep("morning-waiters"), 900);
+      setTimeout(() => askStep(numStepId(orderedRoles[0].key, "morning")), 900);
     }
   }
 
-  // Fixed step order — walked with skipping so businesses with no bar/wash/
-  // manager staff aren't asked pointless "how many X" questions.
-  const NUM_STEP_ORDER: Step[] = [
-    "morning-waiters", "morning-kitchen", "evening-waiters", "evening-kitchen",
-    "morning-bar", "evening-bar", "morning-wash", "evening-wash",
-    "morning-managers", "evening-managers",
-  ];
-  const STEP_ROLE_FILTER: Partial<Record<Step, (r: string) => boolean>> = {
-    "morning-waiters": isWaiterRole, "evening-waiters": isWaiterRole,
-    "morning-kitchen": isKitchenRole, "evening-kitchen": isKitchenRole,
-    "morning-bar": isBarRole, "evening-bar": isBarRole,
-    "morning-wash": isWashRole, "evening-wash": isWashRole,
-    "morning-managers": isManagerRole, "evening-managers": isManagerRole,
-  };
-  const STEP_CONFIG_KEY: Partial<Record<Step, keyof Config>> = {
-    "morning-waiters": "morningWaiters", "evening-waiters": "eveningWaiters",
-    "morning-kitchen": "morningKitchen", "evening-kitchen": "eveningKitchen",
-    "morning-bar": "morningBar", "evening-bar": "eveningBar",
-    "morning-wash": "morningWash", "evening-wash": "eveningWash",
-    "morning-managers": "morningManagers", "evening-managers": "eveningManagers",
-    "max-hours": "maxHours",
-  };
-
-  function stepHasStaff(s: Step): boolean {
-    const filter = STEP_ROLE_FILTER[s];
-    if (!filter) return true;
-    return employees.some(e => filter(e.role));
+  function numStepId(roleKey: string, part: "morning" | "evening"): Step {
+    return `r:${roleKey}:${part}`;
   }
+  function parseNumStep(s: Step): { roleKey: string; part: "morning" | "evening" } | null {
+    if (!s.startsWith("r:")) return null;
+    const rest = s.slice(2);
+    const sep = rest.lastIndexOf(":");
+    return { roleKey: rest.slice(0, sep), part: rest.slice(sep + 1) as "morning" | "evening" };
+  }
+
+  // Ordered list of every role-count question for this business's actual
+  // roles — walked in sequence, skipped only if a business somehow ends up
+  // with zero employees in a role by the time we get there.
+  const roleStepOrder: Step[] = orderedRoles.flatMap(r => [numStepId(r.key, "morning"), numStepId(r.key, "evening")]);
 
   function nextStepAfter(s: Step): Step {
     if (s === "max-hours") return "special-event";
-    const idx = NUM_STEP_ORDER.indexOf(s);
-    if (idx === -1) return "max-hours";
-    for (let i = idx + 1; i < NUM_STEP_ORDER.length; i++) {
-      if (stepHasStaff(NUM_STEP_ORDER[i])) return NUM_STEP_ORDER[i];
-    }
-    return "max-hours";
+    const idx = roleStepOrder.indexOf(s);
+    if (idx === -1 || idx === roleStepOrder.length - 1) return "max-hours";
+    return roleStepOrder[idx + 1];
+  }
+
+  function roleLabelForStep(s: Step): { label: string; part: "morning" | "evening" } | null {
+    const parsed = parseNumStep(s);
+    if (!parsed) return null;
+    const role = orderedRoles.find(r => r.key === parsed.roleKey);
+    return role ? { label: role.label, part: parsed.part } : null;
   }
 
   function askStep(s: Step) {
-    const questions: Partial<Record<Step, { text: string; chips?: string[]; showCustomInput?: boolean }>> = {
-      "morning-waiters": { text: "משמרת בוקר (08:00–16:00) — כמה מלצרים?", chips: NUM_CHIPS, showCustomInput: true },
-      "morning-kitchen": { text: "כמה עובדי מטבח בבוקר?", chips: NUM_CHIPS, showCustomInput: true },
-      "evening-waiters": { text: "משמרת ערב (16:00–00:00) — כמה מלצרים?", chips: NUM_CHIPS, showCustomInput: true },
-      "evening-kitchen": { text: "כמה עובדי מטבח בערב?", chips: NUM_CHIPS, showCustomInput: true },
-      "morning-bar": { text: "כמה עובדי בר בבוקר?", chips: NUM_CHIPS, showCustomInput: true },
-      "evening-bar": { text: "כמה עובדי בר בערב?", chips: NUM_CHIPS, showCustomInput: true },
-      "morning-wash": { text: "כמה עובדי שטיפה בבוקר?", chips: NUM_CHIPS, showCustomInput: true },
-      "evening-wash": { text: "כמה עובדי שטיפה בערב?", chips: NUM_CHIPS, showCustomInput: true },
-      "morning-managers": { text: "כמה אחמ\"שים נדרשים במשמרת בוקר?", chips: NUM_CHIPS, showCustomInput: true },
-      "evening-managers": { text: "כמה אחמ\"שים נדרשים במשמרת ערב?", chips: NUM_CHIPS, showCustomInput: true },
-      "max-hours": { text: "כמה שעות מקסימום לעובד בשבוע?", chips: ["40", "48", "56"], showCustomInput: true },
-      "special-event": { text: "האם יש אירוע מיוחד השבוע? (מסיבה, אירוע גדול, אשכנז ידוע...)", chips: ["לא, שגרה רגילה", "כן, יש אירוע"] },
-      "friday-extra": { text: "ביום שישי — להוסיף מלצר נוסף?", chips: ["כן, תוסיף", "לא, מספיק"] },
+    const parsed = roleLabelForStep(s);
+    if (parsed) {
+      const isFirstQuestion = s === roleStepOrder[0];
+      const lead = isLeadRole(parsed.label);
+      let text: string;
+      if (parsed.part === "morning") {
+        const rangeHint = isFirstQuestion && nextWeekDays[0] ? ` (${bizHours[nextWeekDays[0].d]?.from || "08:00"} עד אמצע היום)` : "";
+        text = lead ? `כמה ${parsed.label}ים דרושים במשמרת הבוקר?` : `משמרת בוקר${rangeHint} — כמה עובדי ${parsed.label} צריך?`;
+      } else {
+        text = lead ? `וכמה ${parsed.label}ים במשמרת הערב?` : `וכמה עובדי ${parsed.label} במשמרת הערב?`;
+      }
+      addMsg({ from: "ai", text, chips: NUM_CHIPS, showCustomInput: true });
+      setStep(s);
+      return;
+    }
+
+    const questions: Partial<Record<string, { text: string; chips?: string[]; showCustomInput?: boolean }>> = {
+      "max-hours": { text: "כדי לשמור על איזון הוגן — כמה שעות מקסימום לעובד בשבוע?", chips: ["40", "48", "56"], showCustomInput: true },
+      "special-event": { text: "יש אירוע מיוחד השבוע? (מסיבה, אירוע גדול, אשכנז ידוע...)", chips: ["לא, שגרה רגילה", "כן, יש אירוע"] },
+      "friday-extra": { text: "יום שישי בדרך כלל עמוס יותר — להוסיף עובד נוסף למשמרת הבוקר?", chips: ["כן, תוסיף", "לא, מספיק"] },
     };
     const q = questions[s];
     if (!q) return;
@@ -389,8 +386,18 @@ export default function AISchedule() {
     const n = parseInt(raw) || 1;
     addMsg({ from: "user", text: `${n}` });
 
-    const key = STEP_CONFIG_KEY[currentStep];
-    if (key) setConfig(prev => ({ ...prev, [key]: n }));
+    const parsed = parseNumStep(currentStep);
+    if (parsed) {
+      setConfig(prev => ({
+        ...prev,
+        counts: {
+          ...prev.counts,
+          [parsed.roleKey]: { ...(prev.counts[parsed.roleKey] || { morning: 0, evening: 0 }), [parsed.part]: n },
+        },
+      }));
+    } else if (currentStep === "max-hours") {
+      setConfig(prev => ({ ...prev, maxHours: n }));
+    }
 
     const next = nextStepAfter(currentStep);
     setTimeout(() => askStep(next), 400);
@@ -404,11 +411,7 @@ export default function AISchedule() {
       return;
     }
 
-    if (NUM_STEP_ORDER.includes(step) && /^\d+$/.test(chip)) {
-      handleNumber(chip, step);
-      return;
-    }
-    if (step === "max-hours" && /^\d+$/.test(chip)) {
+    if ((roleStepOrder.includes(step) || step === "max-hours") && /^\d+$/.test(chip)) {
       handleNumber(chip, step);
       return;
     }
@@ -417,11 +420,11 @@ export default function AISchedule() {
 
     if (step === "use-last") {
       if (chip.startsWith("כן")) {
-        const lc = withDefaults(getLastConfig() || {});
+        const lc = getLastConfig(businessId) || emptyConfig();
         setConfig(lc);
         runChecks(lc);
       } else {
-        setTimeout(() => askStep("morning-waiters"), 500);
+        setTimeout(() => askStep(roleStepOrder[0]), 500);
       }
       return;
     }
@@ -431,7 +434,7 @@ export default function AISchedule() {
       setConfig(prev => ({ ...prev, specialEvent: has }));
       if (has) {
         setTimeout(() => {
-          addMsg({ from: "ai", text: "מעולה, אקח זאת בחשבון ואוסיף עובד נוסף ביום שישי 🎉", status: "info" });
+          addMsg({ from: "ai", text: "מעולה, אקח את זה בחשבון ואוסיף כיסוי נוסף ביום שישי 🎉", status: "info" });
         }, 300);
       }
       setTimeout(() => askStep("friday-extra"), has ? 900 : 400);
@@ -440,7 +443,7 @@ export default function AISchedule() {
 
     if (step === "friday-extra") {
       const extra = chip.startsWith("כן");
-      const finalConfig = withDefaults({ ...config, fridayExtra: extra });
+      const finalConfig = { ...config, fridayExtra: extra };
       setConfig(finalConfig);
       runChecks(finalConfig);
       return;
@@ -448,7 +451,7 @@ export default function AISchedule() {
 
     // Free chat fallback
     setTimeout(() => {
-      addMsg({ from: "ai", text: "הבנתי! אקח את זה בחשבון בסידור. יש עוד משהו שתרצה לציין?", status: "info" });
+      addMsg({ from: "ai", text: "הבנתי! אקח את זה בחשבון בסידור. יש עוד משהו לציין?", status: "info" });
     }, 400);
   }
 
@@ -510,7 +513,7 @@ export default function AISchedule() {
 
     setTimeout(() => {
       if (weekHolidays.length > 0) {
-        weekHolidays.forEach(h => addMsg({ from: "ai", text: `⚠️ ${h.label} ${h.date} — ${h.name}. אשקול כיסוי מיוחד`, status: "warn" }));
+        weekHolidays.forEach(h => addMsg({ from: "ai", text: `⚠️ ${h.label} ${h.date} — ${h.name}. כדאי לשקול כיסוי מיוחד`, status: "warn" }));
       } else {
         addMsg({ from: "ai", text: "✓ אין חגים השבוע", status: "success" });
       }
@@ -528,11 +531,11 @@ export default function AISchedule() {
       addMsg({ from: "ai", text: `✓ מגבלת שעות: ${finalConfig.maxHours || 48} שעות לעובד בשבוע`, status: "success" });
     }, 1600);
 
-    setTimeout(() => addMsg({ from: "ai", text: "מייצר סידור..." }), 2300);
+    setTimeout(() => addMsg({ from: "ai", text: "בונה את הסידור..." }), 2300);
 
     setTimeout(() => {
       const { schedule, warnings } = generateSchedule(finalConfig);
-      saveConfig(finalConfig);
+      saveConfig(businessId, finalConfig);
       persistScheduleToDb(schedule);
       const totalShifts = Object.values(schedule).reduce((s, d) => s + d.length, 0);
       if (warnings.length > 0) {
@@ -548,7 +551,7 @@ export default function AISchedule() {
     }, 3500);
   }
 
-  const isNumStep = ["morning-waiters", "morning-kitchen", "evening-waiters", "evening-kitchen", "max-hours"].includes(step);
+  const isNumStep = roleStepOrder.includes(step) || step === "max-hours";
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "var(--gray-bg)" }}>
@@ -592,9 +595,7 @@ export default function AISchedule() {
                   <button key={chip}
                     onClick={() => step === "done" ? router.push("/schedule?week=next") : handleChip(chip)}
                     className="px-3 py-1.5 rounded-full text-xs font-semibold"
-                    style={chip === "5+" || chip === "הצג בסידור"
-                      ? { background: "var(--navy)", color: "#fff" }
-                      : { background: "var(--navy)", color: "#fff" }}>
+                    style={{ background: "var(--navy)", color: "#fff" }}>
                     {chip}
                   </button>
                 ))}
