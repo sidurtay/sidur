@@ -41,6 +41,8 @@ const DAY_LABEL_TO_INDEX: Record<string, number> = {
   ראשון: 0, שני: 1, שלישי: 2, רביעי: 3, חמישי: 4, שישי: 5, שבת: 6,
 };
 
+type SummaryRow = { text: string; tone: "success" | "warn" };
+
 type Msg = {
   id: number;
   from: "ai" | "user";
@@ -48,6 +50,7 @@ type Msg = {
   chips?: string[];
   showCustomInput?: boolean;
   status?: "info" | "warn" | "success";
+  summary?: SummaryRow[]; // renders as a compact checklist card instead of a plain paragraph
 };
 
 // Per-role staffing target, keyed by the business's own role key — so a
@@ -56,14 +59,12 @@ type Msg = {
 type Config = {
   counts: Record<string, { morning: number; evening: number }>;
   fridayExtra: boolean;
-  maxHours: number;
   specialEvent: boolean;
 };
 
 // Fixed steps that exist regardless of the business's roles, plus a dynamic
 // "r:<roleKey>:morning" / "r:<roleKey>:evening" step per actual role.
 type Step = string;
-const FIXED_STEPS = ["use-last", "max-hours", "special-event", "friday-extra", "free-chat", "generating", "done"] as const;
 
 const LAST_CONFIG_KEY_PREFIX = "shiftpro_last_ai_config";
 
@@ -87,7 +88,7 @@ function saveConfig(businessId: string, c: Config) {
 }
 
 function emptyConfig(): Config {
-  return { counts: {}, fridayExtra: false, maxHours: 48, specialEvent: false };
+  return { counts: {}, fridayExtra: false, specialEvent: false };
 }
 
 type ScheduleEntry = { id: string; personId: string; name: string; initials: string; role: string; color: string; textColor: string; timeIn: string; timeOut: string };
@@ -279,11 +280,6 @@ export default function AISchedule() {
       schedule[day.d] = dayList;
     });
 
-    const maxHours = aiConfig.maxHours || 48;
-    Object.entries(weeklyHours).forEach(([name, hours]) => {
-      if (hours > maxHours) warnings.push(`${name}: שובץ ל-${hours} שעות השבוע, מעל המגבלה (${maxHours})`);
-    });
-
     // Israeli labor-law awareness (חוק שעות עבודה ומנוחה) — informational only,
     // the AI never avoids building a schedule like this, just flags it so the
     // אחמ"ש/manager can decide with eyes open.
@@ -340,9 +336,8 @@ export default function AISchedule() {
   const roleStepOrder: Step[] = orderedRoles.flatMap(r => [numStepId(r.key, "morning"), numStepId(r.key, "evening")]);
 
   function nextStepAfter(s: Step): Step {
-    if (s === "max-hours") return "special-event";
     const idx = roleStepOrder.indexOf(s);
-    if (idx === -1 || idx === roleStepOrder.length - 1) return "max-hours";
+    if (idx === -1 || idx === roleStepOrder.length - 1) return "special-event";
     return roleStepOrder[idx + 1];
   }
 
@@ -371,7 +366,6 @@ export default function AISchedule() {
     }
 
     const questions: Partial<Record<string, { text: string; chips?: string[]; showCustomInput?: boolean }>> = {
-      "max-hours": { text: "כדי לשמור על איזון הוגן — כמה שעות מקסימום לעובד בשבוע?", chips: ["40", "48", "56"], showCustomInput: true },
       "special-event": { text: "יש אירוע מיוחד השבוע? (מסיבה, אירוע גדול, אשכנז ידוע...)", chips: ["לא, שגרה רגילה", "כן, יש אירוע"] },
       "friday-extra": { text: "יום שישי בדרך כלל עמוס יותר — להוסיף עובד נוסף למשמרת הבוקר?", chips: ["כן, תוסיף", "לא, מספיק"] },
     };
@@ -395,8 +389,6 @@ export default function AISchedule() {
           [parsed.roleKey]: { ...(prev.counts[parsed.roleKey] || { morning: 0, evening: 0 }), [parsed.part]: n },
         },
       }));
-    } else if (currentStep === "max-hours") {
-      setConfig(prev => ({ ...prev, maxHours: n }));
     }
 
     const next = nextStepAfter(currentStep);
@@ -411,7 +403,7 @@ export default function AISchedule() {
       return;
     }
 
-    if ((roleStepOrder.includes(step) || step === "max-hours") && /^\d+$/.test(chip)) {
+    if (roleStepOrder.includes(step) && /^\d+$/.test(chip)) {
       handleNumber(chip, step);
       return;
     }
@@ -508,39 +500,50 @@ export default function AISchedule() {
     addMsg({ from: "ai", text: "לא זיהיתי הוראה ספציפית לגבי הסידור. אפשר לציין למשל \"דנה לא זמינה ביום שלישי\" או \"יש אירוע גדול בסוף השבוע\"", status: "info" });
   }
 
+  // Buckets the raw warning strings from generateSchedule into a compact,
+  // capped set of rows instead of dumping every single day×role shortfall as
+  // its own line — a business with several roles and imperfect availability
+  // could otherwise produce 20+ lines, which is exactly the "too busy" look
+  // this was rewritten to avoid.
+  function summarizeScheduleWarnings(warnings: string[]): SummaryRow[] {
+    const missingRole = warnings.filter(w => w.startsWith("אין עובד"));
+    const coverage = warnings.filter(w => /זמינים ב(בוקר|ערב)/.test(w));
+    const labor = warnings.filter(w => /מעל שבוע העבודה הרגיל בחוק|יום מנוחה שבועי/.test(w));
+
+    const rows: SummaryRow[] = missingRole.map(text => ({ text, tone: "warn" as const }));
+    if (coverage.length > 0) {
+      rows.push({ text: `כיסוי חלקי ב-${coverage.length} משמרות השבוע — אפשר לראות פירוט בסידור עצמו`, tone: "warn" });
+    }
+    const laborShown = labor.slice(0, 3);
+    rows.push(...laborShown.map(text => ({ text, tone: "warn" as const })));
+    if (labor.length > laborShown.length) {
+      rows.push({ text: `+ עוד ${labor.length - laborShown.length} עובדים חורגים משבוע העבודה החוקי`, tone: "warn" });
+    }
+    return rows;
+  }
+
   function runChecks(finalConfig: Config) {
     setStep("generating");
 
-    setTimeout(() => {
-      if (weekHolidays.length > 0) {
-        weekHolidays.forEach(h => addMsg({ from: "ai", text: `⚠️ ${h.label} ${h.date} — ${h.name}. כדאי לשקול כיסוי מיוחד`, status: "warn" }));
-      } else {
-        addMsg({ from: "ai", text: "✓ אין חגים השבוע", status: "success" });
-      }
-    }, 500);
-
-    setTimeout(() => {
-      if (missingConstraints.length > 0) {
-        addMsg({ from: "ai", text: `⚠️ ${missingConstraints.map(e => e.name).join(", ")} לא שלחו אילוצים עדיין — אניח שהם זמינים בכל המשמרות`, status: "warn" });
-      } else {
-        addMsg({ from: "ai", text: "✓ כל העובדים שלחו אילוצים", status: "success" });
-      }
-    }, 1100);
-
-    setTimeout(() => {
-      addMsg({ from: "ai", text: `✓ מגבלת שעות: ${finalConfig.maxHours || 48} שעות לעובד בשבוע`, status: "success" });
-    }, 1600);
-
-    setTimeout(() => addMsg({ from: "ai", text: "בונה את הסידור..." }), 2300);
+    setTimeout(() => addMsg({ from: "ai", text: "בודק כמה דברים ובונה את הסידור..." }), 400);
 
     setTimeout(() => {
       const { schedule, warnings } = generateSchedule(finalConfig);
       saveConfig(businessId, finalConfig);
       persistScheduleToDb(schedule);
       const totalShifts = Object.values(schedule).reduce((s, d) => s + d.length, 0);
-      if (warnings.length > 0) {
-        addMsg({ from: "ai", text: `⚠️ שים לב:\n${warnings.join("\n")}`, status: "warn" });
-      }
+
+      const preChecks: SummaryRow[] = [
+        weekHolidays.length > 0
+          ? { text: `${weekHolidays.length} ${weekHolidays.length === 1 ? "חג" : "חגים"} השבוע — כדאי לשקול כיסוי מיוחד`, tone: "warn" }
+          : { text: "אין חגים השבוע", tone: "success" },
+        missingConstraints.length > 0
+          ? { text: `${missingConstraints.length} עובדים לא שלחו אילוצים — הונחו כזמינים בכל המשמרות`, tone: "warn" }
+          : { text: "כל העובדים שלחו אילוצים", tone: "success" },
+      ];
+      const summary = [...preChecks, ...summarizeScheduleWarnings(warnings)];
+
+      addMsg({ from: "ai", text: "סיכום לפני שמאשרים:", summary });
       addMsg({
         from: "ai",
         text: `✅ הסידור מוכן! ${Object.keys(schedule).length} ימים, ${totalShifts} משמרות. רוצה לראות?`,
@@ -548,10 +551,10 @@ export default function AISchedule() {
         status: "success",
       });
       setStep("done");
-    }, 3500);
+    }, 1800);
   }
 
-  const isNumStep = roleStepOrder.includes(step) || step === "max-hours";
+  const isNumStep = roleStepOrder.includes(step);
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "var(--gray-bg)" }}>
@@ -589,16 +592,38 @@ export default function AISchedule() {
               }>
               {msg.text}
             </div>
+
+            {/* Compact checklist card — replaces what used to be a separate
+                chat bubble per check, so a build with several warnings reads
+                as one calm summary instead of a wall of stacked bubbles. */}
+            {msg.summary && msg.summary.length > 0 && (
+              <div className="w-full max-w-[85%] rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
+                {msg.summary.map((row, i) => (
+                  <div key={i} className="flex items-start gap-2 px-3.5 py-2.5 flex-row"
+                    style={{ borderTop: i > 0 ? "1px solid var(--border)" : "none" }}>
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5"
+                      style={{ background: row.tone === "warn" ? "var(--amber)" : "var(--green)" }} />
+                    <p className="flex-1 text-xs text-right leading-relaxed">{row.text}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {msg.chips && msg.chips.length > 0 && (
               <div className="flex flex-row gap-2 flex-wrap justify-end">
-                {msg.chips.map(chip => (
-                  <button key={chip}
-                    onClick={() => step === "done" ? router.push("/schedule?week=next") : handleChip(chip)}
-                    className="px-3 py-1.5 rounded-full text-xs font-semibold"
-                    style={{ background: "var(--navy)", color: "#fff" }}>
-                    {chip}
-                  </button>
-                ))}
+                {msg.chips.map(chip => {
+                  const isPrimary = step === "done"; // the closing "הצג בסידור" call-to-action
+                  return (
+                    <button key={chip}
+                      onClick={() => step === "done" ? router.push("/schedule?week=next") : handleChip(chip)}
+                      className="px-3.5 py-2 rounded-xl text-xs font-semibold"
+                      style={isPrimary
+                        ? { background: "var(--navy)", color: "#fff" }
+                        : { background: "var(--blue-light)", color: "var(--blue)", border: "1px solid var(--blue-border)" }}>
+                      {chip}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -608,7 +633,7 @@ export default function AISchedule() {
         {customNumStep && (
           <div className="flex items-center gap-2 flex-row justify-end">
             <button onClick={() => setCustomNumStep(null)}
-              className="text-xs px-3 py-1.5 rounded-full"
+              className="text-xs px-3.5 py-2 rounded-xl font-semibold"
               style={{ background: "var(--gray-bg)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
               ביטול
             </button>
