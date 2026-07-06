@@ -26,7 +26,7 @@ const VISIBLE_MS = 10_000;
 // little popup doesn't feel like it's nagging when there's nothing real to say.
 const GENERIC_CHANCE = 0.4;
 
-export default function AiProactiveBubble({ session, onOpenWithMessage }: { session: Session; onOpenWithMessage: (msg: string) => void }) {
+export default function AiProactiveBubble({ session, side, onOpenWithMessage }: { session: Session; side: "left" | "right"; onOpenWithMessage: (msg: string) => void }) {
   const [bubble, setBubble] = useState<Bubble | null>(null);
   const shown = useRef<Set<string>>(new Set());
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -161,7 +161,7 @@ export default function AiProactiveBubble({ session, onOpenWithMessage }: { sess
       style={{
         position: "fixed",
         bottom: 156,
-        right: 16,
+        [side]: 16,
         zIndex: 61,
         maxWidth: 230,
         background: "var(--surface)",
@@ -171,7 +171,8 @@ export default function AiProactiveBubble({ session, onOpenWithMessage }: { sess
         border: "1px solid rgba(249,115,22,0.25)",
         direction: "rtl",
         cursor: "pointer",
-      }}
+        transition: "right 0.42s cubic-bezier(0.22,1,0.36,1), left 0.42s cubic-bezier(0.22,1,0.36,1)",
+      } as React.CSSProperties}
     >
       <button
         onClick={e => { e.stopPropagation(); setBubble(null); }}
@@ -190,7 +191,7 @@ export default function AiProactiveBubble({ session, onOpenWithMessage }: { sess
           content: "";
           position: absolute;
           bottom: -6px;
-          right: 22px;
+          ${side === "left" ? "left" : "right"}: 22px;
           width: 12px;
           height: 12px;
           background: var(--surface);

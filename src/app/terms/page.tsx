@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { ArrowRight, Shield, FileText } from "lucide-react";
 import LogoMark from "@/components/Logo";
+import AccessibilityWidget from "@/components/AccessibilityWidget";
 
 const LAST_UPDATED = "1 ביולי 2026";
 const EFFECTIVE_DATE = "1 ביולי 2026";
@@ -126,6 +127,7 @@ export default function TermsPage() {
   const router = useRouter();
   return (
     <div className="min-h-screen" style={{ background: "var(--gray-bg)", direction: "rtl" }}>
+      <AccessibilityWidget />
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-4 flex-row sticky top-0 z-10"

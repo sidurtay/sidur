@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, ArrowRight, Phone, Lock, Fingerprint, Check } from "lucide-react";
-import Card from "@/components/ui/Card";
 
 type LoginSuccessData = {
   businessId: string; personId: string; phone: string; name: string;
@@ -128,146 +127,156 @@ export default function Login() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: "var(--gray-bg)" }}>
+    <div className="relative flex flex-col min-h-screen overflow-hidden" style={{ background: "#fff" }}>
+      {/* Decorative background — soft orange glow bleeding off the top corner,
+          a faint navy blob low on the page. White-first, distinct from the
+          old "dark hero band" template. */}
+      <div className="absolute pointer-events-none" style={{
+        top: -140, left: -100, width: 340, height: 340, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(249,115,22,0.22), transparent 70%)", filter: "blur(10px)",
+      }} />
+      <div className="absolute pointer-events-none" style={{
+        bottom: -160, right: -120, width: 380, height: 380, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(11,30,61,0.08), transparent 70%)", filter: "blur(10px)",
+      }} />
 
-      {/* Hero */}
-      <div className="flex flex-col items-center pt-12 pb-12 px-6 text-center relative overflow-hidden"
-        style={{ background: "var(--navy)" }}>
+      <div className="relative flex items-center justify-between px-5 pt-12">
         <button onClick={() => router.back()}
-          className="absolute top-12 right-4 w-9 h-9 rounded-full flex items-center justify-center z-10"
-          style={{ background: "rgba(255,255,255,0.08)" }}>
-          <ArrowRight size={18} color="white" />
+          className="w-9 h-9 rounded-full flex items-center justify-center"
+          style={{ background: "var(--gray-bg)", border: "1px solid var(--border)" }}>
+          <ArrowRight size={17} style={{ color: "var(--navy)" }} />
         </button>
+        <span className="text-lg font-extrabold tracking-tight" style={{ color: "var(--navy)", direction: "ltr" }}>
+          Sidur<span style={{ color: "var(--blue)" }}>•</span>
+        </span>
+      </div>
 
-        <p className="animate-fade-slide-up text-white text-3xl font-extrabold tracking-tight" style={{ animationDelay: "0.05s" }}>
-          Sidur
+      <div className="relative px-6 pt-8 pb-3 text-right">
+        <p className="animate-fade-slide-up text-[26px] font-extrabold leading-tight" style={{ color: "var(--navy)", animationDelay: "0.05s" }}>
+          ברוך שובך.
         </p>
-        <p className="animate-fade-slide-up text-[10px] mt-1.5" style={{ color: "rgba(255,255,255,0.35)", animationDelay: "0.2s" }}>
-          © 2026 Sidur · כל הזכויות שמורות
-        </p>
-
-        <p className="animate-fade-slide-up text-sm mt-5" style={{ color: "rgba(255,255,255,0.55)", animationDelay: "0.35s" }}>
-          כניסה לחשבון העסק שלך
+        <p className="animate-fade-slide-up text-sm mt-1.5" style={{ color: "var(--text-secondary)", animationDelay: "0.15s" }}>
+          כניסה לחשבון העסק שלך ב-Sidur
         </p>
 
-        {/* Trust row — businesses using the product */}
-        <div className="animate-fade-slide-up flex flex-row flex-wrap items-center justify-center gap-1.5 mt-5"
-          style={{ animationDelay: "0.5s" }}>
+        <div className="animate-fade-slide-up flex flex-row flex-wrap gap-1.5 mt-4" style={{ animationDelay: "0.25s" }}>
           {["קפה לוסיל", "מטבח האחים", "בר רוסו", "פיצה דה רוקו"].map(name => (
             <span key={name} className="text-[10px] px-2.5 py-1 rounded-full"
-              style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.1)" }}>
+              style={{ background: "var(--gray-bg)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
               {name}
             </span>
           ))}
         </div>
-        <p className="animate-fade-slide-up text-[10px] mt-2" style={{ color: "rgba(255,255,255,0.3)", animationDelay: "0.55s" }}>
-          מצטרפים לעשרות עסקים שמנהלים את הסידור שלהם עם Sidur
-        </p>
       </div>
 
-      {/* Form — floating card */}
-      <div className="animate-fade-slide-up px-5 flex flex-col gap-4" style={{ marginTop: -20, animationDelay: "0.65s" }}>
-        <Card className="rounded-[28px] p-6 flex flex-col gap-4"
-          style={{ boxShadow: "0 12px 32px -8px rgba(20,24,31,0.16)", border: "1px solid var(--border)" }}>
+      {/* Form */}
+      <div className="animate-fade-slide-up relative flex-1 px-6 pt-5 flex flex-col gap-3.5" style={{ animationDelay: "0.35s" }}>
 
-          {passkeyPhone && (
+        {passkeyPhone && (
+          <>
             <button onClick={handleFingerprintLogin} disabled={passkeyBusy}
               className="w-full py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2"
               style={{ background: "var(--blue-light)", color: "var(--blue)", border: "1px solid var(--blue-border)" }}>
               <Fingerprint size={16} />
               {passkeyBusy ? "מאמת..." : "כניסה בטביעת אצבע"}
             </button>
-          )}
-          {passkeyPhone && (
             <div className="flex items-center gap-2 flex-row">
               <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
               <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>או עם סיסמה</p>
               <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
             </div>
-          )}
+          </>
+        )}
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>
-              מספר טלפון
-            </label>
-            <div className="relative flex items-center">
-              <Phone size={15} className="absolute right-3.5" style={{ color: "var(--text-secondary)" }} />
-              <input
-                type="tel" inputMode="numeric" placeholder="05X-XXXXXXX" maxLength={11}
-                value={phone} onChange={e => setPhone(formatPhone(e.target.value))}
-                className="w-full pr-10 pl-4 py-3.5 rounded-2xl text-sm text-right outline-none transition-shadow"
-                style={{ background: "var(--gray-bg)", border: "1.5px solid var(--border)", direction: "ltr" }}
-                onFocus={e => e.currentTarget.style.borderColor = "var(--blue)"}
-                onBlur={e => e.currentTarget.style.borderColor = "var(--border)"}
-              />
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>
+            מספר טלפון
+          </label>
+          <div className="relative flex items-center">
+            <div className="absolute right-2.5 w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "var(--blue-light)" }}>
+              <Phone size={13} style={{ color: "var(--blue)" }} />
             </div>
+            <input
+              type="tel" inputMode="numeric" placeholder="05X-XXXXXXX" maxLength={11}
+              value={phone} onChange={e => setPhone(formatPhone(e.target.value))}
+              className="w-full pr-12 pl-4 py-3.5 rounded-2xl text-sm text-right outline-none transition-shadow"
+              style={{ background: "#fff", border: "1.5px solid var(--border)", direction: "ltr" }}
+              onFocus={e => e.currentTarget.style.borderColor = "var(--blue)"}
+              onBlur={e => e.currentTarget.style.borderColor = "var(--border)"}
+            />
           </div>
+        </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>
-              סיסמה
-            </label>
-            <div className="relative flex items-center">
-              <Lock size={15} className="absolute right-3.5" style={{ color: "var(--text-secondary)" }} />
-              <button onClick={() => setShowPw(v => !v)}
-                className="absolute left-3.5" type="button">
-                {showPw
-                  ? <EyeOff size={15} style={{ color: "var(--text-secondary)" }} />
-                  : <Eye     size={15} style={{ color: "var(--text-secondary)" }} />}
-              </button>
-              <input
-                type={showPw ? "text" : "password"} placeholder="••••••••"
-                value={password} onChange={e => setPassword(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleLogin()}
-                className="w-full pr-10 pl-10 py-3.5 rounded-2xl text-sm text-right outline-none transition-shadow"
-                style={{ background: "var(--gray-bg)", border: "1.5px solid var(--border)" }}
-                onFocus={e => e.currentTarget.style.borderColor = "var(--blue)"}
-                onBlur={e => e.currentTarget.style.borderColor = "var(--border)"}
-              />
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-semibold text-right" style={{ color: "var(--text-secondary)" }}>
+            סיסמה
+          </label>
+          <div className="relative flex items-center">
+            <div className="absolute right-2.5 w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "var(--blue-light)" }}>
+              <Lock size={13} style={{ color: "var(--blue)" }} />
             </div>
-          </div>
-
-          <div className="flex items-center justify-between flex-row">
-            {forgotSent ? (
-              <p className="text-xs" style={{ color: "var(--green)" }}>סיסמה זמנית נשלחה</p>
-            ) : (
-              <button onClick={handleForgotPassword} disabled={forgotBusy}
-                className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                {forgotBusy ? "שולח..." : "שכחתי סיסמה"}
-              </button>
-            )}
-            <button onClick={() => setRemember(v => !v)} type="button"
-              className="flex items-center gap-1.5 flex-row">
-              <span className="text-xs" style={{ color: "var(--text-secondary)" }}>זכור אותי</span>
-              <span className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-colors"
-                style={{
-                  background: remember ? "var(--blue)" : "transparent",
-                  border: `1.5px solid ${remember ? "var(--blue)" : "var(--border)"}`,
-                }}>
-                {remember && <Check size={11} color="white" strokeWidth={3} />}
-              </span>
+            <button onClick={() => setShowPw(v => !v)}
+              className="absolute left-3.5" type="button">
+              {showPw
+                ? <EyeOff size={15} style={{ color: "var(--text-secondary)" }} />
+                : <Eye     size={15} style={{ color: "var(--text-secondary)" }} />}
             </button>
+            <input
+              type={showPw ? "text" : "password"} placeholder="••••••••"
+              value={password} onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleLogin()}
+              className="w-full pr-12 pl-10 py-3.5 rounded-2xl text-sm text-right outline-none transition-shadow"
+              style={{ background: "#fff", border: "1.5px solid var(--border)" }}
+              onFocus={e => e.currentTarget.style.borderColor = "var(--blue)"}
+              onBlur={e => e.currentTarget.style.borderColor = "var(--border)"}
+            />
           </div>
+        </div>
 
-          {error && (
-            <p className="text-xs text-center font-medium" style={{ color: "var(--red)" }}>{error}</p>
+        <div className="flex items-center justify-between flex-row">
+          {forgotSent ? (
+            <p className="text-xs" style={{ color: "var(--green)" }}>סיסמה זמנית נשלחה</p>
+          ) : (
+            <button onClick={handleForgotPassword} disabled={forgotBusy}
+              className="text-xs" style={{ color: "var(--text-secondary)" }}>
+              {forgotBusy ? "שולח..." : "שכחתי סיסמה"}
+            </button>
           )}
-
-          <button onClick={handleLogin} disabled={loading}
-            className="w-full py-3.5 rounded-2xl text-sm font-bold text-white mt-1 transition-opacity"
-            style={{
-              background: loading ? "var(--border)" : "var(--navy)",
-              boxShadow: loading ? "none" : "0 8px 20px -6px rgba(20,24,31,0.4)",
-            }}>
-            {loading ? "מתחבר..." : "כניסה"}
+          <button onClick={() => setRemember(v => !v)} type="button"
+            className="flex items-center gap-1.5 flex-row">
+            <span className="text-xs" style={{ color: "var(--text-secondary)" }}>זכור אותי</span>
+            <span className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-colors"
+              style={{
+                background: remember ? "var(--blue)" : "transparent",
+                border: `1.5px solid ${remember ? "var(--blue)" : "var(--border)"}`,
+              }}>
+              {remember && <Check size={11} color="white" strokeWidth={3} />}
+            </span>
           </button>
-        </Card>
+        </div>
+
+        {error && (
+          <p className="text-xs text-center font-medium" style={{ color: "var(--red)" }}>{error}</p>
+        )}
+
+        <button onClick={handleLogin} disabled={loading}
+          className="w-full py-3.5 rounded-2xl text-sm font-bold text-white mt-1 transition-opacity"
+          style={{
+            background: loading ? "var(--border)" : "var(--blue)",
+            boxShadow: loading ? "none" : "0 10px 24px -8px rgba(249,115,22,0.5)",
+          }}>
+          {loading ? "מתחבר..." : "כניסה"}
+        </button>
 
         <button onClick={() => router.push("/register")}
-          className="text-sm text-center py-2">
+          className="text-sm text-center py-2 mt-1">
           <span style={{ color: "var(--text-secondary)" }}>אין לך חשבון? </span>
           <span className="font-semibold" style={{ color: "var(--blue)" }}>צור עסק חדש</span>
         </button>
+
+        <p className="text-[10px] text-center" style={{ color: "var(--text-secondary)" }}>
+          מצטרפים לעשרות עסקים שמנהלים את הסידור שלהם עם Sidur
+        </p>
       </div>
     </div>
   );

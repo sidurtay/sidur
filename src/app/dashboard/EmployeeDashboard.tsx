@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Clock, ChevronLeft, CheckCheck, X, AlertTriangle, ArrowLeftRight, Coins, Pencil, Check } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import ClockInOutCard from "@/components/ClockInOutCard";
 import EditableSection from "@/components/dashboard/EditableSection";
 import { loadOrder, saveOrder, moveSection } from "@/lib/dashboardOrder";
 
@@ -264,17 +263,15 @@ export default function EmployeeDashboard() {
               <p className="text-sm text-white font-medium">המשמרת שלי היום</p>
             </div>
           ) : (
-            <p className="text-sm text-center" style={{ color: "rgba(255,255,255,0.75)" }}>אין לך משמרת היום — תיהנה/י מהיום החופשי 😎</p>
+            <div className="text-center">
+              <p className="text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>אין לך משמרת מתוכננת היום 😎</p>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>הגעת בכל זאת? אפשר עדיין לדווח כניסה מכפתור טביעת האצבע למטה</p>
+            </div>
           )}
         </div>
       </div>
 
       <div className="px-4 py-3 flex flex-col gap-4">
-
-        {/* Clock in/out — pinned at the top, not reorderable */}
-        {myShiftToday && businessId && personId && (
-          <ClockInOutCard businessId={businessId} personId={personId} />
-        )}
 
         {/* Customize toggle */}
         <div className="flex justify-end -mb-1">
@@ -286,7 +283,7 @@ export default function EmployeeDashboard() {
         </div>
         {editing && (
           <p className="text-[11px] text-center -mt-2" style={{ color: "var(--text-secondary)" }}>
-            סדר/י את הכרטיסים לפי הטעם שלך · דיווח הנוכחות תמיד למעלה
+            סדר/י את הכרטיסים לפי הטעם שלך
           </p>
         )}
 

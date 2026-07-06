@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { isManager } from "@/lib/auth/permissions";
+import { ADHOC_ROLE_KEY } from "@/lib/adhoc";
 
 // Matches the app-wide frozen "today" used across schedule/dashboard/AI assistant.
 const CURRENT_WEEK_START = "2026-06-21";
 const TODAY_DAY_OF_WEEK = 2;
+
+function addHours(hhmmss: string, hours: number) {
+  const [h, m, s] = hhmmss.split(":").map(Number);
+  const total = (h * 3600 + m * 60 + (s || 0) + hours * 3600) % 86400;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(Math.floor(total / 3600))}:${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`;
+}
 
 // An approved fingerprint clock-request only lives in clock_requests — the
 // manager's "מי עובד היום" attendance view and the schedule page's colored
@@ -23,13 +31,26 @@ async function syncAssignmentClock(
   const update = type === "in"
     ? { actual_in_time: time, actual_in_source: "fingerprint" }
     : { actual_out_time: time, actual_out_source: "fingerprint" };
-  await supabase
+  const { data: updated } = await supabase
     .from("schedule_assignments")
     .update(update)
     .eq("business_id", businessId)
     .eq("person_id", personId)
     .eq("week_start", CURRENT_WEEK_START)
-    .eq("day_of_week", TODAY_DAY_OF_WEEK);
+    .eq("day_of_week", TODAY_DAY_OF_WEEK)
+    .select("id");
+
+  // Clocked in but had zero assignments today — auto-create a בלת"ם row so
+  // this shows up on today's schedule instead of vanishing into thin air.
+  if (type === "in" && (!updated || updated.length === 0)) {
+    const { data: person } = await supabase.from("people").select("role_key").eq("id", personId).maybeSingle();
+    await supabase.from("schedule_assignments").insert({
+      business_id: businessId, week_start: CURRENT_WEEK_START, day_of_week: TODAY_DAY_OF_WEEK,
+      person_id: personId, role_key: ADHOC_ROLE_KEY, home_role_key: person?.role_key || null,
+      time_in: time, time_out: addHours(time, 8),
+      actual_in_time: time, actual_in_source: "fingerprint",
+    });
+  }
 }
 
 function mapRow(row: {

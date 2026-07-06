@@ -8,6 +8,7 @@ import Logo from "@/components/Logo";
 import { shiftBucket, SHIFT_BUCKET_LABEL, statusHasBucket, bucketsForSplit, type ShiftSplit, type ShiftBucketKey } from "@/lib/businessConfig";
 import ScheduleConstraintsStrip from "@/components/ScheduleConstraintsStrip";
 import { checkLaborWarnings } from "@/lib/laborLaw";
+import { ADHOC_ROLE_KEY, ADHOC_ROLE_LABEL } from "@/lib/adhoc";
 
 type ClockSource = "qr" | "fingerprint" | "manual";
 type ClockEvent  = { time: string; source: ClockSource };
@@ -29,6 +30,19 @@ type OpenShift = { id: string; dayOfWeek: number; role: string; timeIn: string; 
 
 function inColor(src?: ClockSource)  { return src === "manual" ? "var(--amber)" : "var(--green)"; }
 function outColor(src?: ClockSource) { return src === "manual" ? "var(--amber)" : "var(--red)"; }
+
+// Desktop grid cell tints — deliberately a warm orange/amber family (the
+// brand accent) cycled per role, with blue kept to a single small badge
+// elsewhere rather than used as a grid color.
+const ORANGE_TINTS = [
+  { bg: "#FFE4D1", text: "#C2410C", border: "#F7C59F" },
+  { bg: "#FDECC8", text: "#92400E", border: "#F5DBA0" },
+  { bg: "#FCE1D6", text: "#9A3412", border: "#F4C7B4" },
+  { bg: "#FBEAD1", text: "#B45309", border: "#F0D4A8" },
+  { bg: "#F5EDE4", text: "#78350F", border: "#E4D5C3" },
+  { bg: "#FFF1E6", text: "#C2410C", border: "#F9DCC2" },
+];
+function roleTint(i: number) { return ORANGE_TINTS[i % ORANGE_TINTS.length]; }
 
 // The app-wide frozen "today" — Tuesday 2026-06-23, in the week starting Sunday 2026-06-21.
 const BASE_WEEK_START = new Date(2026, 5, 21); // month is 0-indexed: June
@@ -165,6 +179,14 @@ function Schedule() {
   const dayAssignments: Assignment[] = assignments.filter(a => a.dayOfWeek === activeDay);
   const dayOpenShifts: OpenShift[] = openShifts.filter(s => s.dayOfWeek === activeDay);
 
+  // בלת"ם — unplanned walk-ins who clocked in without a schedule slot get
+  // auto-added under this bucket (see /api/clock-requests). Only shown once
+  // it's actually in use this week, so it doesn't clutter an empty schedule.
+  const hasAdhocThisWeek = assignments.some(a => a.role === ADHOC_ROLE_KEY);
+  const displayRoles = hasAdhocThisWeek
+    ? [...jobRoles, { key: ADHOC_ROLE_KEY, label: ADHOC_ROLE_LABEL }]
+    : jobRoles;
+
   function goToWeek(offset: number) {
     setWeekOffset(offset);
     setActiveDay(offset === 0 ? TODAY_DAY_OF_WEEK : 0);
@@ -232,11 +254,12 @@ function Schedule() {
   // (morning / evening / night) rather than just sub-grouping one combined list.
   function getByRole(role: string) {
     const all = dayAssignments.filter(a => a.role === role);
-    if (shiftSplit === "none") return all;
+    if (shiftSplit === "none" || role === ADHOC_ROLE_KEY) return all;
     return all.filter(a => shiftBucket(a.actualIn?.time || a.timeIn, shiftSplit) === selectedShift);
   }
   function getAvailable(role: string) {
     const assignedIds = new Set(dayAssignments.map(a => a.personId));
+    if (role === ADHOC_ROLE_KEY) return employees.filter(e => !assignedIds.has(e.id));
     return employees.filter(e => e.role === role && !assignedIds.has(e.id));
   }
 
@@ -407,6 +430,9 @@ function Schedule() {
 
   return (
     <div className="flex flex-col min-h-screen pb-28" style={{ background: "var(--gray-bg)" }}>
+    <div className="hidden flex-col">
+      {/* Superseded by the grid view below on every screen size — kept in the
+          DOM instead of deleted for now, just permanently hidden. */}
       {/* Header */}
       <div className="bg-white px-4 pt-12 pb-3 relative" style={{ borderBottom: "1px solid var(--border)" }}>
         <div className="absolute top-3 left-4"><Logo size={22} /></div>
@@ -554,7 +580,7 @@ function Schedule() {
         )}
 
         {/* Role tables */}
-        {jobRoles.map(({ key, label }) => {
+        {displayRoles.map(({ key, label }) => {
           const allAssigned = getByRole(key);
           const assigned  = searchTerm.trim()
             ? allAssigned.filter(a => a.name.includes(searchTerm.trim()))
@@ -683,6 +709,219 @@ function Schedule() {
         </>
         )}
       </div>
+    </div>
+
+    {/* ── Full week grid (columns = days, rows = employees per role) — same
+        table on mobile and desktop, just scrollable horizontally on narrow
+        screens instead of squeezing the columns. ── */}
+    <div className="flex flex-col px-3 lg:px-8 pt-4 lg:pt-8 pb-16 mx-auto w-full" style={{ maxWidth: 1400 }}>
+      <div className="flex items-center justify-between flex-row flex-wrap gap-2 mb-4 lg:mb-6">
+        <div className="flex items-center gap-2 lg:gap-3 flex-row">
+          <Link href="/tips"
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0"
+            style={{ background: "var(--blue-light)", color: "var(--blue)", border: "1px solid var(--blue-border)" }}>
+            <Coins size={13} /> פרסום טיפים
+          </Link>
+          <Link href="/constraints"
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0"
+            style={{ background: "var(--green-light)", color: "var(--green)", border: "1px solid var(--green-border)" }}>
+            <ClipboardList size={13} /> אילוצים
+          </Link>
+        </div>
+        <div className="flex items-center gap-2 flex-row">
+          <p className="text-lg lg:text-2xl font-bold" style={{ color: "var(--navy)" }}>סידור עבודה</p>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between flex-row flex-wrap gap-2 mb-4 lg:mb-5">
+        <div className="relative flex items-center w-full lg:w-auto" style={{ maxWidth: 260 }}>
+          <Search size={15} className="absolute right-3.5" style={{ color: "var(--text-secondary)" }} />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm("")} className="absolute left-3.5">
+              <X size={14} style={{ color: "var(--text-secondary)" }} />
+            </button>
+          )}
+          <input
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="חיפוש עובד..."
+            className="w-full pr-10 pl-9 py-2.5 rounded-xl text-sm text-right outline-none"
+            style={{ border: "1.5px solid var(--border)", background: "var(--surface)" }} />
+        </div>
+
+        <div className="flex items-center gap-2 lg:gap-3 flex-row flex-wrap">
+          {shiftSplit !== "none" && (
+            <div className="flex flex-row gap-1.5 rounded-xl p-1" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+              {(["morning", "evening", "night"] as const)
+                .filter(s => s !== "night" || shiftSplit === "morning_evening_night")
+                .map(s => (
+                  <button key={s} onClick={() => setSelectedShift(s)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold"
+                    style={selectedShift === s
+                      ? { background: "var(--blue)", color: "#fff" }
+                      : { background: "transparent", color: "var(--text-secondary)" }}>
+                    {SHIFT_BUCKET_LABEL[s]}
+                  </button>
+                ))}
+            </div>
+          )}
+          <button onClick={() => goToWeek(weekOffset - 1)}
+            className="p-2 rounded-xl flex-shrink-0" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <ChevronRight size={16} style={{ color: "var(--text-secondary)" }} />
+          </button>
+          <div className="text-center" style={{ minWidth: 140 }}>
+            <p className="text-sm font-bold" style={{ color: "var(--navy)" }}>{week.label}</p>
+            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{week.range}</p>
+          </div>
+          <button onClick={() => goToWeek(weekOffset + 1)}
+            className="p-2 rounded-xl flex-shrink-0" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <ChevronLeft size={16} style={{ color: "var(--text-secondary)" }} />
+          </button>
+          {weekOffset !== 0 && (
+            <button onClick={() => goToWeek(0)}
+              className="px-3 py-2 rounded-xl text-xs font-semibold"
+              style={{ background: "var(--blue-light)", color: "var(--blue)" }}>
+              חזרה להיום
+            </button>
+          )}
+        </div>
+      </div>
+
+      {laborWarning && (
+        <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl flex-row mb-4"
+          style={{ background: "var(--amber-light)", border: "1px solid var(--amber-border)" }}>
+          <button onClick={() => setLaborWarning(null)} className="flex-shrink-0"><X size={13} style={{ color: "var(--amber)" }} /></button>
+          <p className="flex-1 text-xs text-right leading-relaxed" style={{ color: "var(--amber)" }}>{laborWarning}</p>
+          <AlertTriangle size={14} style={{ color: "var(--amber)", flexShrink: 0 }} />
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-sm text-center py-10" style={{ color: "var(--text-secondary)" }}>טוען סידור...</p>
+      ) : (
+      <div className="overflow-x-auto -mx-3 px-3 lg:mx-0 lg:px-0">
+      <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border)", background: "#fff", minWidth: 780 }}>
+        {/* Day header row */}
+        <div className="grid" style={{ gridTemplateColumns: "repeat(7, minmax(130px, 1fr))" }}>
+          {week.days.map(d => {
+            const isToday = d.d === week.today;
+            const count = assignments.filter(a => a.dayOfWeek === d.d).length;
+            return (
+              <button key={d.d} onClick={() => setActiveDay(d.d)}
+                className="flex flex-col items-center justify-center py-3 gap-0.5"
+                style={{
+                  background: isToday ? "var(--blue-light)" : "var(--gray-bg)",
+                  borderBottom: `2px solid ${isToday ? "var(--blue)" : "var(--border)"}`,
+                  borderInlineStart: "1px solid var(--border)",
+                }}>
+                <span className="text-xs font-bold" style={{ color: isToday ? "var(--blue)" : "var(--navy)" }}>{d.label} · {d.date}</span>
+                <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>{count} עובדים</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Role sections */}
+        {displayRoles.map(({ key, label }, roleIdx) => {
+          const tint = roleTint(roleIdx);
+          // בלת"ם has no employees registered under it in /api/roles — anyone
+          // in the business can end up here, so the picker/count uses the
+          // full employee list instead of a role match.
+          const roleEmployees = key === ADHOC_ROLE_KEY ? employees : employees.filter(e => e.role === key);
+
+          // No fixed employee-per-row anymore — each role has as many rows as
+          // its busiest day needs, and every cell can hold a different person
+          // day to day. The name now lives inside the filled cell itself.
+          const dayLists: Record<number, Assignment[]> = {};
+          week.days.forEach(d => {
+            dayLists[d.d] = assignments
+              .filter(a => a.dayOfWeek === d.d && a.role === key
+                && (shiftSplit === "none" || key === ADHOC_ROLE_KEY || shiftBucket(a.actualIn?.time || a.timeIn, shiftSplit) === selectedShift))
+              .sort((a, b) => a.name.localeCompare(b.name, "he"));
+          });
+          // Always one row more than the busiest day needs — a trailing empty
+          // "+" row that's never fully used up, so adding another person to a
+          // day that already has someone never feels blocked or capped.
+          const slotCount = Math.max(0, ...week.days.map(d => dayLists[d.d].length)) + 1;
+
+          return (
+            <div key={key}>
+              <div className="px-4 py-2 flex items-center gap-2 flex-row" style={{ background: tint.bg, borderTop: "1px solid var(--border)" }}>
+                <span className="text-xs font-bold" style={{ color: tint.text }}>{label}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: "#fff", color: tint.text }}>
+                  {roleEmployees.length}
+                </span>
+              </div>
+
+              {roleEmployees.length === 0 && (
+                <div className="px-4 py-3 flex items-center" style={{ borderTop: "1px solid var(--border)" }}>
+                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>אין עדיין עובדים בתפקיד זה</p>
+                </div>
+              )}
+
+              {roleEmployees.length > 0 && Array.from({ length: slotCount }).map((_, slot) => (
+                <div key={slot} className="grid" style={{ gridTemplateColumns: "repeat(7, minmax(130px, 1fr))" }}>
+                  {week.days.map(d => {
+                    const a = dayLists[d.d][slot];
+                    const isToday = d.d === week.today;
+                    return (
+                      <div key={d.d} className="p-1.5 flex items-stretch"
+                        style={{ borderTop: "1px solid var(--border)", borderInlineStart: "1px solid var(--border)", background: isToday ? "rgba(249,115,22,0.03)" : "transparent" }}>
+                        {a ? (
+                          <div role="button" tabIndex={0}
+                            onClick={() => canEditSchedule && openEdit(a)}
+                            onKeyDown={e => { if (canEditSchedule && (e.key === "Enter" || e.key === " ")) openEdit(a); }}
+                            className="flex-1 rounded-lg px-2 py-1.5 flex flex-col items-center gap-0.5 relative"
+                            style={{ background: tint.bg, border: `1px solid ${tint.border}`, cursor: canEditSchedule ? "pointer" : "default" }}>
+                            {canEditSchedule && (
+                              <div className="absolute top-1 left-1 flex items-center gap-1 flex-row">
+                                <button onClick={e => { e.stopPropagation(); removeEmployee(a.id); }}>
+                                  <X size={9} style={{ color: tint.text, opacity: 0.6 }} />
+                                </button>
+                              </div>
+                            )}
+                            <span className="text-[11px] font-bold truncate w-full text-center" style={{ color: tint.text }}>
+                              {a.name}
+                            </span>
+                            <span className="text-[10px] font-semibold" style={{ color: tint.text, direction: "ltr", opacity: 0.85 }}>
+                              {a.actualIn?.time || a.timeIn}–{a.actualOut?.time || a.timeOut}
+                            </span>
+                            {a.homeRole && (
+                              <span className="text-[9px] flex items-center gap-0.5" style={{ color: tint.text }}>
+                                <AlertTriangle size={8} /> בד״כ {a.homeRole}
+                              </span>
+                            )}
+                          </div>
+                        ) : canEditSchedule ? (
+                          <button onClick={() => { setActiveDay(d.d); setAddRole(key); }}
+                            className="flex-1 rounded-lg flex items-center justify-center py-1.5"
+                            style={{ border: "1.5px dashed var(--border)" }}>
+                            <Plus size={13} style={{ color: "var(--blue)" }} />
+                          </button>
+                        ) : (
+                          <div className="flex-1" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+      </div>
+      )}
+
+      {/* Save */}
+      {!loading && (
+        <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2000); }}
+          className="mt-6 px-8 py-3 rounded-xl text-sm font-semibold text-white self-start"
+          style={{ background: saved ? "var(--green)" : "var(--navy)" }}>
+          {saved ? "הסידור נשמר" : "שמור סידור"}
+        </button>
+      )}
+    </div>
 
       {/* Add popup */}
       {canEditSchedule && addRole && (() => {
@@ -818,41 +1057,38 @@ function Schedule() {
         );
       })()}
 
-      {/* Edit time popup — saves both as manual (orange) */}
+      {/* Edit time popup — compact centered card, saves both as manual (orange) */}
       {canEditSchedule && editTarget && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center pb-[60px]" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-6" style={{ background: "rgba(11,30,61,0.45)" }}
           onClick={() => setEditTarget(null)}>
-          <div className="w-full max-w-lg rounded-t-2xl p-4 pb-8" style={{ background: "var(--gray-bg)" }}
+          <div className="w-full rounded-3xl p-5" style={{ maxWidth: 320, background: "#fff", boxShadow: "0 30px 60px -20px rgba(11,30,61,0.4)" }}
             onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--border)" }} />
-            <div className="flex items-center justify-between mb-1 flex-row">
-              <button onClick={() => setEditTarget(null)}><X size={18} style={{ color: "var(--text-secondary)" }} /></button>
-              <p className="text-base font-semibold">שעות — {editTarget.name}</p>
+            <div className="flex items-center justify-between mb-0.5 flex-row">
+              <button onClick={() => setEditTarget(null)}><X size={17} style={{ color: "var(--text-secondary)" }} /></button>
+              <p className="text-sm font-bold" style={{ color: "var(--navy)" }}>שעות — {editTarget.name}</p>
             </div>
-            <p className="text-xs text-right mb-4" style={{ color: "var(--text-secondary)" }}>
+            <p className="text-[11px] text-right mb-3.5" style={{ color: "var(--text-secondary)" }}>
               עריכה ידנית — שניהם יסומנו בכתום
             </p>
-            <div className="bg-white rounded-xl p-3" style={{ border: "1px solid var(--border)" }}>
-              <div className="flex gap-3 mb-3 flex-row">
-                <div className="flex-1">
-                  <p className="text-xs mb-1 text-right" style={{ color: "var(--text-secondary)" }}>כניסה</p>
-                  <input type="time" value={editIn} onChange={e => setEditIn(e.target.value)}
-                    className="w-full px-2 py-2 rounded-lg text-sm"
-                    style={{ border: "1px solid var(--border)", background: "var(--gray-bg)" }} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs mb-1 text-right" style={{ color: "var(--text-secondary)" }}>יציאה</p>
-                  <input type="time" value={editOut} onChange={e => setEditOut(e.target.value)}
-                    className="w-full px-2 py-2 rounded-lg text-sm"
-                    style={{ border: "1px solid var(--border)", background: "var(--gray-bg)" }} />
-                </div>
+            <div className="flex gap-2.5 mb-3.5 flex-row">
+              <div className="flex-1">
+                <p className="text-[11px] mb-1 text-right font-medium" style={{ color: "var(--text-secondary)" }}>יציאה</p>
+                <input type="time" value={editOut} onChange={e => setEditOut(e.target.value)}
+                  className="w-full px-2.5 py-2 rounded-xl text-sm text-center"
+                  style={{ border: "1.5px solid var(--border)", background: "var(--gray-bg)", color: "var(--navy)" }} />
               </div>
-              <button onClick={saveTime}
-                className="w-full py-3 rounded-xl text-sm font-semibold text-white"
-                style={{ background: "var(--navy)" }}>
-                שמור — עדכון ידני
-              </button>
+              <div className="flex-1">
+                <p className="text-[11px] mb-1 text-right font-medium" style={{ color: "var(--text-secondary)" }}>כניסה</p>
+                <input type="time" value={editIn} onChange={e => setEditIn(e.target.value)}
+                  className="w-full px-2.5 py-2 rounded-xl text-sm text-center"
+                  style={{ border: "1.5px solid var(--border)", background: "var(--gray-bg)", color: "var(--navy)" }} />
+              </div>
             </div>
+            <button onClick={saveTime}
+              className="w-full py-3 rounded-2xl text-sm font-bold text-white"
+              style={{ background: "var(--navy)" }}>
+              שמור — עדכון ידני
+            </button>
           </div>
         </div>
       )}

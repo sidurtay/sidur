@@ -12,6 +12,11 @@ export default function AIAssistant() {
   const [session, setSession] = useState<Session | null>(null);
   const [open, setOpen] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [side, setSide] = useState<"left" | "right">("right");
+
+  useEffect(() => {
+    if (localStorage.getItem("shiftpro_ai_character_side") === "left") setSide("left");
+  }, []);
 
   useEffect(() => {
     function readSession() {
@@ -38,8 +43,8 @@ export default function AIAssistant() {
 
   return (
     <>
-      <AICharacter onClick={() => setOpen(true)} />
-      {!open && <AiProactiveBubble session={session} onOpenWithMessage={msg => { setPendingMessage(msg); setOpen(true); }} />}
+      <AICharacter onClick={() => setOpen(true)} onSideChange={setSide} />
+      {!open && <AiProactiveBubble session={session} side={side} onOpenWithMessage={msg => { setPendingMessage(msg); setOpen(true); }} />}
       {open && (
         <AIChatDrawer
           session={session}

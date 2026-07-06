@@ -507,39 +507,49 @@ export default function Employees() {
                   <Lock size={11} /> שעות עבודה ונתונים נוספים גלויים למנהל בלבד
                 </p>
 
-                {deleteConfirm ? (
-                  <div className="rounded-xl p-3 mb-2" style={{ background: "var(--red-light)", border: "1px solid var(--red-border)" }}>
-                    <p className="text-xs font-semibold text-right flex items-center gap-1.5 justify-end mb-1" style={{ color: "var(--red)" }}>
-                      <AlertTriangle size={13} /> להסיר את {selected.name} לצמיתות?
-                    </p>
-                    <p className="text-[10px] text-right mb-2.5" style={{ color: "var(--text-secondary)" }}>
-                      פעולה זו לא הפיכה — כל הסידורים, הנוכחות וההיסטוריה של העובד/ת יימחקו.
-                    </p>
-                    <div className="flex gap-2 flex-row">
-                      <button onClick={() => deleteEmployee(selected)} disabled={deleting}
-                        className="flex-1 py-2.5 rounded-lg text-xs font-bold text-white"
-                        style={{ background: deleting ? "var(--red-border)" : "var(--red)" }}>
-                        {deleting ? "מסיר..." : "כן, הסר לצמיתות"}
-                      </button>
-                      <button onClick={() => setDeleteConfirm(false)} disabled={deleting}
-                        className="flex-1 py-2.5 rounded-lg text-xs font-medium"
-                        style={{ background: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
-                        ביטול
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button onClick={() => setDeleteConfirm(true)}
-                    className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 mb-2"
-                    style={{ background: "var(--red-light)", color: "var(--red)", border: "1px solid var(--red-border)" }}>
-                    <Trash2 size={14} /> הסר עובד/ת מהעסק
-                  </button>
-                )}
+                <button onClick={() => setDeleteConfirm(true)}
+                  className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 mb-2"
+                  style={{ background: "var(--red-light)", color: "var(--red)", border: "1px solid var(--red-border)" }}>
+                  <Trash2 size={14} /> הסר עובד/ת מהעסק
+                </button>
                 {deleteError && (
                   <p className="text-xs text-center mb-2" style={{ color: "var(--red)" }}>{deleteError}</p>
                 )}
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete employee — centered confirm popup ───────────────────────── */}
+      {deleteConfirm && selected && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center px-6" style={{ background: "rgba(11,30,61,0.45)" }}
+          onClick={() => !deleting && setDeleteConfirm(false)}>
+          <div onClick={e => e.stopPropagation()}
+            className="w-full rounded-3xl p-6 flex flex-col items-center text-center"
+            style={{ maxWidth: 340, background: "#fff", boxShadow: "0 30px 60px -20px rgba(11,30,61,0.4)" }}>
+            <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
+              style={{ background: "var(--red-light)" }}>
+              <AlertTriangle size={26} style={{ color: "var(--red)" }} />
+            </div>
+            <p className="text-base font-bold mb-1.5" style={{ color: "var(--navy)" }}>
+              להסיר את {selected.name} לצמיתות?
+            </p>
+            <p className="text-xs leading-relaxed mb-6" style={{ color: "var(--text-secondary)" }}>
+              פעולה זו לא הפיכה — כל הסידורים, הנוכחות וההיסטוריה של העובד/ת יימחקו לצמיתות.
+            </p>
+            <div className="flex gap-2.5 flex-row w-full">
+              <button onClick={() => setDeleteConfirm(false)} disabled={deleting}
+                className="flex-1 py-3 rounded-2xl text-sm font-semibold"
+                style={{ background: "var(--gray-bg)", color: "var(--navy)", border: "1px solid var(--border)" }}>
+                ביטול
+              </button>
+              <button onClick={() => deleteEmployee(selected)} disabled={deleting}
+                className="flex-1 py-3 rounded-2xl text-sm font-bold text-white"
+                style={{ background: deleting ? "var(--red-border)" : "var(--red)" }}>
+                {deleting ? "מסיר..." : "כן, הסר"}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,7 +1,8 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Lock, Eye, Trash2, Mail } from "lucide-react";
+import { ArrowRight, Lock, Eye, Trash2, Mail, ShieldCheck, Database, FileText, Server, ShieldAlert, Archive, Users, Cookie, RefreshCw, Headset, Check } from "lucide-react";
 import LogoMark from "@/components/Logo";
+import AccessibilityWidget from "@/components/AccessibilityWidget";
 
 const LAST_UPDATED = "1 ביולי 2026";
 const CONTACT_EMAIL = "sidur.support@gmail.com";
@@ -21,10 +22,40 @@ const YOUR_RIGHTS = [
   { icon: Lock, label: "הגבלה", desc: "להגביל עיבוד המידע שלך בנסיבות מסוימות" },
 ];
 
+// Quick-nav chips — jump straight to any section instead of scrolling
+// through the whole policy top to bottom.
+const NAV_SECTIONS = [
+  { id: "sec-1", label: "מה אוספים" },
+  { id: "sec-2", label: "שימוש במידע" },
+  { id: "sec-3", label: "ספקים חיצוניים" },
+  { id: "sec-4", label: "אבטחה" },
+  { id: "sec-5", label: "שמירה ומחיקה" },
+  { id: "sec-6", label: "הזכויות שלך" },
+  { id: "sec-7", label: "עוגיות" },
+  { id: "sec-8", label: "שינויים" },
+  { id: "sec-9", label: "יצירת קשר" },
+];
+
+// A small icon badge per numbered section, matching the reference layout
+// (icon top-left of each section's own boxed card).
+const SECTION_ICONS: Record<string, typeof Database> = {
+  "sec-1": Database, "sec-2": FileText, "sec-3": Server, "sec-4": ShieldAlert,
+  "sec-5": Archive, "sec-6": Users, "sec-7": Cookie, "sec-8": RefreshCw, "sec-9": Headset,
+};
+
+// "At a glance" summary — the headline facts, up top, before the legal detail.
+const AT_A_GLANCE = [
+  "המידע שלך מוגן בצורה מקסימלית",
+  "אנחנו לא מוכרים את המידע שלך לצדדים שלישיים",
+  "תמיד אפשר לבקש למחוק את המידע שלך",
+  "אנחנו עומדים בתקני GDPR ובחוק הגנת הפרטיות הישראלי",
+];
+
 export default function PrivacyPage() {
   const router = useRouter();
   return (
     <div className="min-h-screen" style={{ background: "var(--gray-bg)", direction: "rtl" }}>
+      <AccessibilityWidget />
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-4 flex-row sticky top-0 z-10"
@@ -41,6 +72,18 @@ export default function PrivacyPage() {
         </div>
       </div>
 
+      {/* Quick nav — jump to any section */}
+      <div className="flex flex-row gap-1.5 overflow-x-auto px-4 py-3 sticky z-[9]"
+        style={{ top: 57, background: "var(--gray-bg)", borderBottom: "1px solid var(--border)" }}>
+        {NAV_SECTIONS.map(s => (
+          <a key={s.id} href={`#${s.id}`}
+            className="flex-shrink-0 text-[11px] font-medium px-3 py-1.5 rounded-full"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
+            {s.label}
+          </a>
+        ))}
+      </div>
+
       <div className="px-5 py-6 flex flex-col gap-5 max-w-2xl mx-auto">
 
         {/* Meta */}
@@ -50,17 +93,26 @@ export default function PrivacyPage() {
           <p className="text-[11px] mt-0.5" style={{ color: "var(--text-secondary)" }}>עודכן לאחרונה: {LAST_UPDATED} · חל על כל משתמשי Sidur</p>
         </div>
 
-        {/* Trust statement */}
-        <div className="rounded-2xl px-4 py-3.5"
+        {/* At a glance — the headline facts up top, before the legal detail */}
+        <div className="rounded-2xl px-4 py-4"
           style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.2)" }}>
-          <p className="text-sm font-bold mb-1" style={{ color: "var(--text-main)" }}>המחויבות שלנו אליך</p>
-          <p className="text-[12px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-            המידע שאתה מפקיד אצלנו — שמות עובדים, שעות, הכנסות — הוא רגיש. אנחנו לא מוכרים אותו, לא מפרסמים איתו, ולא עושים בו שימוש מחוץ להפעלת השירות. המדיניות הזו מסבירה בדיוק מה קורה עם המידע שלך.
+          <p className="text-sm font-bold mb-3 flex items-center gap-1.5 justify-end" style={{ color: "var(--text-main)" }}>
+            בקצרה — מה חשוב לדעת <ShieldCheck size={15} style={{ color: "var(--blue)" }} />
           </p>
+          <div className="grid grid-cols-1 gap-2.5">
+            {AT_A_GLANCE.map(item => (
+              <div key={item} className="flex items-center gap-2 flex-row justify-end">
+                <p className="text-[12px] leading-relaxed text-right" style={{ color: "var(--text-secondary)" }}>{item}</p>
+                <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "var(--green-light)" }}>
+                  <Check size={10} style={{ color: "var(--green)" }} strokeWidth={3} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Section 1 */}
-        <Section title="1. מה אנחנו אוספים">
+        <Section id="sec-1" title="1. מה אנחנו אוספים">
           <p className="text-sm leading-relaxed text-right" style={{ color: "var(--text-secondary)" }}>
             אנחנו אוספים רק מה שנדרש להפעלת השירות:
           </p>
@@ -77,7 +129,7 @@ export default function PrivacyPage() {
         </Section>
 
         {/* Section 2 */}
-        <Section title="2. איך אנחנו משתמשים במידע">
+        <Section id="sec-2" title="2. איך אנחנו משתמשים במידע">
           <BulletList items={[
             "הצגת סידור עבודה ועדכונו בזמן אמת",
             "חישוב שעות עבודה, טיפים ויצוא דוחות",
@@ -92,7 +144,7 @@ export default function PrivacyPage() {
         </Section>
 
         {/* Section 3 — Third parties with cards */}
-        <Section title="3. ספקים חיצוניים שמעבדים את המידע">
+        <Section id="sec-3" title="3. ספקים חיצוניים שמעבדים את המידע">
           <p className="text-sm leading-relaxed text-right" style={{ color: "var(--text-secondary)" }}>
             להלן רשימה מלאה ושקופה של הספקים שמעבדים חלק מהמידע בשמנו, בהתאם לחוק הגנת הפרטיות:
           </p>
@@ -114,7 +166,7 @@ export default function PrivacyPage() {
         </Section>
 
         {/* Section 4 — Security */}
-        <Section title="4. אבטחת מידע">
+        <Section id="sec-4" title="4. אבטחת מידע">
           <BulletList items={[
             "הצפנת תעבורה מלאה (HTTPS/TLS) בין המכשיר לשרת",
             "Row Level Security (RLS) — כל עסק רואה אך ורק את הנתונים שלו",
@@ -125,14 +177,14 @@ export default function PrivacyPage() {
         </Section>
 
         {/* Section 5 — Retention */}
-        <Section title="5. שמירת מידע ומחיקה">
+        <Section id="sec-5" title="5. שמירת מידע ומחיקה">
           <p className="text-sm leading-relaxed text-right" style={{ color: "var(--text-secondary)" }}>
             המידע נשמר כל עוד החשבון פעיל. בעל עסק שמבקש לסגור חשבון יכול לפנות אלינו למחיקת המידע — נבצע זאת תוך 14 יום, בכפוף לחובות שמירה חוקיות (כגון רישומי שכר הנדרשים לפי חוק הגנת הפרטיות ודיני עבודה ישראלים).
           </p>
         </Section>
 
         {/* Section 6 — Your rights */}
-        <Section title="6. הזכויות שלך">
+        <Section id="sec-6" title="6. הזכויות שלך">
           <p className="text-sm leading-relaxed text-right" style={{ color: "var(--text-secondary)" }}>
             בהתאם לחוק הגנת הפרטיות (תשמ״א-1981) ותיקוניו, לכל משתמש הזכות:
           </p>
@@ -154,7 +206,7 @@ export default function PrivacyPage() {
         </Section>
 
         {/* Section 7 — Cookies */}
-        <Section title="7. עוגיות ואחסון מקומי">
+        <Section id="sec-7" title="7. עוגיות ואחסון מקומי">
           <p className="text-sm leading-relaxed text-right" style={{ color: "var(--text-secondary)" }}>
             האפליקציה משתמשת ב-localStorage בדפדפן לצרכים תפעוליים בלבד:
           </p>
@@ -168,14 +220,14 @@ export default function PrivacyPage() {
         </Section>
 
         {/* Section 8 — Changes */}
-        <Section title="8. שינויים במדיניות">
+        <Section id="sec-8" title="8. שינויים במדיניות">
           <p className="text-sm leading-relaxed text-right" style={{ color: "var(--text-secondary)" }}>
             מדיניות זו עשויה להתעדכן מעת לעת. שינויים מהותיים יפורסמו בהודעה מקדמית של לפחות 14 יום — דרך האפליקציה או בדוא״ל. המשך השימוש לאחר מכן מהווה הסכמה לגרסה המעודכנת.
           </p>
         </Section>
 
         {/* Section 9 — Contact */}
-        <Section title="9. יצירת קשר — ממונה פרטיות">
+        <Section id="sec-9" title="9. יצירת קשר — ממונה פרטיות">
           <div className="rounded-xl px-4 py-3.5 flex flex-col gap-1"
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <p className="text-xs font-bold text-right" style={{ color: "var(--text-main)" }}>Sidur — צוות פרטיות ותמיכה</p>
@@ -198,10 +250,17 @@ export default function PrivacyPage() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ id, title, children }: { id?: string; title: string; children: React.ReactNode }) {
+  const Icon = (id && SECTION_ICONS[id]) || FileText;
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-sm font-bold text-right" style={{ color: "var(--text-main)" }}>{title}</p>
+    <div id={id} className="flex flex-col gap-2.5 rounded-2xl px-4 py-4"
+      style={{ background: "var(--surface)", border: "1px solid var(--border)", scrollMarginTop: 120 }}>
+      <div className="flex items-center justify-between flex-row">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "var(--blue-light)" }}>
+          <Icon size={15} style={{ color: "var(--blue)" }} />
+        </div>
+        <p className="text-sm font-bold text-right" style={{ color: "var(--text-main)" }}>{title}</p>
+      </div>
       {children}
     </div>
   );

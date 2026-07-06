@@ -135,32 +135,31 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
         onClick={e => e.stopPropagation()}
         className="w-full max-w-lg flex flex-col"
         style={{
-          background: "#1A1F29",
+          background: "#fff",
           borderRadius: "22px 22px 0 0",
           height: "80vh",
           direction: "rtl",
-          boxShadow: "0 -8px 40px rgba(0,0,0,0.35)",
+          boxShadow: "0 -8px 40px rgba(11,30,61,0.25)",
         }}
       >
-        <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ background: "rgba(249,115,22,0.35)" }} />
+        <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ background: "var(--border)" }} />
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 flex-row"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", background: "linear-gradient(180deg, rgba(249,115,22,0.06), transparent)" }}>
+          style={{ borderBottom: "1px solid var(--border)", background: "linear-gradient(180deg, rgba(249,115,22,0.06), transparent)" }}>
           <button onClick={onClose} className="p-1">
-            <X size={18} style={{ color: "rgba(255,255,255,0.7)" }} />
+            <X size={18} style={{ color: "var(--text-secondary)" }} />
           </button>
           <div className="flex items-center gap-2 flex-row">
             <div className="text-right">
-              <p className="text-sm font-bold" style={{ color: "#fff" }}>סיד · העוזר שלך</p>
-              <p className="text-[10px] flex items-center gap-1 justify-end" style={{ color: "rgba(255,255,255,0.45)" }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#34D399" }} />
+              <p className="text-sm font-bold" style={{ color: "var(--navy)" }}>סיד · העוזר שלך</p>
+              <p className="text-[10px] flex items-center gap-1 justify-end" style={{ color: "var(--text-secondary)" }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#22C55E" }} />
                 מחובר ומוכן לעזור
               </p>
             </div>
-            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0"
-              style={{ border: "1.5px solid rgba(249,115,22,0.45)" }}>
-              <Image src="/ai-character.png" alt="" width={32} height={32} style={{ objectFit: "cover", width: "100%", height: "100%" }} />
+            <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
+              <Image src="/ai-character.png" alt="" width={32} height={32} style={{ objectFit: "contain", width: "100%", height: "100%" }} />
             </div>
           </div>
         </div>
@@ -173,8 +172,8 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
             <div className="ai-chat-scroll flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
               {loadingHistory ? (
                 <div className="flex flex-col items-end gap-2">
-                  <div className="h-8 w-2/3 rounded-2xl" style={{ background: "rgba(255,255,255,0.06)" }} />
-                  <div className="h-8 w-1/2 rounded-2xl" style={{ background: "rgba(255,255,255,0.06)" }} />
+                  <div className="h-8 w-2/3 rounded-2xl" style={{ background: "var(--gray-bg)" }} />
+                  <div className="h-8 w-1/2 rounded-2xl" style={{ background: "var(--gray-bg)" }} />
                 </div>
               ) : (
                 messages.map((m, i) => (
@@ -185,8 +184,8 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
                       <div
                         className="px-3.5 py-2.5 rounded-2xl text-sm max-w-[85%] leading-relaxed whitespace-pre-wrap"
                         style={m.role === "user"
-                          ? { background: "rgba(255,255,255,0.08)", color: "#fff" }
-                          : { background: "linear-gradient(150deg, #FFF7ED, #FFFFFF)", color: "#1F2937" }}
+                          ? { background: "var(--gray-bg)", color: "var(--navy)" }
+                          : { background: "linear-gradient(150deg, #FFF1E6, #FFFFFF)", color: "var(--navy)" }}
                       >
                         {m.content}
                       </div>
@@ -220,7 +219,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
 
               {loading && <AiWalker />}
               {error && (
-                <p className="text-xs text-center" style={{ color: "#F87171" }}>{error}</p>
+                <p className="text-xs text-center" style={{ color: "var(--red)" }}>{error}</p>
               )}
               <div ref={bottomRef} />
             </div>
@@ -230,11 +229,11 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
                 composer (not just before the first message) so it stays useful
                 mid-conversation instead of disappearing after one question. */}
             <div className="ai-chat-carousel flex flex-row gap-2 px-4 pt-2.5 pb-1 overflow-x-auto"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+              style={{ borderTop: "1px solid var(--border)" }}>
               {carouselPrompts.map(({ text, icon: Icon }) => (
                 <button key={text} onClick={() => send(text)} disabled={loading}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium flex-row flex-shrink-0"
-                  style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.25)", color: "#FDBA74", opacity: loading ? 0.5 : 1 }}>
+                  style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)", color: "var(--blue)", opacity: loading ? 0.5 : 1 }}>
                   {Icon && <Icon size={11} />}
                   {text}
                 </button>
@@ -242,12 +241,12 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
             </div>
 
             {/* Input */}
-            <div className="flex items-center gap-2 px-4 py-3 flex-row" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="flex items-center gap-2 px-4 py-3 flex-row" style={{ borderTop: "1px solid var(--border)" }}>
               <button
                 onClick={() => send()}
                 disabled={loading || !input.trim()}
                 className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: "#F97316", opacity: loading || !input.trim() ? 0.4 : 1 }}
+                style={{ background: "var(--blue)", opacity: loading || !input.trim() ? 0.4 : 1 }}
               >
                 <Send size={15} color="#fff" />
               </button>
@@ -258,7 +257,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
                 placeholder="שאל אותי משהו..."
                 disabled={loading}
                 className="flex-1 text-sm text-right px-3.5 py-2.5 rounded-xl outline-none"
-                style={{ background: "rgba(255,255,255,0.06)", color: "#fff" }}
+                style={{ background: "var(--gray-bg)", color: "var(--navy)" }}
               />
             </div>
           </>
@@ -267,14 +266,14 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
 
       <style jsx>{`
         .ai-chat-scroll {
-          scrollbar-color: #f97316 rgba(255, 255, 255, 0.06);
+          scrollbar-color: #f97316 #F7F8FB;
           scrollbar-width: thin;
         }
         .ai-chat-scroll::-webkit-scrollbar {
           width: 6px;
         }
         .ai-chat-scroll::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.06);
+          background: #F7F8FB;
         }
         .ai-chat-scroll::-webkit-scrollbar-thumb {
           background: #f97316;

@@ -1,11 +1,11 @@
 "use client";
 import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Clock, ArrowLeftRight, X, CheckCheck, Plus, Pencil, Trash2, ChevronLeft, Users, Fingerprint, LogIn, LogOut, CalendarClock, Megaphone, Check } from "lucide-react";
+import { AlertTriangle, Clock, ArrowLeftRight, X, CheckCheck, Plus, Pencil, Trash2, ChevronLeft, Users, Fingerprint, LogIn, LogOut, CalendarClock, Megaphone, Check, MapPin } from "lucide-react";
+import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import BranchSwitcher from "@/components/BranchSwitcher";
-import ClockInOutCard from "@/components/ClockInOutCard";
 import EditableSection from "@/components/dashboard/EditableSection";
 import { loadOrder, saveOrder, moveSection } from "@/lib/dashboardOrder";
 import Card from "@/components/ui/Card";
@@ -469,9 +469,16 @@ export default function Dashboard() {
     <div className="flex flex-col min-h-screen pb-28" style={{ background: "var(--gray-bg)" }}>
 
       {/* ── Header ────────────────────────────────────────── */}
-      <div style={{ background: "var(--navy)" }} className="px-4 pt-12 pb-5 rounded-b-[28px]">
+      <div style={{ background: "var(--blue)" }} className="px-4 pt-12 pb-5 rounded-b-[28px]">
         <div className="flex items-center justify-between flex-row mb-5">
-          <Logo size={26} color="#fff" />
+          <div className="flex items-center gap-2.5 flex-row">
+            <Link href="/team-map" aria-label="מפה חיה של הצוות"
+              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.28)" }}>
+              <MapPin size={16} color="#fff" />
+            </Link>
+            <Logo size={26} color="#fff" />
+          </div>
           <div className="flex flex-col items-end gap-1.5">
             <p className="text-white text-lg font-bold leading-tight">שלום, {managerName.split(" ")[0]}</p>
             {session && (session.phone as string) ? (
@@ -486,26 +493,22 @@ export default function Dashboard() {
         <div className="grid grid-cols-3 gap-2.5">
           {[
             { val: todayWorkers.length, label: "בסידור היום", color: "#fff" },
-            { val: activeCount,  label: "נוכחים",    color: "#4ADE80" },
-            { val: lateCount,    label: "איחורים",   color: lateCount > 0 ? "#F87171" : "#4ADE80" },
+            { val: activeCount,  label: "נוכחים",    color: "#fff" },
+            { val: lateCount,    label: "איחורים",   color: lateCount > 0 ? "var(--navy)" : "#fff" },
           ].map(s => (
             <div key={s.label} className="rounded-2xl py-3 px-3 text-center"
-              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              style={{
+                background: s.label === "איחורים" && lateCount > 0 ? "#fff" : "rgba(255,255,255,0.16)",
+                border: "1px solid rgba(255,255,255,0.28)",
+              }}>
               <p className="text-2xl font-bold tracking-tight" style={{ color: s.color }}>{s.val}</p>
-              <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>{s.label}</p>
+              <p className="text-[10px] mt-0.5 font-medium" style={{ color: s.label === "איחורים" && lateCount > 0 ? "var(--navy)" : "rgba(255,255,255,0.85)" }}>{s.label}</p>
             </div>
           ))}
         </div>
       </div>
 
       <div className="px-4 -mt-2 py-3 flex flex-col gap-4">
-
-        {/* Manager / אחמ"ש also work shifts — same self clock-in flow as anyone else.
-            Unlike employees, managers often aren't formally scheduled via schedule_assignments,
-            so this isn't gated on having a shift today. */}
-        {businessId && myPersonId && (
-          <ClockInOutCard businessId={businessId} personId={myPersonId} />
-        )}
 
         {/* ── Missing clock-in alert — shift started, no attendance yet ── */}
         {missingClockIn.length > 0 && (

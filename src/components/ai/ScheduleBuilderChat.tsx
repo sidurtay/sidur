@@ -495,15 +495,15 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
             <div className="px-3.5 py-2.5 rounded-2xl max-w-[85%] text-sm leading-relaxed whitespace-pre-line"
               style={msg.from === "ai"
                 ? {
-                    background: msg.status === "warn" ? "rgba(251,191,36,0.12)" :
-                                msg.status === "success" ? "rgba(52,211,153,0.12)" :
-                                msg.status === "info" ? "rgba(249,115,22,0.1)" : "linear-gradient(150deg, #FFF7ED, #FFFFFF)",
-                    border: msg.status === "warn" ? "1px solid rgba(251,191,36,0.3)" :
-                            msg.status === "success" ? "1px solid rgba(52,211,153,0.3)" :
-                            msg.status === "info" ? "1px solid rgba(249,115,22,0.25)" : "none",
-                    color: "#1F2937",
+                    background: msg.status === "warn" ? "var(--amber-light)" :
+                                msg.status === "success" ? "var(--green-light)" :
+                                msg.status === "info" ? "var(--blue-light)" : "linear-gradient(150deg, #FFF7ED, #FFFFFF)",
+                    border: msg.status === "warn" ? "1px solid var(--amber-border)" :
+                            msg.status === "success" ? "1px solid var(--green-border)" :
+                            msg.status === "info" ? "1px solid var(--blue-border)" : "none",
+                    color: "var(--navy)",
                   }
-                : { background: "rgba(255,255,255,0.08)", color: "#fff" }
+                : { background: "var(--gray-bg)", color: "var(--navy)" }
               }>
               {msg.text}
             </div>
@@ -526,7 +526,7 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
           <div className="flex items-center gap-2 flex-row justify-end">
             <button onClick={() => setCustomNumStep(null)}
               className="text-xs px-3 py-1.5 rounded-full"
-              style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" }}>
+              style={{ background: "var(--gray-bg)", color: "var(--text-secondary)" }}>
               ביטול
             </button>
             <input ref={inputRef} type="number" value={customNumVal}
@@ -534,7 +534,7 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
               onKeyDown={e => { if (e.key === "Enter" && customNumVal) { handleNumber(customNumVal, customNumStep); setCustomNumStep(null); }}}
               placeholder="הזן מספר..."
               className="text-sm text-center rounded-xl px-3 py-2 outline-none"
-              style={{ border: "1px solid rgba(249,115,22,0.4)", background: "rgba(255,255,255,0.06)", color: "#fff", width: 110 }} />
+              style={{ border: "1px solid var(--blue-border)", background: "#fff", color: "var(--navy)", width: 110 }} />
             <button onClick={() => { if (customNumVal) { handleNumber(customNumVal, customNumStep!); setCustomNumStep(null); }}}
               className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
               style={{ background: "#F97316" }}>
@@ -548,7 +548,7 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
         <div ref={bottomRef} />
       </div>
 
-      <div className="flex items-center gap-2 px-4 py-3 flex-row" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+      <div className="flex items-center gap-2 px-4 py-3 flex-row" style={{ borderTop: "1px solid var(--border)" }}>
         <button onClick={handleFreeText} disabled={step === "generating"}
           className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
           style={{ background: "#F97316", opacity: step === "generating" ? 0.4 : 1 }}>
@@ -560,20 +560,20 @@ export default function ScheduleBuilderChat({ onDone }: { onDone: () => void }) 
           onKeyDown={e => { if (e.key === "Enter") handleFreeText(); }}
           placeholder={isNumStep && !customNumStep ? "לחץ על מספר למעלה או כתוב כאן..." : "כתוב הערה, בקשה מיוחדת..."}
           className="flex-1 text-sm text-right px-3.5 py-2.5 rounded-xl outline-none"
-          style={{ background: "rgba(255,255,255,0.06)", color: "#fff" }}
+          style={{ background: "var(--gray-bg)", color: "var(--navy)" }}
         />
       </div>
 
       <style jsx>{`
         .ai-chat-scroll {
-          scrollbar-color: #f97316 rgba(255, 255, 255, 0.06);
+          scrollbar-color: #f97316 #F7F8FB;
           scrollbar-width: thin;
         }
         .ai-chat-scroll::-webkit-scrollbar {
           width: 6px;
         }
         .ai-chat-scroll::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.06);
+          background: #F7F8FB;
         }
         .ai-chat-scroll::-webkit-scrollbar-thumb {
           background: #f97316;

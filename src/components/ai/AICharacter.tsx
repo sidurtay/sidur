@@ -1,45 +1,126 @@
 "use client";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
+
+const SIDE_KEY = "shiftpro_ai_character_side";
+const DRAG_THRESHOLD = 60; // px of horizontal drag before it counts as "move me"
+const CLICK_THRESHOLD = 6; // px — below this, a pointer-up counts as a tap, not a drag
+const EDGE = 16; // matches the `right: 16` / `left: 16` gutter
+const SIZE = 44;
 
 // The little floating mascot that opens the AI assistant. Self-contained —
 // purely visual, no app logic. Pulses softly to draw the eye without being
 // annoying. Styled in the app's own navy/orange brand instead of a generic
-// dark/blue palette.
-export default function AICharacter({ onClick, hasUnread }: { onClick: () => void; hasUnread?: boolean }) {
+// dark/blue palette. Can be dragged to the left edge if it's blocking
+// something on screen — the side sticks across visits (localStorage).
+//
+// Always anchored at `right: 16` and moved purely via `transform: translateX`
+// — switching between `left`/`right` CSS properties on drop caused a visible
+// jump-then-slide glitch, since the box's base position teleported to the
+// opposite edge at the same instant the drag offset reset to 0. A single
+// transform-driven slide reads as one continuous, smooth motion instead.
+export default function AICharacter({ onClick, hasUnread, onSideChange }: { onClick: () => void; hasUnread?: boolean; onSideChange?: (side: "left" | "right") => void }) {
+  const [side, setSideState] = useState<"left" | "right">("right");
+  const [dragging, setDragging] = useState(false);
+  const [dragX, setDragX] = useState(0);
+  const [pressed, setPressed] = useState(false);
+  const [viewportW, setViewportW] = useState(0);
+  const startXRef = useRef(0);
+  const movedRef = useRef(false);
+
+  const setSide = useCallback((s: "left" | "right") => {
+    setSideState(s);
+    onSideChange?.(s);
+  }, [onSideChange]);
+
+  useEffect(() => {
+    setViewportW(window.innerWidth);
+    const onResize = () => setViewportW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    const saved = localStorage.getItem(SIDE_KEY) === "left" ? "left" : "right";
+    setSide(saved);
+    return () => window.removeEventListener("resize", onResize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const dockTX = side === "left" ? -(viewportW - EDGE * 2 - SIZE) : 0;
+
+  function handlePointerDown(e: React.PointerEvent) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    startXRef.current = e.clientX;
+    movedRef.current = false;
+    setDragging(true);
+    setPressed(true);
+  }
+
+  function handlePointerMove(e: React.PointerEvent) {
+    if (!dragging) return;
+    const dx = e.clientX - startXRef.current;
+    if (Math.abs(dx) > CLICK_THRESHOLD) movedRef.current = true;
+    setDragX(dx);
+  }
+
+  function handlePointerUp() {
+    if (!dragging) return;
+    setDragging(false);
+    setPressed(false);
+
+    if (side === "right" && dragX < -DRAG_THRESHOLD) {
+      setSide("left");
+      localStorage.setItem(SIDE_KEY, "left");
+    } else if (side === "left" && dragX > DRAG_THRESHOLD) {
+      setSide("right");
+      localStorage.setItem(SIDE_KEY, "right");
+    }
+    setDragX(0);
+
+    if (!movedRef.current) onClick();
+  }
+
   return (
     <button
-      onClick={onClick}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={() => { setDragging(false); setPressed(false); setDragX(0); }}
       aria-label="פתח עוזר AI"
-      className="ai-character-btn"
       style={{
         position: "fixed",
         bottom: 92,
-        right: 16,
+        right: EDGE,
         zIndex: 60,
-        width: 48,
-        height: 48,
-        borderRadius: "50%",
-        overflow: "hidden",
-        border: "1.5px solid rgba(249,115,22,0.45)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: "0 10px 26px rgba(20,24,31,0.4), 0 0 0 1px rgba(249,115,22,0.08)",
+        width: SIZE,
+        height: SIZE,
         cursor: "pointer",
+        touchAction: "none",
+        // Positional transform lives on this outer button only — the
+        // breathing animation below is on an inner wrapper instead, since a
+        // running CSS animation on `transform` fights with (and wins over)
+        // this inline transform every frame, which silently broke the drag.
+        transform: `translateX(${dockTX + dragX}px)`,
+        transition: dragging ? "none" : "transform 0.42s cubic-bezier(0.22,1,0.36,1)",
       }}
     >
-      <span className="ai-character-pulse" />
-      <span className="ai-character-sparkle">✦</span>
-      <Image src="/ai-character.png" alt="" width={48} height={48} style={{ objectFit: "cover", width: "100%", height: "100%" }} priority />
-      {hasUnread && (
-        <span style={{
-          position: "absolute", top: 1, right: 1, width: 11, height: 11,
-          borderRadius: "50%", background: "#F97316", border: "2px solid #14181F",
-        }} />
-      )}
+      <div className="ai-character-inner" style={{
+        width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+        transform: (dragging || pressed) ? `scale(${dragging ? 0.9 : 0.82})` : undefined,
+        animationPlayState: (dragging || pressed) ? "paused" : "running",
+        transition: dragging ? "none" : "transform 0.22s cubic-bezier(0.34,1.56,0.64,1)",
+      }}>
+        <span className="ai-character-pulse" />
+        <span className="ai-character-sparkle">✦</span>
+        <Image src="/ai-character.png" alt="" width={SIZE} height={SIZE}
+          style={{ objectFit: "contain", width: "100%", height: "100%", filter: "drop-shadow(0 8px 16px rgba(20,24,31,0.45))" }} priority />
+        {hasUnread && (
+          <span style={{
+            position: "absolute", top: 4, right: 4, width: 10, height: 10,
+            borderRadius: "50%", background: "#F97316", border: "2px solid #14181F",
+          }} />
+        )}
+      </div>
 
       <style jsx>{`
-        .ai-character-btn { animation: ai-breathe 3.2s ease-in-out infinite; }
+        .ai-character-inner { animation: ai-breathe 3.2s ease-in-out infinite; }
         .ai-character-pulse {
           position: absolute; inset: -5px; border-radius: 50%;
           border: 1.5px solid rgba(249,115,22,0.4);
@@ -47,7 +128,7 @@ export default function AICharacter({ onClick, hasUnread }: { onClick: () => voi
         }
         .ai-character-sparkle {
           position: absolute; top: -2px; left: -2px;
-          font-size: 11px; color: #F97316;
+          font-size: 10px; color: #F97316;
           animation: ai-twinkle 3.2s ease-in-out infinite;
         }
         @keyframes ai-breathe {

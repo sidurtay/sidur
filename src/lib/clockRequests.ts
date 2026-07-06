@@ -16,6 +16,7 @@ export type ClockState = {
   outTime?: string;
   inRequestedAt?: string;
   outRequestedAt?: string;
+  inTimestamp?: number; // raw epoch ms of the approved clock-in, for a live elapsed-time counter
 };
 
 const REQUIRE_OUT_KEY = "shiftpro_clockout_requires_approval";

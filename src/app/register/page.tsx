@@ -2,7 +2,7 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Check, X, Sparkles, ChevronLeft, Coffee, UtensilsCrossed, IceCream2, Beer, Croissant, Scissors, Gem, Dumbbell, Shirt, ShoppingCart, SprayCan, BedDouble, Building2, Lock, Users, CalendarDays, Bot } from "lucide-react";
+import { ArrowRight, Check, X, Sparkles, Coffee, UtensilsCrossed, IceCream2, Beer, Croissant, Truck, ChefHat, Building2, Lock, Users, CalendarDays, Bot } from "lucide-react";
 import { DEFAULT_CONFIG } from "@/lib/businessConfig";
 import { PLANS } from "@/lib/plans";
 import Image from "next/image";
@@ -13,13 +13,8 @@ const BUSINESS_TYPES = [
   { key: "icecream",   label: "גלידריה",         Icon: IceCream2 },
   { key: "bar",        label: "בר / פאב",        Icon: Beer },
   { key: "bakery",     label: "מאפייה",          Icon: Croissant },
-  { key: "barbershop", label: "ספרות",           Icon: Scissors },
-  { key: "beauty",     label: "סלון יופי",       Icon: Gem },
-  { key: "gym",        label: "חדר כושר",        Icon: Dumbbell },
-  { key: "clothing",   label: "חנות בגדים",      Icon: Shirt },
-  { key: "grocery",    label: "מכולת / סופר",    Icon: ShoppingCart },
-  { key: "cleaning",   label: "שירותי ניקיון",   Icon: SprayCan },
-  { key: "hotel",      label: "מלון / צימר",     Icon: BedDouble },
+  { key: "foodtruck",  label: "פודטראק",         Icon: Truck },
+  { key: "catering",   label: "קייטרינג",        Icon: ChefHat },
   { key: "other",      label: "אחר",             Icon: Building2 },
 ];
 
@@ -104,36 +99,38 @@ function Register() {
 
       {/* ── Header ── */}
       {step < 4 && (
-        <div className="sticky top-0 z-20 flex flex-col" style={{ background: "var(--navy)" }}>
-          <div className="flex items-center justify-between px-5 pt-12 pb-4 flex-row">
+        <div className="sticky top-0 z-20 flex flex-col overflow-hidden relative"
+          style={{ background: "linear-gradient(135deg, #F97316, #FB8B3D)" }}>
+          <div className="register-header-glow" />
+          <div className="flex items-center justify-between px-5 pt-12 pb-4 flex-row relative">
             <button onClick={back}
-              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: "rgba(255,255,255,0.1)" }}>
+              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-transform active:scale-90"
+              style={{ background: "rgba(255,255,255,0.16)" }}>
               <ArrowRight size={17} color="white" />
             </button>
             <p className="text-white font-bold text-sm" style={{ direction: "ltr" }}>Sidur</p>
           </div>
 
           {/* Progress bar */}
-          <div className="flex flex-row gap-1.5 px-5 pb-4">
+          <div className="flex flex-row gap-1.5 px-5 pb-4 relative">
             {[1, 2, 3].map(i => (
-              <div key={i} className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.12)" }}>
+              <div key={i} className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.22)" }}>
                 <div className="h-full rounded-full transition-all duration-500"
-                  style={{ width: step >= i ? "100%" : "0%", background: step > i ? "#4ADE80" : "#F97316" }} />
+                  style={{ width: step >= i ? "100%" : "0%", background: step > i ? "#1F2937" : "#0B1E3D" }} />
               </div>
             ))}
           </div>
 
-          <div className="px-5 pb-5">
-            <p className="text-[11px] mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>שלב {step} מתוך 3</p>
-            <p className="text-lg font-bold text-white">{STEP_LABELS[step]}</p>
+          <div className="px-5 pb-5 relative" key={step}>
+            <p className="text-[11px] mb-0.5 register-step-fade" style={{ color: "rgba(255,255,255,0.75)" }}>שלב {step} מתוך 3</p>
+            <p className="text-lg font-bold text-white register-step-fade" style={{ animationDelay: "0.04s" }}>{STEP_LABELS[step]}</p>
           </div>
         </div>
       )}
 
       {/* ── Step 1: Business ── */}
       {step === 1 && (
-        <div className="flex flex-col gap-5 px-4 pt-5 pb-10">
+        <div key="step1" className="flex flex-col gap-5 px-4 pt-5 pb-10 register-step-content">
 
           {/* Inputs */}
           <div className="flex flex-col gap-3 rounded-2xl p-4"
@@ -156,15 +153,17 @@ function Register() {
           <div className="flex flex-col gap-3">
             <p className="text-sm font-bold text-right px-1" style={{ color: "var(--text-main)" }}>סוג העסק</p>
             <div className="grid grid-cols-3 gap-2">
-              {BUSINESS_TYPES.map(t => (
+              {BUSINESS_TYPES.map((t, i) => (
                 <button key={t.key} onClick={() => setBizType(t.key)}
-                  className="flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-2xl transition-all"
+                  className="flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-2xl transition-all active:scale-95 register-type-pop"
                   style={{
                     background: bizType === t.key ? "var(--blue-light)" : "var(--surface)",
                     border: `1.5px solid ${bizType === t.key ? "var(--blue)" : "var(--border)"}`,
                     boxShadow: bizType === t.key ? "0 0 0 3px rgba(249,115,22,0.12)" : "none",
+                    animationDelay: `${i * 0.035}s`,
                   }}>
-                  <t.Icon size={20} strokeWidth={1.75} style={{ color: bizType === t.key ? "var(--blue)" : "var(--text-secondary)" }} />
+                  <t.Icon size={20} strokeWidth={1.75}
+                    style={{ color: bizType === t.key ? "var(--blue)" : "var(--text-secondary)", transition: "transform 0.25s cubic-bezier(0.34,1.56,0.64,1)", transform: bizType === t.key ? "scale(1.12)" : "scale(1)" }} />
                   <span className="text-[10px] font-semibold text-center leading-tight"
                     style={{ color: bizType === t.key ? "var(--blue)" : "var(--text-secondary)" }}>
                     {t.label}
@@ -180,7 +179,7 @@ function Register() {
 
       {/* ── Step 2: Manager ── */}
       {step === 2 && (
-        <div className="flex flex-col gap-4 px-4 pt-5 pb-10">
+        <div key="step2" className="flex flex-col gap-4 px-4 pt-5 pb-10 register-step-content">
           <div className="flex flex-col gap-3 rounded-2xl p-4"
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <Field label="שם מלא">
@@ -230,7 +229,7 @@ function Register() {
 
       {/* ── Step 3: Plan ── */}
       {step === 3 && (
-        <div className="flex flex-col gap-3 px-4 pt-5 pb-10">
+        <div key="step3" className="flex flex-col gap-3 px-4 pt-5 pb-10 register-step-content">
 
           <div className="flex items-center justify-between flex-row px-1 mb-1">
             <button onClick={() => setShowPlanInfo(true)}
@@ -418,6 +417,33 @@ function Register() {
           </div>
         </div>
       )}
+
+      <style jsx global>{`
+        .register-header-glow {
+          position: absolute;
+          inset: -40% -10% auto -10%;
+          height: 140%;
+          background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.25), transparent 60%);
+          pointer-events: none;
+        }
+        .register-step-fade {
+          animation: register-fade-in 0.32s cubic-bezier(0.22,1,0.36,1) both;
+        }
+        .register-step-content {
+          animation: register-slide-up 0.36s cubic-bezier(0.22,1,0.36,1) both;
+        }
+        .register-type-pop {
+          animation: register-fade-in 0.3s cubic-bezier(0.22,1,0.36,1) both;
+        }
+        @keyframes register-fade-in {
+          0% { opacity: 0; transform: translateY(6px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes register-slide-up {
+          0% { opacity: 0; transform: translateY(14px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
