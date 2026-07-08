@@ -51,19 +51,30 @@ export default function BranchSwitcher({ session }: { session: Session }) {
       .then(res => { if (res.success) setBranches(res.branches); });
   }, [open, session.phone]);
 
-  function switchBranch(b: Branch) {
-    const updated: Session = {
-      ...session,
-      businessId: b.businessId,
-      personId: b.personId,
-      businessName: b.name,
-      plan: b.plan,
-    };
-    localStorage.setItem("shiftpro_session", JSON.stringify(updated));
-    localStorage.setItem("shiftpro_business_config", JSON.stringify({
-      permanent: { bizName: b.name, initialized: true },
-    }));
-    window.location.href = "/dashboard";
+  async function switchBranch(b: Branch) {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/switch-branch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId: b.businessId, personId: b.personId }),
+      }).then(r => r.json());
+      if (!res.success) { setError(res.error || "שגיאה במעבר סניף"); return; }
+
+      const updated: Session = {
+        ...session,
+        businessId: b.businessId,
+        personId: b.personId,
+        businessName: b.name,
+        plan: b.plan,
+      };
+      localStorage.setItem("shiftpro_session", JSON.stringify(updated));
+      localStorage.setItem("shiftpro_business_config", JSON.stringify({
+        permanent: { bizName: b.name, initialized: true },
+      }));
+      window.location.href = "/dashboard";
+    } catch { setError("שגיאת רשת"); }
+    finally { setLoading(false); }
   }
 
   async function addBranch() {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendPushToManagers } from "@/lib/push";
+import { requireBusinessSession } from "@/lib/auth/session";
 
 // Haversine distance in meters — good enough for a workplace-radius check,
 // no need for anything fancier at this scale.
@@ -19,9 +20,8 @@ const recentlyAlerted = new Set<string>();
 
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
-  if (!businessId) {
-    return NextResponse.json({ error: "businessId חסר" }, { status: 400 });
-  }
+  const { error: authError } = requireBusinessSession(req, businessId);
+  if (authError) return authError;
   const supabase = createServiceRoleClient();
   // Only "live" positions — anything older than a few minutes means the
   // employee's app isn't actively reporting anymore (closed, backgrounded,
@@ -51,6 +51,12 @@ export async function POST(req: NextRequest) {
     const { businessId, personId, lat, lng } = await req.json();
     if (!businessId || !personId || lat == null || lng == null) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
+    }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
+    // Only report your own live location.
+    if (personId !== session.personId) {
+      return NextResponse.json({ error: "אין הרשאה לדווח מיקום בשם עובד אחר" }, { status: 403 });
     }
 
     const supabase = createServiceRoleClient();

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { isManager } from "@/lib/auth/permissions";
 import { ADHOC_ROLE_KEY } from "@/lib/adhoc";
+import { requireBusinessSession, requireSession } from "@/lib/auth/session";
 
 // Matches the app-wide frozen "today" used across schedule/dashboard/AI assistant.
 const CURRENT_WEEK_START = "2026-06-21";
@@ -71,9 +72,8 @@ function mapRow(row: {
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
   const personId = req.nextUrl.searchParams.get("personId");
-  if (!businessId) {
-    return NextResponse.json({ error: "businessId חסר" }, { status: 400 });
-  }
+  const { error: authError } = requireBusinessSession(req, businessId);
+  if (authError) return authError;
 
   const supabase = createServiceRoleClient();
   let query = supabase
@@ -95,12 +95,14 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, personId, type, autoApprove, callerId } = await req.json();
-    if (!businessId || !personId || !type || !callerId) {
+    const { businessId, personId, type, autoApprove } = await req.json();
+    if (!businessId || !personId || !type) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
     // A clock-in/out request can only be submitted for yourself.
-    if (personId !== callerId) {
+    if (personId !== session.personId) {
       return NextResponse.json({ error: "אין הרשאה לדווח נוכחות בשם עובד אחר" }, { status: 403 });
     }
 
@@ -131,10 +133,12 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, approve, callerId } = await req.json();
-    if (!id || approve === undefined || !callerId) {
+    const { id, approve } = await req.json();
+    if (!id || approve === undefined) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireSession(req);
+    if (authError) return authError;
 
     const supabase = createServiceRoleClient();
     const { data: existing } = await supabase
@@ -145,7 +149,10 @@ export async function PATCH(req: NextRequest) {
     if (!existing) {
       return NextResponse.json({ error: "הבקשה לא נמצאה" }, { status: 404 });
     }
-    if (!(await isManager(supabase, existing.business_id, callerId))) {
+    if (existing.business_id !== session.businessId) {
+      return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+    }
+    if (!(await isManager(supabase, existing.business_id, session.personId))) {
       return NextResponse.json({ error: "אין הרשאה לאשר/לדחות בקשת נוכחות" }, { status: 403 });
     }
 

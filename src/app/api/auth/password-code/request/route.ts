@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendMail, emailLayout } from "@/lib/mailer";
 import { rateLimit } from "@/lib/rateLimit";
+import { requireBusinessSession } from "@/lib/auth/session";
 
 const CODE_TTL_MS = 5 * 60 * 1000;
 
@@ -11,16 +12,14 @@ function hashCode(code: string) {
 }
 
 // Self-service only — sends a 6-digit code to the account's own email, valid
-// 5 minutes, for changing the password while already logged in.
+// 5 minutes, for changing the password while already logged in. personId
+// comes from the verified session, not the request body.
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, personId, callerId } = await req.json();
-    if (!businessId || !personId || !callerId) {
-      return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
-    }
-    if (personId !== callerId) {
-      return NextResponse.json({ error: "אפשר לשנות רק את הסיסמה שלך" }, { status: 403 });
-    }
+    const { businessId } = await req.json();
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
+    const personId = session.personId;
 
     if (!rateLimit(`password-code-request:${personId}`, 4, 15 * 60 * 1000).ok) {
       return NextResponse.json({ error: "יותר מדי ניסיונות, נסה שוב מאוחר יותר" }, { status: 429 });

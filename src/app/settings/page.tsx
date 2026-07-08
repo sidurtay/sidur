@@ -580,7 +580,7 @@ export default function Settings() {
                 style={{ background: "var(--gray-bg)", color: "var(--text-main)", border: "1px solid var(--border)" }}>
                 ביטול
               </button>
-              <button onClick={() => { localStorage.removeItem("shiftpro_session"); router.replace("/login"); }}
+              <button onClick={() => { fetch("/api/auth/logout", { method: "POST" }).finally(() => { localStorage.removeItem("shiftpro_session"); router.replace("/login"); }); }}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold text-white"
                 style={{ background: "var(--red)" }}>
                 כן, התנתק

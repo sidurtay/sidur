@@ -39,8 +39,10 @@ export default function EmployeeSettings() {
   }
 
   function logout() {
-    localStorage.removeItem("shiftpro_session");
-    router.push("/login");
+    fetch("/api/auth/logout", { method: "POST" }).finally(() => {
+      localStorage.removeItem("shiftpro_session");
+      router.push("/login");
+    });
   }
 
   return (

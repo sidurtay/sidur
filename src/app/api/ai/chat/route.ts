@@ -6,6 +6,7 @@ import { isManager as checkIsManager } from "@/lib/auth/permissions";
 import { askClaude } from "@/lib/ai/claude";
 import { initialsFor, type AnyCard } from "@/lib/ai/cards";
 import { rateLimit } from "@/lib/rateLimit";
+import { requireSession } from "@/lib/auth/session";
 
 const HISTORY_LIMIT = 16;
 
@@ -269,10 +270,13 @@ async function buildReply(
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, personId, message, employeeName } = await req.json();
-    if (!businessId || !personId || !message?.trim()) {
+    const { message, employeeName } = await req.json();
+    if (!message?.trim()) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireSession(req);
+    if (authError) return authError;
+    const { businessId, personId } = session;
 
     const supabase = createServiceRoleClient();
     // isManager gates manager-only intents (approving swaps/absences, building the
@@ -306,11 +310,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const businessId = req.nextUrl.searchParams.get("businessId");
-  const personId = req.nextUrl.searchParams.get("personId");
-  if (!businessId || !personId) {
-    return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
-  }
+  const { session, error: authError } = requireSession(req);
+  if (authError) return authError;
+  const { businessId, personId } = session;
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("ai_conversations")

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendPushToBusiness } from "@/lib/push";
 import { canEditSchedule } from "@/lib/auth/permissions";
+import { requireBusinessSession } from "@/lib/auth/session";
 
 function mapRow(row: { id: string; day_of_week: number; role_key: string; time_in: string; time_out: string }) {
   return {
@@ -16,8 +17,10 @@ function mapRow(row: { id: string; day_of_week: number; role_key: string; time_i
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
   const weekStart = req.nextUrl.searchParams.get("weekStart");
-  if (!businessId || !weekStart) {
-    return NextResponse.json({ error: "businessId ו-weekStart חסרים" }, { status: 400 });
+  const { error: authError } = requireBusinessSession(req, businessId);
+  if (authError) return authError;
+  if (!weekStart) {
+    return NextResponse.json({ error: "weekStart חסר" }, { status: 400 });
   }
 
   const supabase = createServiceRoleClient();
@@ -37,13 +40,15 @@ export async function GET(req: NextRequest) {
 // can claim it later via PATCH.
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, weekStart, dayOfWeek, roleKey, timeIn, timeOut, callerId } = await req.json();
-    if (!businessId || !weekStart || dayOfWeek === undefined || !roleKey || !timeIn || !timeOut || !callerId) {
+    const { businessId, weekStart, dayOfWeek, roleKey, timeIn, timeOut } = await req.json();
+    if (!businessId || !weekStart || dayOfWeek === undefined || !roleKey || !timeIn || !timeOut) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
 
     const supabase = createServiceRoleClient();
-    if (!(await canEditSchedule(supabase, businessId, callerId))) {
+    if (!(await canEditSchedule(supabase, businessId, session.personId))) {
       return NextResponse.json({ error: "אין הרשאה לפרסם משמרת פתוחה" }, { status: 403 });
     }
 
@@ -75,12 +80,14 @@ export async function POST(req: NextRequest) {
 // fails, the open shift stays up for someone else to try).
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, businessId, personId, callerId } = await req.json();
-    if (!id || !businessId || !personId || !callerId) {
+    const { id, businessId, personId } = await req.json();
+    if (!id || !businessId || !personId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
     // You can only claim an open shift for yourself.
-    if (personId !== callerId) {
+    if (personId !== session.personId) {
       return NextResponse.json({ error: "אין הרשאה לתפוס משמרת בשם עובד אחר" }, { status: 403 });
     }
 
@@ -130,12 +137,13 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   const businessId = req.nextUrl.searchParams.get("businessId");
-  const callerId = req.nextUrl.searchParams.get("callerId");
-  if (!id || !businessId || !callerId) {
+  if (!id || !businessId) {
     return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
   }
+  const { session, error: authError } = requireBusinessSession(req, businessId);
+  if (authError) return authError;
   const supabase = createServiceRoleClient();
-  if (!(await canEditSchedule(supabase, businessId, callerId))) {
+  if (!(await canEditSchedule(supabase, businessId, session.personId))) {
     return NextResponse.json({ error: "אין הרשאה לבטל משמרת פתוחה" }, { status: 403 });
   }
   const { error } = await supabase.from("open_shifts").delete().eq("id", id);

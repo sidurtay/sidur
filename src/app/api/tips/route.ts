@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { canPublishTips } from "@/lib/auth/permissions";
+import { requireBusinessSession } from "@/lib/auth/session";
 
 function mapRow(row: {
   date: string; morning_total: number | null; evening_total: number | null; daily_total: number | null;
@@ -20,9 +21,8 @@ function mapRow(row: {
 
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
-  if (!businessId) {
-    return NextResponse.json({ error: "businessId חסר" }, { status: 400 });
-  }
+  const { error: authError } = requireBusinessSession(req, businessId);
+  if (authError) return authError;
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
@@ -39,13 +39,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, date, morningTotal, eveningTotal, dailyTotal, published, locked, lockedBy, lockedAt, notify, callerId } = await req.json();
-    if (!businessId || !date || !callerId) {
+    const { businessId, date, morningTotal, eveningTotal, dailyTotal, published, locked, lockedBy, lockedAt, notify } = await req.json();
+    if (!businessId || !date) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
 
     const supabase = createServiceRoleClient();
-    if (!(await canPublishTips(supabase, businessId, callerId))) {
+    if (!(await canPublishTips(supabase, businessId, session.personId))) {
       return NextResponse.json({ error: "אין הרשאה לפרסם טיפים" }, { status: 403 });
     }
 

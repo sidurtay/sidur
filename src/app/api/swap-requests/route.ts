@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendPushToManagers, sendPushToPerson } from "@/lib/push";
 import { canApproveSwaps } from "@/lib/auth/permissions";
+import { requireBusinessSession, requireSession } from "@/lib/auth/session";
 
 type Row = {
   id: string; status: string; created_at: string;
@@ -27,9 +28,8 @@ function mapRow(row: Row) {
 
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
-  if (!businessId) {
-    return NextResponse.json({ error: "businessId חסר" }, { status: 400 });
-  }
+  const { error: authError } = requireBusinessSession(req, businessId);
+  if (authError) return authError;
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
@@ -52,12 +52,14 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, assignmentId, requestedBy, proposedPerson, callerId } = await req.json();
-    if (!businessId || !assignmentId || !requestedBy || !callerId) {
+    const { businessId, assignmentId, requestedBy, proposedPerson } = await req.json();
+    if (!businessId || !assignmentId || !requestedBy) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
     // You can only request a swap on your own behalf.
-    if (requestedBy !== callerId) {
+    if (requestedBy !== session.personId) {
       return NextResponse.json({ error: "אין הרשאה לבקש החלפה בשם עובד אחר" }, { status: 403 });
     }
 
@@ -93,10 +95,12 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, approve, proposedPerson, callerId } = await req.json();
-    if (!id || approve === undefined || !callerId) {
+    const { id, approve, proposedPerson } = await req.json();
+    if (!id || approve === undefined) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireSession(req);
+    if (authError) return authError;
 
     const supabase = createServiceRoleClient();
     const { data: existing, error: fetchError } = await supabase
@@ -107,7 +111,10 @@ export async function PATCH(req: NextRequest) {
     if (fetchError || !existing) {
       return NextResponse.json({ error: fetchError?.message || "הבקשה לא נמצאה" }, { status: 404 });
     }
-    if (!(await canApproveSwaps(supabase, existing.business_id, callerId))) {
+    if (existing.business_id !== session.businessId) {
+      return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+    }
+    if (!(await canApproveSwaps(supabase, existing.business_id, session.personId))) {
       return NextResponse.json({ error: "אין הרשאה לאשר/לדחות בקשות החלפה" }, { status: 403 });
     }
 

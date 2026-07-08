@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { hashPassword } from "@/lib/passwords";
 import { rateLimit } from "@/lib/rateLimit";
+import { requireBusinessSession } from "@/lib/auth/session";
 
 function hashCode(code: string) {
   return createHash("sha256").update(code).digest("hex");
@@ -10,13 +11,13 @@ function hashCode(code: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, personId, callerId, code, newPassword } = await req.json();
-    if (!businessId || !personId || !callerId || !code || !newPassword || newPassword.length < 6) {
+    const { businessId, code, newPassword } = await req.json();
+    if (!businessId || !code || !newPassword || newPassword.length < 6) {
       return NextResponse.json({ error: "פרטים חסרים או לא תקינים" }, { status: 400 });
     }
-    if (personId !== callerId) {
-      return NextResponse.json({ error: "אפשר לשנות רק את הסיסמה שלך" }, { status: 403 });
-    }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
+    const personId = session.personId;
 
     // Slows brute-forcing the 6-digit code — a handful of guesses is normal
     // typo recovery, hundreds is an attack.

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { hashPassword } from "@/lib/passwords";
 import { rolePresetFor, hoursPresetFor } from "@/lib/businessTypePresets";
+import { setSessionCookie } from "@/lib/auth/session";
 
 // Seeded immediately at signup so the account is never in a broken state —
 // the post-signup onboarding wizard (/onboarding) lets the manager override
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
       is_owner: true,
     });
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       businessId: business.id,
       businessName: business.name,
@@ -86,6 +87,8 @@ export async function POST(req: NextRequest) {
       email: manager.email,
       role: "manager",
     });
+    setSessionCookie(res, { personId: manager.id, businessId: business.id });
+    return res;
   } catch (err) {
     console.error("register error:", err);
     return NextResponse.json({ error: "שגיאת שרת" }, { status: 500 });

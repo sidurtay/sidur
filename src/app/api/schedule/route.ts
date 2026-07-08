@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { canEditSchedule } from "@/lib/auth/permissions";
+import { requireBusinessSession, requireSession } from "@/lib/auth/session";
 
 async function belongsToBusiness(supabase: ReturnType<typeof createServiceRoleClient>, personId: string, businessId: string) {
   const { data } = await supabase.from("people").select("id").eq("id", personId).eq("business_id", businessId).maybeSingle();
@@ -35,8 +36,10 @@ function mapRow(row: {
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
   const weekStart = req.nextUrl.searchParams.get("weekStart");
-  if (!businessId || !weekStart) {
-    return NextResponse.json({ error: "businessId ו-weekStart חסרים" }, { status: 400 });
+  const { error: authError } = requireBusinessSession(req, businessId);
+  if (authError) return authError;
+  if (!weekStart) {
+    return NextResponse.json({ error: "weekStart חסר" }, { status: 400 });
   }
 
   const supabase = createServiceRoleClient();
@@ -57,13 +60,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, weekStart, dayOfWeek, personId, roleKey, homeRoleKey, timeIn, timeOut, callerId } = await req.json();
-    if (!businessId || !weekStart || dayOfWeek === undefined || !personId || !roleKey || !callerId) {
+    const { businessId, weekStart, dayOfWeek, personId, roleKey, homeRoleKey, timeIn, timeOut } = await req.json();
+    if (!businessId || !weekStart || dayOfWeek === undefined || !personId || !roleKey) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
 
     const supabase = createServiceRoleClient();
-    if (!(await canEditSchedule(supabase, businessId, callerId))) {
+    if (!(await canEditSchedule(supabase, businessId, session.personId))) {
       return NextResponse.json({ error: "אין הרשאה לערוך את הסידור" }, { status: 403 });
     }
     if (!(await belongsToBusiness(supabase, personId, businessId))) {
@@ -94,10 +99,12 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, callerId, ...fields } = await req.json();
-    if (!id || !callerId) {
+    const { id, ...fields } = await req.json();
+    if (!id) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireSession(req);
+    if (authError) return authError;
 
     const supabase = createServiceRoleClient();
     const { data: existing } = await supabase
@@ -108,7 +115,10 @@ export async function PATCH(req: NextRequest) {
     if (!existing) {
       return NextResponse.json({ error: "השיבוץ לא נמצא" }, { status: 404 });
     }
-    if (!(await canEditSchedule(supabase, existing.business_id, callerId))) {
+    if (existing.business_id !== session.businessId) {
+      return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+    }
+    if (!(await canEditSchedule(supabase, existing.business_id, session.personId))) {
       return NextResponse.json({ error: "אין הרשאה לערוך את הסידור" }, { status: 403 });
     }
     if (fields.personId !== undefined && !(await belongsToBusiness(supabase, fields.personId, existing.business_id))) {
@@ -147,10 +157,11 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
-  const callerId = req.nextUrl.searchParams.get("callerId");
-  if (!id || !callerId) {
+  if (!id) {
     return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
   }
+  const { session, error: authError } = requireSession(req);
+  if (authError) return authError;
 
   const supabase = createServiceRoleClient();
   const { data: existing } = await supabase
@@ -161,7 +172,10 @@ export async function DELETE(req: NextRequest) {
   if (!existing) {
     return NextResponse.json({ error: "השיבוץ לא נמצא" }, { status: 404 });
   }
-  if (!(await canEditSchedule(supabase, existing.business_id, callerId))) {
+  if (existing.business_id !== session.businessId) {
+    return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+  }
+  if (!(await canEditSchedule(supabase, existing.business_id, session.personId))) {
     return NextResponse.json({ error: "אין הרשאה לערוך את הסידור" }, { status: 403 });
   }
 

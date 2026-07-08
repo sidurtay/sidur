@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendPushToBusiness } from "@/lib/push";
 import { canManageAnnouncements } from "@/lib/auth/permissions";
+import { requireBusinessSession, requireSession } from "@/lib/auth/session";
 
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
-  if (!businessId) {
-    return NextResponse.json({ error: "businessId חסר" }, { status: 400 });
-  }
+  const { error: authError } = requireBusinessSession(req, businessId);
+  if (authError) return authError;
 
   const supabase = createServiceRoleClient();
   const { data: anns, error } = await supabase
@@ -38,10 +38,13 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, title, body, createdBy } = await req.json();
-    if (!businessId || !title?.trim() || !createdBy) {
+    const { businessId, title, body } = await req.json();
+    if (!businessId || !title?.trim()) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
+    const createdBy = session.personId;
 
     const supabase = createServiceRoleClient();
     if (!(await canManageAnnouncements(supabase, businessId, createdBy))) {
@@ -69,10 +72,12 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, title, body, callerId } = await req.json();
-    if (!id || !callerId) {
+    const { id, title, body } = await req.json();
+    if (!id) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireSession(req);
+    if (authError) return authError;
     const supabase = createServiceRoleClient();
     const { data: existing } = await supabase
       .from("announcements")
@@ -82,7 +87,10 @@ export async function PATCH(req: NextRequest) {
     if (!existing) {
       return NextResponse.json({ error: "ההודעה לא נמצאה" }, { status: 404 });
     }
-    if (!(await canManageAnnouncements(supabase, existing.business_id, callerId))) {
+    if (existing.business_id !== session.businessId) {
+      return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+    }
+    if (!(await canManageAnnouncements(supabase, existing.business_id, session.personId))) {
       return NextResponse.json({ error: "אין הרשאה לעדכן הודעות" }, { status: 403 });
     }
 
@@ -102,10 +110,11 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
-  const callerId = req.nextUrl.searchParams.get("callerId");
-  if (!id || !callerId) {
+  if (!id) {
     return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
   }
+  const { session, error: authError } = requireSession(req);
+  if (authError) return authError;
   const supabase = createServiceRoleClient();
   const { data: existing } = await supabase
     .from("announcements")
@@ -115,7 +124,10 @@ export async function DELETE(req: NextRequest) {
   if (!existing) {
     return NextResponse.json({ error: "ההודעה לא נמצאה" }, { status: 404 });
   }
-  if (!(await canManageAnnouncements(supabase, existing.business_id, callerId))) {
+  if (existing.business_id !== session.businessId) {
+    return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+  }
+  if (!(await canManageAnnouncements(supabase, existing.business_id, session.personId))) {
     return NextResponse.json({ error: "אין הרשאה למחוק הודעות" }, { status: 403 });
   }
 

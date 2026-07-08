@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { requireBusinessSession } from "@/lib/auth/session";
 
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
   const weekStart = req.nextUrl.searchParams.get("weekStart");
   const personId = req.nextUrl.searchParams.get("personId");
-  if (!businessId || !weekStart) {
-    return NextResponse.json({ error: "businessId ו-weekStart חסרים" }, { status: 400 });
+  const { error: authError } = requireBusinessSession(req, businessId);
+  if (authError) return authError;
+  if (!weekStart) {
+    return NextResponse.json({ error: "weekStart חסר" }, { status: 400 });
   }
 
   const supabase = createServiceRoleClient();
@@ -49,12 +52,14 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, personId, weekStart, availability, weekNote, callerId } = await req.json();
-    if (!businessId || !personId || !weekStart || !availability || !callerId) {
+    const { businessId, personId, weekStart, availability, weekNote } = await req.json();
+    if (!businessId || !personId || !weekStart || !availability) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
     // You can only set your own availability.
-    if (personId !== callerId) {
+    if (personId !== session.personId) {
       return NextResponse.json({ error: "אין הרשאה לקבוע אילוצים בשם עובד אחר" }, { status: 403 });
     }
 

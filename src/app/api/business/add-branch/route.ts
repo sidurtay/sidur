@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { requireSession, setSessionCookie } from "@/lib/auth/session";
 
 const DEFAULT_HOURS = [
   { day_of_week: 0, is_open: true,  open_time: "08:00", close_time: "23:00" },
@@ -24,23 +25,30 @@ const DEFAULT_ROLES = [
 // Creates a new business branch and links it to the existing manager via manager_businesses.
 export async function POST(req: NextRequest) {
   try {
-    const { managerPhone, managerName, passwordHash, bizName, bizCity, bizType, plan } = await req.json();
-    if (!managerPhone || !bizName?.trim()) {
+    const { managerName, bizName, bizCity, bizType, plan } = await req.json();
+    if (!bizName?.trim()) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireSession(req);
+    if (authError) return authError;
 
     const supabase = createServiceRoleClient();
 
-    // Verify the manager exists
-    const { data: existingManager } = await supabase
-      .from("manager_businesses")
-      .select("manager_phone")
-      .eq("manager_phone", managerPhone)
+    // Only a manager already logged into an existing branch can add another
+    // one — managerPhone/passwordHash are derived server-side from the
+    // caller's own verified session/record, never trusted from the client.
+    const { data: caller } = await supabase
+      .from("people")
+      .select("phone, password_hash, role_type")
+      .eq("id", session.personId)
+      .eq("business_id", session.businessId)
       .maybeSingle();
 
-    if (!existingManager) {
-      return NextResponse.json({ error: "מנהל לא נמצא" }, { status: 404 });
+    if (!caller || caller.role_type !== "manager") {
+      return NextResponse.json({ error: "אין הרשאה להוסיף סניף" }, { status: 403 });
     }
+    const managerPhone = caller.phone;
+    const passwordHash = caller.password_hash;
 
     // Create the new business
     const { data: business, error: bizError } = await supabase
@@ -84,12 +92,14 @@ export async function POST(req: NextRequest) {
       is_owner: true,
     });
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       businessId: business.id,
       businessName: business.name,
       personId: manager.id,
     });
+    setSessionCookie(res, { personId: manager.id, businessId: business.id });
+    return res;
   } catch (err) {
     console.error("add-branch error:", err);
     return NextResponse.json({ error: "שגיאת שרת" }, { status: 500 });

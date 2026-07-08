@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { requireSession } from "@/lib/auth/session";
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, personId, subscription, callerId } = await req.json();
-    if (!businessId || !personId || !subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth || !callerId) {
+    const { subscription } = await req.json();
+    if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
-    // You can only subscribe your own device to your own notifications.
-    if (personId !== callerId) {
-      return NextResponse.json({ error: "אין הרשאה לרשום מכשיר בשם עובד אחר" }, { status: 403 });
-    }
+    const { session, error: authError } = requireSession(req);
+    if (authError) return authError;
+    const { businessId, personId } = session;
 
     const supabase = createServiceRoleClient();
     const { error } = await supabase
@@ -35,17 +35,18 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const endpoint = req.nextUrl.searchParams.get("endpoint");
-  const callerId = req.nextUrl.searchParams.get("callerId");
-  if (!endpoint || !callerId) {
+  if (!endpoint) {
     return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
   }
+  const { session, error: authError } = requireSession(req);
+  if (authError) return authError;
   const supabase = createServiceRoleClient();
   const { data: existing } = await supabase
     .from("push_subscriptions")
     .select("person_id")
     .eq("endpoint", endpoint)
     .maybeSingle();
-  if (existing && existing.person_id !== callerId) {
+  if (existing && existing.person_id !== session.personId) {
     return NextResponse.json({ error: "אין הרשאה להסיר רישום מכשיר זה" }, { status: 403 });
   }
   const { error } = await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);

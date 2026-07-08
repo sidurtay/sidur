@@ -3,6 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { isManager } from "@/lib/auth/permissions";
 import { calcHours } from "@/lib/shiftData";
 import { weekInfoForDate } from "@/lib/ai/tools";
+import { requireBusinessSession } from "@/lib/auth/session";
 
 // Monthly payroll/accountant export — per employee: hours worked (from
 // approved clock in/out events, the same source of truth my-hours/AI chat
@@ -13,13 +14,14 @@ export async function GET(req: NextRequest) {
   try {
     const businessId = req.nextUrl.searchParams.get("businessId");
     const month = req.nextUrl.searchParams.get("month"); // "YYYY-MM"
-    const callerId = req.nextUrl.searchParams.get("callerId");
-    if (!businessId || !month || !callerId || !/^\d{4}-\d{2}$/.test(month)) {
+    if (!businessId || !month || !/^\d{4}-\d{2}$/.test(month)) {
       return NextResponse.json({ error: "פרטים חסרים או לא תקינים" }, { status: 400 });
     }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
 
     const supabase = createServiceRoleClient();
-    if (!(await isManager(supabase, businessId, callerId))) {
+    if (!(await isManager(supabase, businessId, session.personId))) {
       return NextResponse.json({ error: "אין הרשאה לצפות בדוח שכר" }, { status: 403 });
     }
 

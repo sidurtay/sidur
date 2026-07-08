@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { canEditSchedule } from "@/lib/auth/permissions";
+import { requireBusinessSession } from "@/lib/auth/session";
 
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
-  if (!businessId) {
-    return NextResponse.json({ error: "businessId חסר" }, { status: 400 });
-  }
+  const { error: authError } = requireBusinessSession(req, businessId);
+  if (authError) return authError;
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
@@ -24,13 +24,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, name, callerId } = await req.json();
-    if (!businessId || !name?.trim() || !callerId) {
+    const { businessId, name } = await req.json();
+    if (!businessId || !name?.trim()) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
 
     const supabase = createServiceRoleClient();
-    if (!(await canEditSchedule(supabase, businessId, callerId))) {
+    if (!(await canEditSchedule(supabase, businessId, session.personId))) {
       return NextResponse.json({ error: "אין הרשאה להוסיף תפקיד" }, { status: 403 });
     }
 
@@ -54,13 +56,15 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { businessId, key, recurring, callerId } = await req.json();
-    if (!businessId || !key || recurring === undefined || !callerId) {
+    const { businessId, key, recurring } = await req.json();
+    if (!businessId || !key || recurring === undefined) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
 
     const supabase = createServiceRoleClient();
-    if (!(await canEditSchedule(supabase, businessId, callerId))) {
+    if (!(await canEditSchedule(supabase, businessId, session.personId))) {
       return NextResponse.json({ error: "אין הרשאה לעדכן תפקיד" }, { status: 403 });
     }
 
@@ -83,12 +87,13 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
   const key = req.nextUrl.searchParams.get("key");
-  const callerId = req.nextUrl.searchParams.get("callerId");
-  if (!businessId || !key || !callerId) {
+  if (!businessId || !key) {
     return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
   }
+  const { session, error: authError } = requireBusinessSession(req, businessId);
+  if (authError) return authError;
   const supabase = createServiceRoleClient();
-  if (!(await canEditSchedule(supabase, businessId, callerId))) {
+  if (!(await canEditSchedule(supabase, businessId, session.personId))) {
     return NextResponse.json({ error: "אין הרשאה למחוק תפקיד" }, { status: 403 });
   }
   const { error } = await supabase.from("roles").delete().eq("business_id", businessId).eq("key", key);

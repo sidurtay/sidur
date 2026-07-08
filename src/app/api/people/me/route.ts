@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { initialsFor } from "@/lib/avatarPalette";
+import { requireSession } from "@/lib/auth/session";
 
 // Small self-serve lookup — used by settings to show the current person's own
 // avatar (initials/color fallback + optional uploaded photo), regardless of
 // whether they're a manager or employee (managers don't get initials/color
-// assigned at signup the way employees do via paletteFor).
+// assigned at signup the way employees do via paletteFor). Always the
+// caller's own record — personId/businessId come from the verified session.
 export async function GET(req: NextRequest) {
-  const businessId = req.nextUrl.searchParams.get("businessId");
-  const personId = req.nextUrl.searchParams.get("personId");
-  if (!businessId || !personId) {
-    return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
-  }
+  const { session, error: authError } = requireSession(req);
+  if (authError) return authError;
+  const { businessId, personId } = session;
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
@@ -42,13 +42,10 @@ export async function GET(req: NextRequest) {
 // a more careful flow (or a manager-assisted one), not a plain text field.
 export async function PATCH(req: NextRequest) {
   try {
-    const { businessId, personId, callerId, name, email } = await req.json();
-    if (!businessId || !personId || !callerId) {
-      return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
-    }
-    if (personId !== callerId) {
-      return NextResponse.json({ error: "אפשר לערוך רק את הפרופיל שלך" }, { status: 403 });
-    }
+    const { name, email } = await req.json();
+    const { session, error: authError } = requireSession(req);
+    if (authError) return authError;
+    const { businessId, personId } = session;
     if (typeof name === "string" && !name.trim()) {
       return NextResponse.json({ error: "השם לא יכול להיות ריק" }, { status: 400 });
     }

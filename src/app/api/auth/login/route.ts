@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { verifyPassword } from "@/lib/passwords";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
+import { setSessionCookie } from "@/lib/auth/session";
 
 export async function POST(req: NextRequest) {
   try {
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
       supabase.from("businesses").select("business_id_num").eq("id", person.business_id).maybeSingle(),
     ]);
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       mustChangePassword: !!(person.temp_password && person.temp_password === password),
       personId: person.id, businessId: person.business_id,
@@ -82,6 +83,8 @@ export async function POST(req: NextRequest) {
         })),
       },
     });
+    setSessionCookie(res, { personId: person.id, businessId: person.business_id });
+    return res;
   } catch (err) {
     console.error("login error:", err);
     return NextResponse.json({ error: "שגיאת שרת" }, { status: 500 });

@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { hashPassword } from "@/lib/passwords";
+import { requireSession } from "@/lib/auth/session";
 
 export async function POST(req: NextRequest) {
   try {
-    const { personId, newPassword } = await req.json();
-    if (!personId || !newPassword || newPassword.length < 6) {
+    const { newPassword } = await req.json();
+    if (!newPassword || newPassword.length < 6) {
       return NextResponse.json({ error: "פרטים חסרים או לא תקינים" }, { status: 400 });
     }
+    const { session, error: authError } = requireSession(req);
+    if (authError) return authError;
+    const personId = session.personId;
 
     const supabase = createServiceRoleClient();
 

@@ -5,6 +5,7 @@ import { sendMail, emailLayout } from "@/lib/mailer";
 import { MINIMUM_WAGE_HOURLY } from "@/lib/minimumWage";
 import { isManager, canAddEmployee } from "@/lib/auth/permissions";
 import { EMPLOYEE_LIMIT } from "@/lib/plans";
+import { requireBusinessSession } from "@/lib/auth/session";
 
 function credentialsEmailHtml(employeeName: string, businessName: string, phone: string, tempPassword: string) {
   return emailLayout({
@@ -36,9 +37,8 @@ function generateTempPassword() {
 
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
-  if (!businessId) {
-    return NextResponse.json({ error: "businessId חסר" }, { status: 400 });
-  }
+  const { error: authError } = requireBusinessSession(req, businessId);
+  if (authError) return authError;
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
@@ -76,13 +76,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, name, phone, email, roleKey, businessName, callerId } = await req.json();
-    if (!businessId || !name?.trim() || !phone?.trim() || !email?.trim() || !roleKey || !callerId) {
+    const { businessId, name, phone, email, roleKey, businessName } = await req.json();
+    if (!businessId || !name?.trim() || !phone?.trim() || !email?.trim() || !roleKey) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
 
     const supabase = createServiceRoleClient();
-    if (!(await canAddEmployee(supabase, businessId, callerId))) {
+    if (!(await canAddEmployee(supabase, businessId, session.personId))) {
       return NextResponse.json({ error: "אין הרשאה להוסיף עובד" }, { status: 403 });
     }
 
@@ -157,13 +159,15 @@ export async function POST(req: NextRequest) {
 // employee gets) and clears the old hashed password so it stops working.
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, businessId, action, businessName, roleKey, hourlyWage, callerId } = await req.json();
-    if (!id || !businessId || !action || !callerId) {
+    const { id, businessId, action, businessName, roleKey, hourlyWage } = await req.json();
+    if (!id || !businessId || !action) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
 
     const supabase = createServiceRoleClient();
-    if (!(await isManager(supabase, businessId, callerId))) {
+    if (!(await isManager(supabase, businessId, session.personId))) {
       return NextResponse.json({ error: "אין הרשאה לעדכן עובד" }, { status: 403 });
     }
 
@@ -237,13 +241,14 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   const businessId = req.nextUrl.searchParams.get("businessId");
-  const callerId = req.nextUrl.searchParams.get("callerId");
-  if (!id || !businessId || !callerId) {
+  if (!id || !businessId) {
     return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
   }
+  const { session, error: authError } = requireBusinessSession(req, businessId);
+  if (authError) return authError;
 
   const supabase = createServiceRoleClient();
-  if (!(await isManager(supabase, businessId, callerId))) {
+  if (!(await isManager(supabase, businessId, session.personId))) {
     return NextResponse.json({ error: "אין הרשאה למחוק עובד" }, { status: 403 });
   }
 

@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { isManager } from "@/lib/auth/permissions";
+import { requireSession } from "@/lib/auth/session";
 
 export async function POST(req: NextRequest) {
   try {
-    const { announcementId, personId, callerId, businessId } = await req.json();
-    if (!announcementId || !personId || !callerId) {
+    const { announcementId, personId, businessId } = await req.json();
+    if (!announcementId || !personId) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireSession(req);
+    if (authError) return authError;
+    const callerId = session.personId;
 
     const supabase = createServiceRoleClient();
 
     // You can confirm an announcement as yourself, or a manager can mark it
     // confirmed on someone else's behalf (e.g. they confirmed it in person).
     if (personId !== callerId) {
-      if (!businessId || !(await isManager(supabase, businessId, callerId))) {
+      if (!businessId || businessId !== session.businessId || !(await isManager(supabase, businessId, callerId))) {
         return NextResponse.json({ error: "אין הרשאה לאשר הודעה בשם עובד אחר" }, { status: 403 });
       }
     }

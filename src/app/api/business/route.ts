@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { isManager } from "@/lib/auth/permissions";
+import { requireBusinessSession } from "@/lib/auth/session";
 
 export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
-  if (!businessId) {
-    return NextResponse.json({ error: "businessId חסר" }, { status: 400 });
-  }
+  const { error: authError } = requireBusinessSession(req, businessId);
+  if (authError) return authError;
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
@@ -41,14 +41,12 @@ export async function PATCH(req: NextRequest) {
       businessId, name, businessIdNum, tipsMode, clockoutRequiresApproval, shiftSplit,
       constraintsDeadlineDay, constraintsDeadlineTime,
       geofenceEnabled, geofenceLat, geofenceLng, geofenceRadiusM,
-      callerId,
     } = await req.json();
-    if (!businessId || !callerId) {
-      return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
-    }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
 
     const supabase = createServiceRoleClient();
-    if (!(await isManager(supabase, businessId, callerId))) {
+    if (!(await isManager(supabase, businessId, session.personId))) {
       return NextResponse.json({ error: "אין הרשאה לעדכן את העסק" }, { status: 403 });
     }
 

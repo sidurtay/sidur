@@ -3,13 +3,17 @@ import { verifyRegistrationResponse } from "@simplewebauthn/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getWebauthnConfig, CHALLENGE_TTL_MS } from "@/lib/webauthn";
 import { sendMail, emailLayout } from "@/lib/mailer";
+import { requireBusinessSession } from "@/lib/auth/session";
 
 export async function POST(req: NextRequest) {
   try {
-    const { businessId, personId, response, deviceLabel } = await req.json();
-    if (!businessId || !personId || !response) {
+    const { businessId, response, deviceLabel } = await req.json();
+    if (!businessId || !response) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
     }
+    const { session, error: authError } = requireBusinessSession(req, businessId);
+    if (authError) return authError;
+    const personId = session.personId;
 
     const supabase = createServiceRoleClient();
 
@@ -53,9 +57,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "ההרשמה נכשלה" }, { status: 500 });
     }
 
-    // There's no server session proving the caller who requested this really IS
-    // personId — so alert the account by email whenever a new device is added,
-    // the way banks alert on new-device logins. If it wasn't them, they now know.
+    // Alert the account by email whenever a new device is added, the way
+    // banks alert on new-device logins — defense in depth on top of the
+    // session check above, in case the session itself was ever compromised.
     const { data: person } = await supabase.from("people").select("name, email").eq("id", personId).maybeSingle();
     if (person?.email) {
       sendMail(

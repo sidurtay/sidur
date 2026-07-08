@@ -3,16 +3,15 @@ import * as tools from "@/lib/ai/tools";
 import { isManager as checkIsManager } from "@/lib/auth/permissions";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import type { ShiftCard, HoursCard, TipsCard, HolidayCard } from "@/lib/ai/cards";
+import { requireSession } from "@/lib/auth/session";
 
 // Backs the chat drawer's proactive "home screen" — the three things people
 // open the assistant to check most (today's shift, hours this week, tips
 // today) shown immediately as cards, with zero typing required.
 export async function GET(req: NextRequest) {
-  const businessId = req.nextUrl.searchParams.get("businessId");
-  const personId = req.nextUrl.searchParams.get("personId");
-  if (!businessId || !personId) {
-    return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
-  }
+  const { session, error: authError } = requireSession(req);
+  if (authError) return authError;
+  const { businessId, personId } = session;
 
   const supabase = createServiceRoleClient();
   const ctx = { businessId, personId, isManager: await checkIsManager(supabase, businessId, personId) };

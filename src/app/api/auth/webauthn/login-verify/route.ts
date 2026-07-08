@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getWebauthnConfig, CHALLENGE_TTL_MS } from "@/lib/webauthn";
+import { setSessionCookie } from "@/lib/auth/session";
 
 export async function POST(req: NextRequest) {
   try {
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
       supabase.from("businesses").select("business_id_num").eq("id", person.business_id).maybeSingle(),
     ]);
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       mustChangePassword: false,
       personId: person.id, businessId: person.business_id,
@@ -96,6 +97,8 @@ export async function POST(req: NextRequest) {
         })),
       },
     });
+    setSessionCookie(res, { personId: person.id, businessId: person.business_id });
+    return res;
   } catch (err) {
     console.error("webauthn login-verify error:", err);
     return NextResponse.json({ error: "שגיאת שרת" }, { status: 500 });

@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { requireSession } from "@/lib/auth/session";
 
 const MAX_BYTES = 3 * 1024 * 1024; // 3MB — plenty for a profile photo, small enough to keep storage/API calls cheap
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-// Anyone can upload a photo for their own account only — callerId must match
-// the personId being updated, same self-service-only pattern as change-password.
+// Anyone can upload a photo for their own account only — personId/businessId
+// come from the verified session, so it's never possible to overwrite
+// someone else's avatar no matter what the form data claims.
 export async function POST(req: NextRequest) {
   try {
+    const { session, error: authError } = requireSession(req);
+    if (authError) return authError;
+    const { personId, businessId } = session;
+
     const form = await req.formData();
     const file = form.get("file");
-    const personId = form.get("personId");
-    const businessId = form.get("businessId");
-    const callerId = form.get("callerId");
 
-    if (!(file instanceof File) || typeof personId !== "string" || typeof businessId !== "string" || typeof callerId !== "string") {
+    if (!(file instanceof File)) {
       return NextResponse.json({ error: "פרטים חסרים" }, { status: 400 });
-    }
-    if (personId !== callerId) {
-      return NextResponse.json({ error: "אפשר להעלות תמונה רק לחשבון שלך" }, { status: 403 });
     }
     if (!ALLOWED_TYPES.has(file.type)) {
       return NextResponse.json({ error: "רק תמונות JPG/PNG/WEBP נתמכות" }, { status: 400 });
