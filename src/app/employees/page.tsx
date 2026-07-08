@@ -339,7 +339,7 @@ export default function Employees() {
           <button key={cat} onClick={() => setActiveCat(cat)}
             className="text-xs font-semibold px-3.5 py-1.5 rounded-full flex-shrink-0 whitespace-nowrap transition-all"
             style={activeCat === cat
-              ? { background: "var(--navy)", color: "#fff" }
+              ? { background: "var(--blue)", color: "#fff" }
               : { background: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
             {cat}
           </button>
@@ -424,7 +424,7 @@ export default function Employees() {
                     <button key={r} onClick={() => changeRole(selected, r)} disabled={changingRole}
                       className="text-xs px-3 py-1.5 rounded-full"
                       style={selected.role === r
-                        ? { background: "var(--navy)", color: "#fff" }
+                        ? { background: "var(--blue)", color: "#fff" }
                         : { background: "var(--gray-bg)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
                       {r}
                     </button>
@@ -445,7 +445,7 @@ export default function Employees() {
                 <div className="flex items-center gap-2 flex-row">
                   <button onClick={() => saveWage(selected)} disabled={savingWage}
                     className="px-4 py-2 rounded-lg text-xs font-bold flex-shrink-0 flex items-center gap-1 flex-row"
-                    style={{ background: wageSaved ? "var(--green)" : "var(--navy)", color: "#fff" }}>
+                    style={{ background: wageSaved ? "var(--green)" : "var(--blue)", color: "#fff" }}>
                     {wageSaved ? <><Check size={12} /> נשמר</> : savingWage ? "שומר..." : "שמור"}
                   </button>
                   <input type="number" inputMode="decimal" value={wageInput} onChange={e => setWageInput(e.target.value)}
@@ -476,7 +476,7 @@ export default function Employees() {
               <>
                 <button onClick={() => openAttendance(selected)}
                   className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 mb-3"
-                  style={{ background: "var(--navy)", color: "#fff" }}>
+                  style={{ background: "var(--blue)", color: "#fff" }}>
                   <Clock size={14} /> דוח שעות נוכחות
                 </button>
 
@@ -640,7 +640,7 @@ export default function Employees() {
                     <button
                       onClick={() => setExpandedWeek(isExpanded ? null : wi)}
                       className="w-full flex items-center justify-between px-3 py-2.5 flex-row"
-                      style={{ background: isExpanded ? "var(--navy)" : "var(--surface)" }}>
+                      style={{ background: isExpanded ? "var(--blue)" : "var(--surface)" }}>
                       <div className="flex items-center gap-2 flex-row">
                         <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
                           style={{
@@ -746,7 +746,7 @@ export default function Employees() {
 
             {/* Monthly total */}
             <div className="mx-4 rounded-xl px-4 py-3 mb-3 flex items-center justify-between flex-row"
-              style={{ background: "var(--navy)" }}>
+              style={{ background: "var(--blue)" }}>
               <span className="text-lg font-bold text-white">{formatHours(totalMonthHours)}</span>
               <p className="text-sm font-semibold text-white">סה"כ חודשי — {currentMonth.label}</p>
             </div>
@@ -789,7 +789,7 @@ export default function Employees() {
             <p className="text-sm" style={{ color: "var(--text-secondary)" }}>עדיין אין דיווחי נוכחות — ברגע שידווח/תדווח כניסה, הכל יופיע כאן 🕓</p>
             <button onClick={() => setAttendanceEmp(null)}
               className="w-full mt-4 py-3 rounded-xl text-sm font-semibold text-white"
-              style={{ background: "var(--navy)" }}>
+              style={{ background: "var(--blue)" }}>
               סגור
             </button>
           </div>
@@ -875,7 +875,7 @@ export default function Employees() {
                     <button key={r} onClick={() => setNewRole(r)}
                       className="text-xs px-3 py-1.5 rounded-full"
                       style={newRole === r
-                        ? { background: "var(--navy)", color: "#fff" }
+                        ? { background: "var(--blue)", color: "#fff" }
                         : { background: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
                       {r}
                     </button>
@@ -923,7 +923,7 @@ export default function Employees() {
               {!sentResult && (
                 <button onClick={confirmAdd} disabled={sending || !newName.trim() || !newPhone.trim() || !newEmail.trim()}
                   className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-1 flex items-center justify-center gap-2"
-                  style={{ background: sending || !newName.trim() || !newPhone.trim() || !newEmail.trim() ? "var(--border)" : "var(--navy)" }}>
+                  style={{ background: sending || !newName.trim() || !newPhone.trim() || !newEmail.trim() ? "var(--border)" : "var(--blue)" }}>
                   {sending ? "שולח פרטי כניסה..." : "הוסף עובד ושלח פרטי כניסה"}
                 </button>
               )}

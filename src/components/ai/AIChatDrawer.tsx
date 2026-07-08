@@ -30,6 +30,12 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
   const [loading, setLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [error, setError] = useState("");
+  // Whether a message was actually sent during THIS time the drawer is open —
+  // deliberately separate from `messages.length`, which also counts history
+  // loaded from earlier sessions. Gating on message count meant the snapshot
+  // cards silently stopped appearing for anyone with prior chat history, even
+  // on a brand new open of the drawer.
+  const [hasSentThisSession, setHasSentThisSession] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const sentRef = useRef(false);
   const sentInitialRef = useRef(false);
@@ -94,6 +100,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
     const text = (textOverride ?? input).trim();
     if (!text || loading) return;
     sentRef.current = true;
+    setHasSentThisSession(true);
     setInput("");
     setError("");
     setMessages(prev => [...prev, { role: "user", content: text }]);
@@ -121,9 +128,11 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
     }
   }
 
-  // The snapshot only makes sense before a real conversation starts — once the
-  // person has sent something, this becomes a normal chat thread.
-  const showSnapshot = !loadingHistory && !loading && messages.length <= 1;
+  // The snapshot only makes sense before a real conversation starts *this
+  // time the drawer is open* — not gated on total message count, since that
+  // also includes history from earlier sessions and would otherwise hide the
+  // snapshot forever for anyone who's used the chat before.
+  const showSnapshot = !loadingHistory && !loading && !hasSentThisSession;
 
   return (
     <div

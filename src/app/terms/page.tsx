@@ -139,7 +139,7 @@ export default function TermsPage() {
           <FileText size={16} style={{ color: "var(--blue)" }} />
           <p className="text-base font-bold" style={{ color: "var(--text-main)" }}>תנאי שימוש</p>
         </div>
-        <div className="w-6 h-6 rounded-lg overflow-hidden flex-shrink-0">
+        <div className="flex-shrink-0">
           <LogoMark size={24} />
         </div>
       </div>

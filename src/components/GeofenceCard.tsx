@@ -166,7 +166,7 @@ export default function GeofenceCard({ businessId, callerId }: { businessId: str
                   <button key={r} onClick={() => { setRadius(r); save({ geofenceRadiusM: r }); }}
                     className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
                     style={radius === r
-                      ? { background: "var(--navy)", color: "#fff" }
+                      ? { background: "var(--blue)", color: "#fff" }
                       : { background: "var(--gray-bg)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
                     {r}מ&apos;
                   </button>

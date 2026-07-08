@@ -170,9 +170,9 @@ export function ChatCard({ card }: { card: AnyCard }) {
   if (!("role" in card)) {
     return (
       <div className="w-full max-w-[85%] rounded-2xl px-4 py-3.5 flex items-center gap-3 flex-row"
-        style={{ background: "var(--gray-bg)", border: "1px solid var(--border)" }}>
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#fff" }}>
-          <CalendarOff size={16} style={{ color: "var(--text-secondary)" }} />
+        style={{ background: "linear-gradient(135deg, rgba(249,115,22,0.1), rgba(249,115,22,0.02))", border: "1px solid var(--blue-border)" }}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--blue-light)" }}>
+          <CalendarOff size={16} style={{ color: "var(--blue)" }} />
         </div>
         <p className="text-xs flex-1 text-right" style={{ color: "var(--text-secondary)" }}>אין לך משמרת היום</p>
       </div>

@@ -618,7 +618,7 @@ export default function AISchedule() {
                       onClick={() => step === "done" ? router.push("/schedule?week=next") : handleChip(chip)}
                       className="px-3.5 py-2 rounded-xl text-xs font-semibold"
                       style={isPrimary
-                        ? { background: "var(--navy)", color: "#fff" }
+                        ? { background: "var(--blue)", color: "#fff" }
                         : { background: "var(--blue-light)", color: "var(--blue)", border: "1px solid var(--blue-border)" }}>
                       {chip}
                     </button>
@@ -645,7 +645,7 @@ export default function AISchedule() {
               style={{ border: "1px solid var(--blue)", background: "var(--surface)", width: 120 }} />
             <button onClick={() => { if (customNumVal) { handleNumber(customNumVal, customNumStep!); setCustomNumStep(null); }}}
               className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: "var(--navy)" }}>
+              style={{ background: "var(--blue)" }}>
               <Send size={13} color="white" />
             </button>
           </div>
@@ -660,7 +660,7 @@ export default function AISchedule() {
         <div className="flex items-center gap-2 flex-row">
           <button onClick={handleFreeText}
             className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ background: step === "done" ? "var(--gray-bg)" : "var(--navy)", opacity: step === "generating" ? 0.5 : 1 }}>
+            style={{ background: step === "done" ? "var(--gray-bg)" : "var(--blue)", opacity: step === "generating" ? 0.5 : 1 }}>
             <Send size={15} color={step === "done" ? "var(--text-secondary)" : "white"} />
           </button>
           <input

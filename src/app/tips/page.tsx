@@ -237,7 +237,7 @@ export default function Tips() {
             ) : tips.published ? (
               <button onClick={lockTips}
                 className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full"
-                style={{ background: "var(--navy)", color: "#fff" }}>
+                style={{ background: "var(--blue)", color: "#fff" }}>
                 <Lock size={10} /> נעל טיפים
               </button>
             ) : null}
@@ -275,7 +275,7 @@ export default function Tips() {
             <button key={mode} onClick={() => { setTipsMode(mode); localStorage.setItem("shiftpro_tips_mode", mode); }}
               className="flex-1 py-1.5 rounded-lg text-xs font-medium"
               style={tipsMode === mode
-                ? { background: "var(--navy)", color: "#fff" }
+                ? { background: "var(--blue)", color: "#fff" }
                 : { background: "var(--gray-bg)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
               {mode === "per-shift" ? "פר משמרת" : "יומי"}
             </button>
@@ -355,7 +355,7 @@ export default function Tips() {
         {!tips.published && !locked && (
           <button onClick={publish}
             className="w-full py-3.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
-            style={{ background: "var(--navy)" }}>
+            style={{ background: "var(--blue)" }}>
             <Send size={14} /> פרסם טיפים לעובדים
           </button>
         )}
@@ -381,7 +381,7 @@ export default function Tips() {
             </div>
             <button onClick={lockTips}
               className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
-              style={{ background: "var(--navy)", color: "#fff" }}>
+              style={{ background: "var(--blue)", color: "#fff" }}>
               <Lock size={14} /> נעל טיפים
             </button>
             <p className="text-[10px] text-center" style={{ color: "var(--text-secondary)" }}>

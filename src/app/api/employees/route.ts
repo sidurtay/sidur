@@ -43,22 +43,26 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("people")
-    .select("id, name, phone, email, role_key, initials, color, text_color, since_label, created_at, hourly_wage, avatar_url")
+    .select("id, name, phone, email, role_key, role_type, initials, color, text_color, since_label, created_at, hourly_wage, avatar_url")
     .eq("business_id", businessId)
-    .eq("role_type", "employee")
+    .in("role_type", ["employee", "manager"])
     .order("created_at");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Managers work shifts too (see ClockInOutCard) but don't hold a job-role
+  // key of their own — show them in the roster under a fixed "מנהל/ת" label
+  // instead of leaving the role field blank, without inventing a fake
+  // job-role key that would collide with real role-based schedule columns.
   const employees = (data || []).map(e => ({
     id: e.id,
     name: e.name,
     phone: e.phone,
     email: e.email,
-    role: e.role_key,
-    cat: e.role_key,
+    role: e.role_key || (e.role_type === "manager" ? "מנהל/ת" : e.role_key),
+    cat: e.role_key || (e.role_type === "manager" ? "מנהל/ת" : e.role_key),
     initials: e.initials,
     color: e.color,
     textColor: e.text_color,

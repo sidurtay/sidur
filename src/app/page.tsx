@@ -2,9 +2,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Coins, BarChart3, Check, Zap, Rocket, Crown, ShieldCheck, Sparkles, Clock, Star, X, MessageCircle, Bot, Smartphone, Building2, Lightbulb, CheckCircle2, ArrowLeft, Menu } from "lucide-react";
+import { Check, Zap, Rocket, Crown, ShieldCheck, Sparkles, Star, X, Bot, Lightbulb, CheckCircle2, ArrowLeft, Wand2, Fingerprint } from "lucide-react";
 import InstagramIcon from "@/components/InstagramIcon";
 import AccessibilityWidget from "@/components/AccessibilityWidget";
+import LandingNav from "@/components/LandingNav";
+import LandingSidBot from "@/components/LandingSidBot";
 import { PLANS } from "@/lib/plans";
 
 // This landing page is a public marketing surface, not the logged-in app —
@@ -74,13 +76,27 @@ function reviewInitials(name: string) {
   return ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase();
 }
 
-const HERO_PHOTO = "/schedule-hero.png";
+
+const HOW_IT_WORKS_STEPS = [
+  {
+    n: "1", Icon: Wand2, title: "סידור עבודה בונה את עצמו",
+    sub: "מזינים אילוצים וזמינות פעם אחת, וה-AI מרכיב סידור שבועי שלם תוך שניות — מחולק הוגן בין בוקר לערב, בלי להתנגש באף בקשת חופש. אתה רק מאשר, במקום לבזבז שעה בכל שבוע על אקסל.",
+  },
+  {
+    n: "2", Icon: Bot, title: "סיד — עוזר AI שעונה במקומך",
+    sub: "עובד שואל \"מתי המשמרת שלי\" או \"כמה טיפים עשיתי\" — וסיד עונה לו, 24/7, בלי שתרים טלפון בשעה 23:00. גם בונה סידורים, מזהה בקשות חופש, ומתריע על התנגשויות לפני שהן קורות.",
+  },
+  {
+    n: "3", Icon: Fingerprint, title: "נוכחות אמיתית, בזמן אמת",
+    sub: "העובדים מדווחים כניסה ויציאה בטביעת אצבע דיגיטלית מהטלפון, ואתה רואה בדיוק מי הגיע, מי איחר ומי בכלל לא הגיע — תוך שנייה. אופציונלי גם עם מיקום חי (GPS) בזמן המשמרת, לשקט נפשי מלא.",
+  },
+];
 
 export default function Splash() {
   const router = useRouter();
   const [checked, setChecked] = useState(false);
   const [annual, setAnnual] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidSide, setSidSide] = useState<"left" | "right">("right");
 
   useEffect(() => {
     const session = localStorage.getItem("shiftpro_session");
@@ -92,100 +108,28 @@ export default function Splash() {
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "#fff" }}>
-      <AccessibilityWidget />
+      <AccessibilityWidget shiftUp={sidSide === "left"} />
+      <LandingSidBot onSideChange={setSidSide} />
 
-      {/* ── Top bar (desktop) ── */}
-      <div className="hidden lg:flex flex-col w-full" style={{ borderBottom: `1px solid ${BORDER}` }}>
-        <div className="flex items-center justify-center gap-1.5 py-1.5 flex-row" style={{ background: NAVY }}>
-          <Star size={10} fill={ORANGE} style={{ color: ORANGE }} />
-          <span className="text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.85)" }}>
-            מלווים עסקים בישראל מאז 2023 · מעל 80 עסקים כבר בונים איתנו סידור
-          </span>
-        </div>
-        <div className="flex items-center justify-between px-10 py-4 max-w-6xl mx-auto w-full">
-          <span className="text-xl font-extrabold tracking-tight" style={{ color: NAVY, direction: "ltr" }}>Sidur</span>
-          <div className="flex items-center gap-7 flex-row">
-            <a href="#features" className="text-sm font-medium" style={{ color: NAVY }}>תכונות</a>
-            <a href="#how-it-works" className="text-sm font-medium" style={{ color: NAVY }}>איך זה עובד</a>
-            <a href="#customers" className="text-sm font-medium" style={{ color: NAVY }}>לקוחות שלנו</a>
-            <a href="#pricing" className="text-sm font-medium" style={{ color: NAVY }}>מחירים</a>
-          </div>
-          <div className="flex items-center gap-3 flex-row">
-            <button onClick={() => router.push("/login")}
-              className="px-5 py-2.5 rounded-xl text-sm font-semibold" style={{ color: NAVY, border: `1px solid ${BORDER}` }}>
-              כניסה
-            </button>
-            <button onClick={() => router.push("/register")}
-              className="px-5 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: ORANGE }}>
-              התחילו בחינם
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Top bar (mobile) — hamburger jumps between the landing page's own
-          sections (features/how-it-works/pricing), nothing app-related. ── */}
-      <div className="flex lg:hidden items-center justify-between px-5 py-4">
-        <button onClick={() => setMobileMenuOpen(true)} aria-label="תפריט"
-          className="w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: BG_ALT, border: `1px solid ${BORDER}` }}>
-          <Menu size={17} style={{ color: NAVY }} />
-        </button>
-        <span className="text-lg font-extrabold tracking-tight" style={{ color: NAVY, direction: "ltr" }}>Sidur</span>
-      </div>
-
-      {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-[95] flex justify-end" style={{ background: "rgba(11,30,61,0.4)" }}
-          onClick={() => setMobileMenuOpen(false)}>
-          <div onClick={e => e.stopPropagation()}
-            className="h-full flex flex-col" style={{ width: 260, background: "#fff", boxShadow: "-10px 0 40px rgba(11,30,61,0.25)" }}>
-            <div className="flex items-center justify-between px-4 pt-6 pb-4 flex-row" style={{ borderBottom: `1px solid ${BORDER}` }}>
-              <button onClick={() => setMobileMenuOpen(false)}><X size={18} style={{ color: MUTED }} /></button>
-              <span className="text-base font-extrabold" style={{ color: NAVY, direction: "ltr" }}>Sidur</span>
-            </div>
-            <div className="flex-1 flex flex-col gap-1 px-3 py-3">
-              {[
-                { href: "#features", label: "תכונות" },
-                { href: "#how-it-works", label: "איך זה עובד" },
-                { href: "#customers", label: "לקוחות שלנו" },
-                { href: "#pricing", label: "מחירים" },
-              ].map(l => (
-                <a key={l.href} href={l.href} onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-3 rounded-xl text-sm font-medium text-right" style={{ color: NAVY }}>
-                  {l.label}
-                </a>
-              ))}
-            </div>
-            <div className="flex flex-col gap-2 px-3 pb-8">
-              <button onClick={() => router.push("/register")}
-                className="w-full py-3 rounded-xl text-sm font-bold text-white" style={{ background: ORANGE }}>
-                התחילו בחינם
-              </button>
-              <button onClick={() => router.push("/login")}
-                className="w-full py-3 rounded-xl text-sm font-semibold" style={{ color: NAVY, border: `1px solid ${BORDER}` }}>
-                כניסה
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <LandingNav />
 
       {/* ── Hero — mobile ── */}
       <div className="flex lg:hidden flex-col items-center pb-8 px-6 text-center">
         <span className="px-3 py-1 rounded-full text-[11px] font-bold tracking-wide mb-5"
           style={{ background: ORANGE_LIGHT, color: ORANGE, border: `1px solid ${ORANGE_BORDER}` }}>
-          ✦ לבתי קפה, מסעדות וגלידריות
+          ✦ מערכת ניהול משמרות מבוססת AI
         </span>
 
-        <div className="relative mb-10" style={{ width: 300, height: 190 }}>
-          <div className="photo-card rounded-[24px] overflow-hidden w-full h-full" style={{ boxShadow: "0 25px 50px -15px rgba(11,30,61,0.3)", border: "4px solid #fff" }}>
+        <div className="relative mb-10 flex items-center justify-center w-full" style={{ maxWidth: 460, aspectRatio: "460 / 360" }}>
+          <div className="absolute rounded-full" style={{ width: "88%", aspectRatio: "1 / 1", background: "radial-gradient(circle, rgba(249,115,22,0.16), transparent 70%)", filter: "blur(10px)" }} />
+          <div className="hero-frame relative rounded-2xl overflow-hidden w-full h-full" style={{ background: "#fff", boxShadow: "0 30px 70px -20px rgba(11,30,61,0.28), 0 1px 0 rgba(11,30,61,0.04)", border: `1px solid ${BORDER}` }}>
+            <div className="flex items-center gap-1.5 px-3 flex-row" style={{ height: 24, background: "#F7F8FB", borderBottom: `1px solid ${BORDER}` }}>
+              <span className="rounded-full" style={{ width: 7, height: 7, background: "#E7EAF0" }} />
+              <span className="rounded-full" style={{ width: 7, height: 7, background: "#E7EAF0" }} />
+              <span className="rounded-full" style={{ width: 7, height: 7, background: "#E7EAF0" }} />
+            </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={HERO_PHOTO} alt="תצוגת סידור העבודה באפליקציית Sidur" className="w-full h-full object-cover" style={{ objectPosition: "top" }} />
-          </div>
-          <div className="float-slow-delay absolute -top-3 -left-6 rounded-xl px-2.5 py-2 flex items-center gap-1 flex-row"
-            style={{ background: ORANGE, boxShadow: "0 12px 24px -8px rgba(249,115,22,0.55)" }}>
-            <Sparkles size={12} style={{ color: "#fff" }} />
-            <span className="text-[9px] font-bold" style={{ color: "#fff" }}>סיד בנה את זה</span>
+            <img src="/carousel-schedule.jpg" alt="תצוגת סידור עבודה באפליקציית Sidur" className="w-full object-cover" style={{ height: "calc(100% - 24px)", objectPosition: "top" }} />
           </div>
         </div>
 
@@ -205,12 +149,12 @@ export default function Splash() {
         </div>
         <div className="flex flex-col gap-3 w-full" style={{ maxWidth: 320 }}>
           <button onClick={() => router.push("/register")}
-            className="w-full py-4 rounded-2xl text-base font-bold text-white" style={{ background: ORANGE }}>
-            התחל בחינם — בלי כרטיס אשראי
+            className="w-full py-4 rounded-2xl text-base font-bold text-white whitespace-nowrap" style={{ background: ORANGE }}>
+            התחלה בחינם
           </button>
           <button onClick={() => router.push("/login")}
-            className="w-full py-3.5 rounded-2xl text-sm font-semibold" style={{ color: NAVY, border: `1px solid ${BORDER}` }}>
-            כבר יש לי חשבון — כניסה
+            className="w-full py-3.5 rounded-2xl text-sm font-semibold whitespace-nowrap" style={{ color: NAVY, border: `1px solid ${BORDER}` }}>
+            כבר יש לי חשבון
           </button>
         </div>
       </div>
@@ -221,7 +165,7 @@ export default function Splash() {
           <div className="flex-1 text-right">
             <span className="inline-block px-3 py-1 rounded-full text-[11px] font-bold tracking-wide mb-6"
               style={{ background: ORANGE_LIGHT, color: ORANGE, border: `1px solid ${ORANGE_BORDER}` }}>
-              ✦ לבתי קפה, מסעדות וגלידריות
+              ✦ מערכת ניהול משמרות מבוססת AI
             </span>
             <h1 className="text-5xl font-bold leading-tight mb-5" style={{ color: NAVY }}>
               תפסיק לבנות סידור.<br />תתחיל לאשר אותו.
@@ -238,8 +182,8 @@ export default function Splash() {
                 "חלוקת טיפים הוגנת ואוטומטית",
               ].map(f => (
                 <div key={f} className="flex items-center gap-2 flex-row justify-end">
-                  <p className="text-sm" style={{ color: NAVY }}>{f}</p>
                   <CheckCircle2 size={16} style={{ color: ORANGE, flexShrink: 0 }} />
+                  <p className="text-sm" style={{ color: NAVY }}>{f}</p>
                 </div>
               ))}
             </div>
@@ -256,15 +200,16 @@ export default function Splash() {
             </div>
           </div>
 
-          <div className="flex-1 relative flex items-center justify-center" style={{ minHeight: 380 }}>
-            <div className="photo-card rounded-[28px] overflow-hidden" style={{ width: 520, height: 320, boxShadow: "0 30px 60px -15px rgba(11,30,61,0.35)", border: "5px solid #fff" }}>
+          <div className="flex-1 relative flex items-center justify-center" style={{ minHeight: 460 }}>
+            <div className="absolute rounded-full" style={{ width: 560, height: 560, background: "radial-gradient(circle, rgba(249,115,22,0.14), transparent 70%)", filter: "blur(20px)" }} />
+            <div className="hero-frame relative rounded-2xl overflow-hidden" style={{ width: 620, height: 420, background: "#fff", boxShadow: "0 40px 90px -25px rgba(11,30,61,0.3), 0 1px 0 rgba(11,30,61,0.04)", border: `1px solid ${BORDER}` }}>
+              <div className="flex items-center gap-2 px-4 flex-row" style={{ height: 34, background: "#F7F8FB", borderBottom: `1px solid ${BORDER}` }}>
+                <span className="rounded-full" style={{ width: 9, height: 9, background: "#E7EAF0" }} />
+                <span className="rounded-full" style={{ width: 9, height: 9, background: "#E7EAF0" }} />
+                <span className="rounded-full" style={{ width: 9, height: 9, background: "#E7EAF0" }} />
+              </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={HERO_PHOTO} alt="תצוגת סידור העבודה באפליקציית Sidur" className="w-full h-full object-cover" style={{ objectPosition: "top" }} />
-            </div>
-            <div className="float-slow-delay absolute -top-4 -right-4 rounded-2xl px-4 py-3 flex items-center gap-2 flex-row"
-              style={{ background: ORANGE, boxShadow: "0 15px 30px -8px rgba(249,115,22,0.55)" }}>
-              <Sparkles size={16} style={{ color: "#fff" }} />
-              <span className="text-xs font-bold" style={{ color: "#fff" }}>סיד בנה את זה תוך שניות</span>
+              <img src="/carousel-schedule.jpg" alt="תצוגת סידור עבודה באפליקציית Sidur" className="w-full object-cover" style={{ height: "calc(100% - 34px)", objectPosition: "top" }} />
             </div>
           </div>
         </div>
@@ -291,118 +236,67 @@ export default function Splash() {
         <RoiCalculator />
       </div>
 
-      {/* ── Features ── */}
-      <div id="features" className="px-4 lg:px-10 pt-10 lg:pt-16 pb-4 lg:max-w-6xl lg:mx-auto lg:w-full" style={{ scrollMarginTop: 88 }}>
-        <p className="text-center text-xl lg:text-3xl font-bold mb-1 lg:mb-2" style={{ color: NAVY }}>למה Sidur?</p>
-        <p className="text-center text-xs lg:text-sm mb-6 lg:mb-10" style={{ color: MUTED }}>
-          כל מה שצריך כדי להפסיק לרדוף אחרי הצוות
-        </p>
-        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-3 lg:gap-5">
-          {[
-            { Icon: Bot,        title: "סיד — העוזר החכם",     sub: "בונה סידור שלם, עונה לעובדים על שעות ומשמרות, ומקבל בקשות חופש — במקומך" },
-            { Icon: Smartphone, title: "התראות ישר לטלפון",    sub: "כל עובד יודע מתי הוא עובד בלי שתשלח הודעה אחת" },
-            { Icon: Clock,      title: "נוכחות בזמן אמת",     sub: "רואה מי הגיע, מי איחר ומי חסר — עוד לפני שנכנסת למשמרת" },
-            { Icon: Coins,      title: "חלוקת טיפים הוגנת",   sub: "מחושב אוטומטית לפי שעות, בוקר וערב בנפרד. אפס ויכוחים" },
-            { Icon: BarChart3,  title: "דוח שכר בלחיצה",      sub: "שעות, שכר וטיפים לכל עובד — מוכן לרואה החשבון בסוף החודש" },
-            { Icon: Building2,  title: "כמה סניפים, חשבון אחד", sub: "עוברים בין הסניפים בלחיצה, בלי להתנתק ולהתחבר מחדש" },
-          ].map(f => (
-            <div key={f.title} className="feature-card rounded-2xl p-5 flex items-start lg:flex-col gap-3 lg:gap-4 flex-row"
-              style={{ background: "#fff", border: `1px solid ${BORDER}` }}>
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: ORANGE_LIGHT }}>
-                <f.Icon size={19} style={{ color: ORANGE }} />
-              </div>
-              <div className="text-right flex-1">
-                <p className="text-sm lg:text-base font-semibold" style={{ color: NAVY }}>{f.title}</p>
-                <p className="text-xs lg:text-sm mt-0.5 leading-relaxed" style={{ color: MUTED }}>{f.sub}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* ── How it works ── */}
-      <div id="how-it-works" className="px-4 lg:px-10 pt-10 lg:pt-20 pb-2 lg:max-w-6xl lg:mx-auto lg:w-full" style={{ scrollMarginTop: 88 }}>
-        <p className="text-center text-xl lg:text-3xl font-bold mb-1 lg:mb-2" style={{ color: NAVY }}>שלוש דקות. זהו.</p>
-        <p className="text-center text-xs lg:text-sm mb-6 lg:mb-10" style={{ color: MUTED }}>
-          בלי הדרכות, בלי אקסלים, בלי כאב ראש
+      <div id="how-it-works" className="px-4 lg:px-10 pt-10 lg:pt-20 pb-2 lg:max-w-6xl lg:mx-auto lg:w-full relative" style={{ scrollMarginTop: 88 }}>
+        <div className="flex justify-center mb-3 lg:mb-4">
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold flex-row"
+            style={{ background: ORANGE_LIGHT, color: ORANGE, border: `1px solid ${ORANGE_BORDER}` }}>
+            <Sparkles size={11} /> למה סידור
+          </span>
+        </div>
+        <p className="text-center text-xl lg:text-3xl font-bold mb-1 lg:mb-2" style={{ color: NAVY }}>שלושה דברים שישנו לך את היום</p>
+        <p className="text-center text-xs lg:text-sm mb-8 lg:mb-14" style={{ color: MUTED }}>
+          לא עוד תוכנה כללית — הבנוי בדיוק בשביל בתי קפה, מסעדות וגלידריות
         </p>
-        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-3 lg:gap-5">
-          {[
-            { n: "1", title: "מוסיפים את הצוות", sub: "שם וטלפון לכל עובד — הם מקבלים הזמנה ונכנסים לבד. בלי להסביר לאף אחד כלום." },
-            { n: "2", title: "סיד בונה את הסידור", sub: "העוזר החכם מזין את האילוצים ומרכיב שבוע שלם תוך שניות. אתה רק מאשר." },
-            { n: "3", title: "העבודה מתנהלת לבד", sub: "העובדים רואים משמרות, מדווחים נוכחות ומבקשים החלפות — הכל בלי שתרים טלפון." },
-          ].map(s => (
-            <div key={s.n} className="flex items-start lg:flex-col gap-3 lg:gap-4 flex-row rounded-2xl px-4 lg:px-5 py-3.5 lg:py-5"
-              style={{ background: "#fff", border: `1px solid ${BORDER}` }}>
-              <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm lg:text-base font-extrabold text-white"
-                style={{ background: ORANGE }}>
-                {s.n}
+
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-5 lg:gap-6 relative">
+          {HOW_IT_WORKS_STEPS.map((s, i) => (
+            <div key={s.n} className="how-it-works-card flex flex-col rounded-2xl p-5 lg:p-6"
+              style={{
+                background: "#fff", border: `1px solid ${BORDER}`, boxShadow: "0 16px 36px -22px rgba(11,30,61,0.22)",
+                animationDelay: `${i * 0.15}s`,
+              }}>
+
+              <div className="flex items-center justify-between flex-row mb-4">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: ORANGE_LIGHT }}>
+                  <s.Icon size={22} style={{ color: ORANGE }} />
+                </div>
+                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-extrabold text-white"
+                  style={{ background: ORANGE }}>
+                  {s.n}
+                </div>
               </div>
+
               <div className="text-right flex-1">
-                <p className="text-sm lg:text-base font-bold" style={{ color: NAVY }}>{s.title}</p>
-                <p className="text-xs lg:text-sm mt-0.5 leading-relaxed" style={{ color: MUTED }}>{s.sub}</p>
+                <p className="text-base lg:text-lg font-bold mb-1.5" style={{ color: NAVY }}>{s.title}</p>
+                <p className="text-xs lg:text-sm leading-relaxed" style={{ color: MUTED }}>{s.sub}</p>
               </div>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* ── Why choose us — specialization + a real number, not just claims ── */}
-      <div className="px-4 lg:px-10 pt-10 lg:pt-20 pb-2 lg:max-w-6xl lg:mx-auto lg:w-full">
-        <p className="text-center text-xl lg:text-3xl font-bold mb-1 lg:mb-2" style={{ color: NAVY }}>למה לבחור ב-Sidur?</p>
-        <p className="text-center text-xs lg:text-sm mb-6 lg:mb-10" style={{ color: MUTED }}>
-          לא עוד תוכנה כללית לכל עסק — בנוי סביב איך שבאמת עובדים במסעדות ובתי קפה
-        </p>
+        <style jsx>{`
+          .how-it-works-card {
+            animation: how-it-works-in 0.6s cubic-bezier(0.22,1,0.36,1) both;
+            transition: transform 0.25s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s ease;
+          }
+          .how-it-works-card:hover { transform: translateY(-4px); box-shadow: 0 22px 44px -20px rgba(11,30,61,0.3); }
+          @keyframes how-it-works-in {
+            0% { opacity: 0; transform: translateY(18px); }
+            100% { opacity: 1; transform: translateY(0); }
+          }
+          button {
+            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease, opacity 0.15s ease;
+          }
+          button:hover:not(:disabled) { transform: scale(1.035); }
+          button:active:not(:disabled) { transform: scale(0.965); }
+        `}</style>
 
-        <div className="flex flex-col lg:flex-row-reverse gap-6 lg:gap-10 lg:items-center">
-          {/* Bar comparison — a concrete, believable number instead of a vague promise */}
-          <div className="flex-1 rounded-3xl p-5 lg:p-8" style={{ background: "#fff", border: `1px solid ${BORDER}`, boxShadow: "0 20px 45px -25px rgba(11,30,61,0.25)" }}>
-            <p className="text-xs lg:text-sm font-bold text-right mb-5" style={{ color: NAVY }}>זמן בנייה של סידור שבועי</p>
-            <div className="flex flex-col gap-4">
-              <div>
-                <div className="flex items-center justify-between flex-row mb-1.5">
-                  <span className="text-xs font-bold" style={{ color: MUTED }}>כ-3 שעות</span>
-                  <span className="text-xs font-medium" style={{ color: MUTED }}>לפני Sidur — אקסל / וואטסאפ</span>
-                </div>
-                <div className="w-full rounded-full overflow-hidden" style={{ height: 14, background: BG_ALT }}>
-                  <div className="h-full rounded-full" style={{ width: "100%", background: "#CBD3E1" }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between flex-row mb-1.5">
-                  <span className="text-xs font-bold" style={{ color: ORANGE }}>כ-5 דקות</span>
-                  <span className="text-xs font-medium" style={{ color: MUTED }}>עם Sidur — סיד בונה, אתה מאשר</span>
-                </div>
-                <div className="w-full rounded-full overflow-hidden" style={{ height: 14, background: BG_ALT }}>
-                  <div className="h-full rounded-full" style={{ width: "5%", background: ORANGE }} />
-                </div>
-              </div>
-            </div>
-            <p className="text-[11px] text-right mt-4" style={{ color: MUTED }}>
-              מבוסס על ממוצע זמן בנייה שדיווחו לנו עסקים עם 8–20 עובדים.
-            </p>
-          </div>
-
-          {/* Specialization bullets */}
-          <div className="flex-1 flex flex-col gap-3">
-            {[
-              { title: "בנוי למסעדות ובתי קפה, לא לכל עסק", sub: "תפקידים, משמרות בוקר/ערב, וטיפים — כבר מוגדרים בדיוק איך שהעולם הזה עובד, לא תבנית גנרית שצריך להתאים." },
-              { title: "לומד את התפקידים האמיתיים שלך", sub: "אחמ\"ש, מלצרים, מטבח, בר — סיד שואל על התפקידים שבאמת יש אצלך, לא מציע שאלות שלא רלוונטיות." },
-              { title: "מודע לחוקי העבודה בישראל", sub: "התראות לא-חוסמות על שעות שבועיות וימי עבודה לפי החוק — אתה מקבל מידע, לא הגבלה." },
-              { title: "עובד גם כשאתה לא מול המחשב", sub: "מהטלפון, בלחיצה — לעובדים ולמנהלים כאחד." },
-            ].map(item => (
-              <div key={item.title} className="feature-card flex items-start gap-3 flex-row rounded-2xl p-4"
-                style={{ background: "#fff", border: `1px solid ${BORDER}` }}>
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: ORANGE_LIGHT }}>
-                  <CheckCircle2 size={15} style={{ color: ORANGE }} />
-                </div>
-                <div className="text-right flex-1">
-                  <p className="text-sm font-bold" style={{ color: NAVY }}>{item.title}</p>
-                  <p className="text-xs mt-0.5 leading-relaxed" style={{ color: MUTED }}>{item.sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="flex justify-center mt-6 lg:mt-10">
+          <Link href="/features" className="flex items-center gap-1.5 text-sm font-bold flex-row" style={{ color: ORANGE }}>
+            לכל התכונות והפרטים המלאים <ArrowLeft size={15} />
+          </Link>
         </div>
       </div>
 
@@ -453,9 +347,9 @@ export default function Splash() {
             <button onClick={() => setAnnual(false)}
               className="text-xs font-semibold px-3 py-1.5 rounded-full transition-all"
               style={{
-                background: !annual ? NAVY : "transparent",
+                background: !annual ? ORANGE : "transparent",
                 color: !annual ? "#fff" : MUTED,
-                border: "1px solid " + (!annual ? NAVY : BORDER),
+                border: "1px solid " + (!annual ? ORANGE : BORDER),
               }}>
               חודשי
             </button>
@@ -480,7 +374,7 @@ export default function Splash() {
             </p>
           )}
 
-          <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 lg:gap-6 lg:items-end">
+          <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 lg:gap-6 lg:items-stretch">
             {PLANS.map(p => {
               const Icon = PLAN_ICONS[p.key] || Zap;
               const popular = !!p.badge;
@@ -489,7 +383,7 @@ export default function Splash() {
               const originalPrice = !isFree && annual ? `₪${p.monthlyPrice}` : null;
 
               return (
-                <div key={p.key} className="pricing-card rounded-3xl relative transition-all"
+                <div key={p.key} className="pricing-card rounded-3xl relative transition-all h-full flex flex-col"
                   style={{
                     background: "#fff",
                     border: popular ? `2px solid ${ORANGE}` : `1px solid ${BORDER}`,
@@ -505,7 +399,7 @@ export default function Splash() {
                       </span>
                     </div>
                   )}
-                  <div className="p-5 lg:p-6 pt-7 lg:pt-8">
+                  <div className="p-5 lg:p-6 pt-7 lg:pt-8 flex-1 flex flex-col">
                     <div className="flex items-center justify-between flex-row mb-5">
                       <p className="text-base lg:text-lg font-bold" style={{ color: NAVY }}>{p.name}</p>
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -535,11 +429,11 @@ export default function Splash() {
                     {isFree && <div className="mb-5" />}
 
                     <button onClick={() => router.push(`/register?plan=${p.key}`)}
-                      className="w-full py-3.5 rounded-2xl text-sm font-bold mb-5 transition-transform"
+                      className="w-full py-3.5 rounded-2xl text-sm font-bold mb-5 transition-transform glow-cta"
                       style={{
-                        background: popular ? ORANGE : NAVY,
+                        background: ORANGE,
                         color: "#fff",
-                        boxShadow: popular ? "0 10px 24px -8px rgba(249,115,22,0.55)" : "none",
+                        boxShadow: "0 10px 24px -8px rgba(249,115,22,0.55)",
                       }}>
                       {isFree ? "התחל בחינם — עכשיו" : popular ? `בחר ${p.name} — 14 יום חינם` : `שדרג ל-${p.name}`}
                     </button>
@@ -626,11 +520,11 @@ function RoiCalculator() {
   return (
     <div className="mx-4 lg:mx-0 mb-4 rounded-2xl overflow-hidden" style={{ border: `1px solid ${BORDER}` }}>
       <div className="px-5 lg:px-8 pt-4 lg:pt-6 pb-3 lg:pb-5" style={{ background: "#fff" }}>
-        <p className="flex items-center justify-end gap-1.5 flex-row text-sm lg:text-lg font-bold text-right mb-1" style={{ color: NAVY }}>
+        <p className="flex items-center justify-center gap-1.5 flex-row text-sm lg:text-lg font-bold text-center mb-1" style={{ color: NAVY }}>
           כמה Sidur חוסך לך?
           <Lightbulb size={15} style={{ color: ORANGE }} />
         </p>
-        <p className="text-xs lg:text-sm text-right mb-4" style={{ color: MUTED }}>
+        <p className="text-xs lg:text-sm text-center mb-4" style={{ color: MUTED }}>
           הזז לפי מספר העובדים בעסק שלך
         </p>
 
@@ -663,3 +557,4 @@ function RoiCalculator() {
     </div>
   );
 }
+

@@ -45,44 +45,58 @@ export default function AICharacter({ onClick, hasUnread, onSideChange }: { onCl
 
   const dockTX = side === "left" ? -(viewportW - EDGE * 2 - SIZE) : 0;
 
+  // Tracked on `window` rather than the button itself — relying on the
+  // button to keep receiving pointermove/pointerup (even via
+  // setPointerCapture) turned out to be unreliable for a fast real-world
+  // drag gesture. Window-level listeners always fire regardless of what's
+  // under the pointer, which is the standard robust pattern for a custom
+  // drag interaction like this.
   function handlePointerDown(e: React.PointerEvent) {
-    e.currentTarget.setPointerCapture(e.pointerId);
     startXRef.current = e.clientX;
     movedRef.current = false;
     setDragging(true);
     setPressed(true);
   }
 
-  function handlePointerMove(e: React.PointerEvent) {
+  useEffect(() => {
     if (!dragging) return;
-    const dx = e.clientX - startXRef.current;
-    if (Math.abs(dx) > CLICK_THRESHOLD) movedRef.current = true;
-    setDragX(dx);
-  }
 
-  function handlePointerUp() {
-    if (!dragging) return;
-    setDragging(false);
-    setPressed(false);
-
-    if (side === "right" && dragX < -DRAG_THRESHOLD) {
-      setSide("left");
-      localStorage.setItem(SIDE_KEY, "left");
-    } else if (side === "left" && dragX > DRAG_THRESHOLD) {
-      setSide("right");
-      localStorage.setItem(SIDE_KEY, "right");
+    function handleMove(e: PointerEvent) {
+      const dx = e.clientX - startXRef.current;
+      if (Math.abs(dx) > CLICK_THRESHOLD) movedRef.current = true;
+      setDragX(dx);
     }
-    setDragX(0);
 
-    if (!movedRef.current) onClick();
-  }
+    function handleUp() {
+      setDragging(false);
+      setPressed(false);
+      setDragX(currentDragX => {
+        if (side === "right" && currentDragX < -DRAG_THRESHOLD) {
+          setSide("left");
+          localStorage.setItem(SIDE_KEY, "left");
+        } else if (side === "left" && currentDragX > DRAG_THRESHOLD) {
+          setSide("right");
+          localStorage.setItem(SIDE_KEY, "right");
+        }
+        return 0;
+      });
+      if (!movedRef.current) onClick();
+    }
+
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+    window.addEventListener("pointercancel", handleUp);
+    return () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+      window.removeEventListener("pointercancel", handleUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragging, side]);
 
   return (
     <button
       onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={() => { setDragging(false); setPressed(false); setDragX(0); }}
       aria-label="פתח עוזר AI"
       style={{
         position: "fixed",
@@ -109,8 +123,8 @@ export default function AICharacter({ onClick, hasUnread, onSideChange }: { onCl
       }}>
         <span className="ai-character-pulse" />
         <span className="ai-character-sparkle">✦</span>
-        <Image src="/ai-character.png" alt="" width={SIZE} height={SIZE}
-          style={{ objectFit: "contain", width: "100%", height: "100%", filter: "drop-shadow(0 8px 16px rgba(20,24,31,0.45))" }} priority />
+        <Image src="/ai-character.png" alt="" width={SIZE} height={SIZE} draggable={false} priority
+          style={{ objectFit: "contain", width: "100%", height: "100%", filter: "drop-shadow(0 8px 16px rgba(20,24,31,0.45))", pointerEvents: "none", WebkitUserDrag: "none" } as React.CSSProperties} />
         {hasUnread && (
           <span style={{
             position: "absolute", top: 4, right: 4, width: 10, height: 10,

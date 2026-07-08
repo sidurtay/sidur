@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Clock, CalendarDays, Users, Sparkles, Plus, X, ArrowLeft } from "lucide-react";
-import Logo from "@/components/Logo";
+import { Check, Clock, CalendarDays, Users, Sparkles, Plus, X, ArrowLeft, MapPin } from "lucide-react";
+import GeofenceCard from "@/components/GeofenceCard";
 import { rolePresetFor, type RolePreset } from "@/lib/businessTypePresets";
 import type { ShiftSplit } from "@/lib/businessConfig";
 
@@ -18,7 +18,7 @@ const SHIFT_OPTIONS: { key: ShiftSplit; label: string; sub: string }[] = [
   { key: "morning_evening_night", label: "3 משמרות", sub: "בוקר, ערב ולילה" },
 ];
 
-type Step = "hours" | "shifts" | "roles" | "done";
+type Step = "hours" | "location" | "shifts" | "roles" | "done";
 
 export default function Onboarding() {
   const router = useRouter();
@@ -40,7 +40,9 @@ export default function Onboarding() {
   const [customRoles, setCustomRoles] = useState<string[]>([]);
   const [newRoleName, setNewRoleName] = useState("");
 
-  const steps: Step[] = plan === "starter" ? ["hours", "roles", "done"] : ["hours", "shifts", "roles", "done"];
+  const steps: Step[] = plan === "starter"
+    ? ["hours", "location", "roles", "done"]
+    : ["hours", "location", "shifts", "roles", "done"];
   const stepIndex = steps.indexOf(step);
 
   useEffect(() => {
@@ -139,6 +141,7 @@ export default function Onboarding() {
 
   const STEP_META: Record<Step, { title: string; icon: typeof Clock }> = {
     hours: { title: "שעות פעילות", icon: Clock },
+    location: { title: "מיקום העסק", icon: MapPin },
     shifts: { title: "מבנה משמרות", icon: CalendarDays },
     roles: { title: "תפקידים בעסק", icon: Users },
     done: { title: "מוכנים!", icon: Sparkles },
@@ -147,28 +150,37 @@ export default function Onboarding() {
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "var(--gray-bg)" }}>
       {step !== "done" && (
-        <div className="sticky top-0 z-20 flex flex-col" style={{ background: "var(--navy)" }}>
-          <div className="flex items-center justify-between px-5 pt-12 pb-4 flex-row">
+        <div className="sticky top-0 z-20 flex flex-col overflow-hidden relative"
+          style={{ background: "linear-gradient(135deg, #F97316, #FB8B3D)" }}>
+          <div className="onboarding-header-glow" />
+          <div className="flex items-center justify-between px-5 pt-12 pb-4 flex-row relative">
             <div className="w-9 h-9" />
-            <div className="flex items-center gap-2 flex-row">
-              <p className="text-white font-bold text-sm">Sidur</p>
-              <div className="w-7 h-7 rounded-lg overflow-hidden"><Logo size={28} /></div>
-            </div>
+            <p className="text-white font-bold text-sm" style={{ direction: "ltr" }}>Sidur</p>
           </div>
-          <div className="flex flex-row gap-1.5 px-5 pb-4">
+          <div className="flex flex-row gap-1.5 px-5 pb-4 relative">
             {steps.slice(0, -1).map((s, i) => (
-              <div key={s} className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.12)" }}>
+              <div key={s} className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.22)" }}>
                 <div className="h-full rounded-full transition-all duration-500"
-                  style={{ width: stepIndex >= i ? "100%" : "0%", background: stepIndex > i ? "#4ADE80" : "#F97316" }} />
+                  style={{ width: stepIndex >= i ? "100%" : "0%", background: stepIndex > i ? "#1F2937" : "#0B1E3D" }} />
               </div>
             ))}
           </div>
-          <div className="px-5 pb-5">
-            <p className="text-[11px] mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>
+          <div className="px-5 pb-5 relative">
+            <p className="text-[11px] mb-0.5" style={{ color: "rgba(255,255,255,0.75)" }}>
               שלב {stepIndex + 1} מתוך {steps.length - 1} · {businessName}
             </p>
             <p className="text-lg font-bold text-white">{STEP_META[step].title}</p>
           </div>
+
+          <style jsx>{`
+            .onboarding-header-glow {
+              position: absolute;
+              inset: -40% -10% auto -10%;
+              height: 140%;
+              background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.25), transparent 60%);
+              pointer-events: none;
+            }
+          `}</style>
         </div>
       )}
 
@@ -227,7 +239,22 @@ export default function Onboarding() {
           </div>
 
           <button onClick={goNext}
-            className="w-full py-4 rounded-2xl text-base font-bold text-white flex items-center justify-center gap-2"
+            className="w-full py-4 rounded-2xl text-base font-bold text-white flex items-center justify-center gap-2 glow-cta"
+            style={{ background: "var(--blue)" }}>
+            המשך <ArrowLeft size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Step: Location (optional, powers live in-shift map + geofence alerts) ── */}
+      {step === "location" && (
+        <div className="flex flex-col gap-5 px-4 pt-5 pb-10 animate-fade-slide-up">
+          <p className="text-sm text-right leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+            אופציונלי — קובע את מיקום העסק לצורך מפה חיה של עובדים במשמרת והתראה אם מישהו עוזב את השטח. אפשר לדלג ולהגדיר בכל שלב מאוחר יותר מההגדרות.
+          </p>
+          <GeofenceCard businessId={businessId} callerId={personId} />
+          <button onClick={goNext}
+            className="w-full py-4 rounded-2xl text-base font-bold text-white flex items-center justify-center gap-2 glow-cta"
             style={{ background: "var(--blue)" }}>
             המשך <ArrowLeft size={18} />
           </button>
@@ -259,7 +286,7 @@ export default function Onboarding() {
             ))}
           </div>
           <button onClick={goNext}
-            className="w-full py-4 rounded-2xl text-base font-bold text-white flex items-center justify-center gap-2"
+            className="w-full py-4 rounded-2xl text-base font-bold text-white flex items-center justify-center gap-2 glow-cta"
             style={{ background: "var(--blue)" }}>
             המשך <ArrowLeft size={18} />
           </button>
@@ -310,7 +337,7 @@ export default function Onboarding() {
           </div>
 
           <button onClick={finish} disabled={saving}
-            className="w-full py-4 rounded-2xl text-base font-bold text-white flex items-center justify-center gap-2"
+            className="w-full py-4 rounded-2xl text-base font-bold text-white flex items-center justify-center gap-2 glow-cta"
             style={{ background: saving ? "#9CA3AF" : "var(--blue)" }}>
             {saving ? "שומר..." : "סיימתי — לדשבורד"}
           </button>

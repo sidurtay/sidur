@@ -221,7 +221,7 @@ export default function EmployeeDashboard() {
                   </span>
                 ) : (
                   <button onClick={() => confirmAnnouncement(a.id)}
-                    className="text-xs font-semibold px-3 py-1 rounded-full text-white" style={{ background: "var(--navy)" }}>
+                    className="text-xs font-semibold px-3 py-1 rounded-full text-white" style={{ background: "var(--blue)" }}>
                     אשר קריאה
                   </button>
                 )}
@@ -237,7 +237,7 @@ export default function EmployeeDashboard() {
   return (
     <div className="flex flex-col min-h-screen pb-28" style={{ background: "var(--gray-bg)" }}>
       {/* Header */}
-      <div style={{ background: "var(--navy)" }} className="px-4 pt-12 pb-4">
+      <div style={{ background: "var(--blue)" }} className="px-4 pt-12 pb-5 rounded-b-[28px]">
         <div className="flex items-center justify-between flex-row">
           <div className="text-right">
             <p className="text-white text-base font-semibold">שלום, {name.split(" ")[0]}</p>

@@ -18,7 +18,7 @@ function applyPrefs(p: Prefs) {
   document.documentElement.classList.toggle("a11y-underline-links", p.underlineLinks);
 }
 
-export default function AccessibilityWidget() {
+export default function AccessibilityWidget({ shiftUp }: { shiftUp?: boolean }) {
   const [open, setOpen] = useState(false);
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
 
@@ -49,8 +49,9 @@ export default function AccessibilityWidget() {
         aria-label="הגדרות נגישות"
         className="fixed flex items-center justify-center rounded-full"
         style={{
-          bottom: 16, left: 16, zIndex: 90, width: 48, height: 48,
+          bottom: shiftUp ? 76 : 16, left: 16, zIndex: 90, width: 48, height: 48,
           background: "#0B1E3D", boxShadow: "0 8px 20px -4px rgba(11,30,61,0.5)",
+          transition: "bottom 0.42s cubic-bezier(0.22,1,0.36,1)",
         }}
       >
         <Accessibility size={22} color="#fff" />

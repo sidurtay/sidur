@@ -378,7 +378,7 @@ export default function Dashboard() {
                   </button>
                   <button onClick={() => respondSwap(sr.id, true)} disabled={!sr.proposerName}
                     className="flex-1 py-2 rounded-lg text-sm font-semibold text-white"
-                    style={{ background: sr.proposerName ? "var(--navy)" : "var(--border)" }}>
+                    style={{ background: sr.proposerName ? "var(--blue)" : "var(--border)" }}>
                     אשר החלפה
                   </button>
                 </div>
@@ -394,7 +394,7 @@ export default function Dashboard() {
         <SectionHeader icon={Megaphone} title="הודעות לצוות" tint="var(--blue)" tintBg="var(--blue-light)" action={
           <button onClick={openAdd}
             className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
-            style={{ background: "var(--navy)", color: "#fff" }}>
+            style={{ background: "var(--blue)", color: "#fff" }}>
             <Plus size={11} /> הודעה חדשה
           </button>
         } />
@@ -570,7 +570,7 @@ export default function Dashboard() {
                       </button>
                       <button onClick={() => respond(r.id, true)}
                         className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
-                        style={{ background: "var(--navy)" }}>
+                        style={{ background: "var(--blue)" }}>
                         אשר
                       </button>
                     </div>
@@ -660,7 +660,7 @@ export default function Dashboard() {
               </div>
               <button onClick={saveAnnouncement}
                 className="w-full py-3 rounded-xl text-sm font-semibold text-white"
-                style={{ background: annTitle.trim() ? "var(--navy)" : "var(--border)" }}>
+                style={{ background: annTitle.trim() ? "var(--blue)" : "var(--border)" }}>
                 {announcementSheet === "add" ? "שלח הודעה לצוות" : "שמור שינויים"}
               </button>
             </div>

@@ -18,6 +18,19 @@ const BUSINESS_TYPES = [
   { key: "other",      label: "אחר",             Icon: Building2 },
 ];
 
+// A distinct tint per business-type icon chip, cycled — reads as more
+// deliberate/designed than one flat gray icon color for every option.
+const TYPE_TINTS = [
+  { bg: "#FFE4D1", fg: "#C2410C" },
+  { bg: "#FDECC8", fg: "#92400E" },
+  { bg: "#E0F2E9", fg: "#15803D" },
+  { bg: "#FCE1D6", fg: "#9A3412" },
+  { bg: "#E4E9FB", fg: "#3730A3" },
+  { bg: "#FBEAD1", fg: "#B45309" },
+  { bg: "#FDE2E9", fg: "#BE185D" },
+  { bg: "#F5EDE4", fg: "#78350F" },
+];
+
 type Step = 1 | 2 | 3 | 4;
 
 export default function RegisterPage() {
@@ -153,23 +166,33 @@ function Register() {
           <div className="flex flex-col gap-3">
             <p className="text-sm font-bold text-right px-1" style={{ color: "var(--text-main)" }}>סוג העסק</p>
             <div className="grid grid-cols-3 gap-2">
-              {BUSINESS_TYPES.map((t, i) => (
-                <button key={t.key} onClick={() => setBizType(t.key)}
-                  className="flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-2xl transition-all active:scale-95 register-type-pop"
-                  style={{
-                    background: bizType === t.key ? "var(--blue-light)" : "var(--surface)",
-                    border: `1.5px solid ${bizType === t.key ? "var(--blue)" : "var(--border)"}`,
-                    boxShadow: bizType === t.key ? "0 0 0 3px rgba(249,115,22,0.12)" : "none",
-                    animationDelay: `${i * 0.035}s`,
-                  }}>
-                  <t.Icon size={20} strokeWidth={1.75}
-                    style={{ color: bizType === t.key ? "var(--blue)" : "var(--text-secondary)", transition: "transform 0.25s cubic-bezier(0.34,1.56,0.64,1)", transform: bizType === t.key ? "scale(1.12)" : "scale(1)" }} />
-                  <span className="text-[10px] font-semibold text-center leading-tight"
-                    style={{ color: bizType === t.key ? "var(--blue)" : "var(--text-secondary)" }}>
-                    {t.label}
-                  </span>
-                </button>
-              ))}
+              {BUSINESS_TYPES.map((t, i) => {
+                const tint = TYPE_TINTS[i % TYPE_TINTS.length];
+                const selected = bizType === t.key;
+                return (
+                  <button key={t.key} onClick={() => setBizType(t.key)}
+                    className="flex flex-col items-center gap-2 py-3.5 px-2 rounded-2xl transition-all active:scale-95 register-type-pop"
+                    style={{
+                      background: selected ? "var(--blue-light)" : "var(--surface)",
+                      border: `1.5px solid ${selected ? "var(--blue)" : "var(--border)"}`,
+                      boxShadow: selected ? "0 0 0 3px rgba(249,115,22,0.12)" : "none",
+                      animationDelay: `${i * 0.035}s`,
+                    }}>
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center transition-all"
+                      style={{
+                        background: selected ? "var(--blue)" : tint.bg,
+                        transform: selected ? "scale(1.1)" : "scale(1)",
+                      }}>
+                      <t.Icon size={17} strokeWidth={2}
+                        style={{ color: selected ? "#fff" : tint.fg }} />
+                    </div>
+                    <span className="text-[10px] font-semibold text-center leading-tight"
+                      style={{ color: selected ? "var(--blue)" : "var(--text-secondary)" }}>
+                      {t.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -324,7 +347,7 @@ function Register() {
           {error && <p className="text-xs text-center font-medium" style={{ color: "var(--red)" }}>{error}</p>}
 
           <button onClick={finish} disabled={loading}
-            className="w-full py-4 rounded-2xl text-sm font-bold text-white mt-1"
+            className={`w-full py-4 rounded-2xl text-sm font-bold text-white mt-1 ${loading ? "" : "glow-cta"}`}
             style={{ background: loading ? "var(--border)" : "var(--blue)", boxShadow: loading ? "none" : "0 4px 20px rgba(249,115,22,0.35)" }}>
             {loading ? "יוצר את החשבון שלך..." : `התחל עם ${PLANS.find(p2 => p2.key === plan)?.name} →`}
           </button>
@@ -340,49 +363,58 @@ function Register() {
 
       {/* ── Step 4: Success ── */}
       {step === 4 && (
-        <div className="flex flex-col flex-1" style={{ background: "var(--navy)" }}>
-          <div className="flex flex-col items-center justify-center flex-1 px-6 py-16 text-center">
+        <div className="flex flex-col flex-1 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #F97316, #FB8B3D)" }}>
+          <div className="register-header-glow" />
 
-            {/* Confetti-like mascot */}
-            <div className="w-24 h-24 rounded-3xl overflow-hidden mb-6 flex items-center justify-center"
-              style={{ boxShadow: "0 16px 48px rgba(249,115,22,0.4)", background: "rgba(249,115,22,0.12)", border: "2px solid rgba(249,115,22,0.3)" }}>
-              <Image src="/ai-character.png" alt="" width={96} height={96} style={{ objectFit: "cover" }} />
-            </div>
+          {/* A sliver of the orange backdrop stays visible above — the
+              content below sits in a sheet with rounded top corners, echoing
+              the same layered look as the in-app clock-in sheet. */}
+          <div className="flex-1 flex flex-col justify-end relative">
+            <div className="register-success-pop rounded-t-[32px] flex flex-col items-center px-6 pt-8 pb-10 text-center relative"
+              style={{ background: "var(--gray-bg)", boxShadow: "0 -20px 50px rgba(0,0,0,0.15)" }}>
 
-            <div className="mb-2 px-3 py-1 rounded-full text-[11px] font-bold"
-              style={{ background: "rgba(74,222,128,0.15)", color: "#4ADE80", border: "1px solid rgba(74,222,128,0.3)" }}>
-              ✓ החשבון נוצר בהצלחה
-            </div>
-            <h2 className="text-2xl font-bold text-white mt-3 mb-1">ברוכים הבאים, {managerName.split(" ")[0]}!</h2>
-            <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.55)" }}>
-              {bizName} מנוהל עכשיו ב-Sidur
-            </p>
+              <div className="w-10 h-1 rounded-full mb-5" style={{ background: "var(--border)" }} />
 
-            {/* Next steps */}
-            <div className="w-full max-w-xs rounded-2xl p-4 mb-6 text-right"
-              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <p className="text-xs font-bold text-white mb-3">עוד 2 דקות ומוכנים:</p>
-              {[
-                { Icon: CalendarDays, text: "שעות פעילות ומשמרות" },
-                { Icon: Users,        text: "התאמת התפקידים לעסק שלך" },
-                { Icon: Bot,          text: "אז — AI בונה את הסידור הראשון" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 flex-row py-2.5"
-                  style={{ borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.07)" : "none" }}>
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: "rgba(249,115,22,0.15)" }}>
-                    <item.Icon size={14} style={{ color: "#F97316" }} />
+              <div className="w-20 h-20 flex items-center justify-center mb-4"
+                style={{ filter: "drop-shadow(0 14px 24px rgba(249,115,22,0.3))" }}>
+                <Image src="/ai-character.png" alt="" width={80} height={80} style={{ objectFit: "contain", width: "100%", height: "100%" }} />
+              </div>
+
+              <div className="mb-2 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 flex-row"
+                style={{ background: "rgba(22,163,74,0.1)", color: "#16A34A", border: "1px solid rgba(22,163,74,0.25)" }}>
+                <Check size={12} strokeWidth={3} /> החשבון נוצר בהצלחה
+              </div>
+              <h2 className="text-2xl font-bold mt-3 mb-1" style={{ color: "var(--text-main)" }}>ברוכים הבאים, {managerName.split(" ")[0]}!</h2>
+              <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>
+                {bizName} מנוהל עכשיו ב-Sidur
+              </p>
+
+              {/* Next steps */}
+              <div className="w-full max-w-xs rounded-2xl p-4 mb-7 text-right"
+                style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 16px 40px -24px rgba(11,30,61,0.25)" }}>
+                <p className="text-xs font-bold mb-3" style={{ color: "var(--text-main)" }}>עוד 2 דקות ומוכנים:</p>
+                {[
+                  { Icon: CalendarDays, text: "שעות פעילות ומשמרות" },
+                  { Icon: Users,        text: "התאמת התפקידים לעסק שלך" },
+                  { Icon: Bot,          text: "אז — AI בונה את הסידור הראשון" },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3 flex-row py-2.5"
+                    style={{ borderBottom: i < 2 ? "1px solid var(--border)" : "none" }}>
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: "var(--blue-light)" }}>
+                      <item.Icon size={14} style={{ color: "var(--blue)" }} />
+                    </div>
+                    <p className="text-sm" style={{ color: "var(--text-main)" }}>{item.text}</p>
                   </div>
-                  <p className="text-sm text-white">{item.text}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            <button onClick={() => router.replace("/onboarding")}
-              className="w-full max-w-xs py-4 rounded-2xl text-base font-bold text-white"
-              style={{ background: "var(--blue)", boxShadow: "0 8px 24px rgba(249,115,22,0.4)" }}>
-              בואו נכיר את העסק שלך →
-            </button>
+              <button onClick={() => router.replace("/onboarding")}
+                className="w-full max-w-xs py-4 rounded-2xl text-base font-bold text-white glow-cta"
+                style={{ background: "var(--blue)", boxShadow: "0 8px 24px rgba(249,115,22,0.35)" }}>
+                בואו נכיר את העסק שלך →
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -443,6 +475,11 @@ function Register() {
           0% { opacity: 0; transform: translateY(14px); }
           100% { opacity: 1; transform: translateY(0); }
         }
+        .register-success-pop { animation: register-success-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+        @keyframes register-success-pop {
+          0% { opacity: 0; transform: scale(0.7); }
+          100% { opacity: 1; transform: scale(1); }
+        }
       `}</style>
     </div>
   );
@@ -462,7 +499,7 @@ function Field({ label, sub, children }: { label: string; sub?: string; children
 function Cta({ onClick, disabled, children }: { onClick: () => void; disabled: boolean; children: React.ReactNode }) {
   return (
     <button onClick={onClick} disabled={disabled}
-      className="w-full py-4 rounded-2xl text-base font-bold text-white transition-all"
+      className={`w-full py-4 rounded-2xl text-base font-bold text-white transition-all ${disabled ? "" : "glow-cta"}`}
       style={{
         background: disabled ? "var(--border)" : "#F97316",
         boxShadow: disabled ? "none" : "0 4px 20px rgba(249,115,22,0.3)",

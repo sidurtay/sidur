@@ -106,6 +106,20 @@ body {
 .feature-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
 .feature-card:hover { transform: translateY(-4px); box-shadow: 0 16px 32px -16px rgba(11,30,61,0.18); }
 
+/* Glossy highlight for primary CTA buttons — a soft, even sheen across the
+   full width of the top half, not a lopsided spotlight (a radial highlight
+   read as "half the button lit, half not" on a short wide button). */
+.glow-cta { position: relative; overflow: hidden; isolation: isolate; }
+.glow-cta::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 55%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.3), rgba(255,255,255,0));
+  pointer-events: none;
+  z-index: -1;
+}
+
 .testimonial-card { transition: transform 0.25s ease; }
 .testimonial-card:hover { transform: translateY(-4px); }
 

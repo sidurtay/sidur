@@ -505,8 +505,8 @@ function Schedule() {
               <button key={d.d} onClick={() => setActiveDay(d.d)}
                 className="relative flex flex-col items-center px-3 py-1.5 rounded-2xl flex-shrink-0 text-xs font-medium"
                 style={activeDay === d.d
-                  ? { background: "var(--navy)", color: "#fff" }
-                  : { background: "var(--surface)", color: "var(--text-secondary)", border: `1px solid ${isToday ? "var(--navy)" : "var(--border)"}` }}>
+                  ? { background: "var(--blue)", color: "#fff" }
+                  : { background: "var(--surface)", color: "var(--text-secondary)", border: `1px solid ${isToday ? "var(--blue)" : "var(--border)"}` }}>
                 {hasPendingSwap && (
                   <span className="absolute top-0.5 left-0.5 w-2 h-2 rounded-full" style={{ background: "var(--blue)" }} title="בקשת החלפה ממתינה" />
                 )}
@@ -532,7 +532,7 @@ function Schedule() {
                 <button key={s} onClick={() => setSelectedShift(s)}
                   className="flex-1 py-2 rounded-xl text-xs font-bold"
                   style={selectedShift === s
-                    ? { background: "var(--navy)", color: "#fff" }
+                    ? { background: "var(--blue)", color: "#fff" }
                     : { background: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
                   {SHIFT_BUCKET_LABEL[s]}
                 </button>
@@ -665,7 +665,7 @@ function Schedule() {
                   </p>
                   <div className="flex gap-2 flex-row">
                     <button onClick={() => setRoleRecurring(key, true)}
-                      className="flex-1 py-2 rounded-lg text-xs font-semibold text-white" style={{ background: "var(--navy)" }}>
+                      className="flex-1 py-2 rounded-lg text-xs font-semibold text-white glow-cta" style={{ background: "var(--blue)" }}>
                       כן, השאר קבוע
                     </button>
                     <button onClick={() => setRoleRecurring(key, false)}
@@ -702,8 +702,8 @@ function Schedule() {
 
         {/* Save */}
         <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2000); }}
-          className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-1"
-          style={{ background: saved ? "var(--green)" : "var(--navy)" }}>
+          className={`w-full py-3 rounded-xl text-sm font-semibold text-white mt-1 ${saved ? "" : "glow-cta"}`}
+          style={{ background: saved ? "var(--green)" : "var(--blue)" }}>
           {saved ? "הסידור נשמר" : "שמור סידור"}
         </button>
         </>
@@ -843,6 +843,12 @@ function Schedule() {
           // "+" row that's never fully used up, so adding another person to a
           // day that already has someone never feels blocked or capped.
           const slotCount = Math.max(0, ...week.days.map(d => dayLists[d.d].length)) + 1;
+          // בלת"ם can hold someone who isn't in the employees roster at all
+          // (e.g. a manager clocking themselves in unplanned) — so its section
+          // must stay visible whenever it already has assignments, even if the
+          // employees list itself is empty.
+          const hasAnyAssignment = Object.values(dayLists).some(list => list.length > 0);
+          const showEmptyState = roleEmployees.length === 0 && !(key === ADHOC_ROLE_KEY && hasAnyAssignment);
 
           return (
             <div key={key}>
@@ -853,13 +859,13 @@ function Schedule() {
                 </span>
               </div>
 
-              {roleEmployees.length === 0 && (
+              {showEmptyState && (
                 <div className="px-4 py-3 flex items-center" style={{ borderTop: "1px solid var(--border)" }}>
                   <p className="text-xs" style={{ color: "var(--text-secondary)" }}>אין עדיין עובדים בתפקיד זה</p>
                 </div>
               )}
 
-              {roleEmployees.length > 0 && Array.from({ length: slotCount }).map((_, slot) => (
+              {!showEmptyState && Array.from({ length: slotCount }).map((_, slot) => (
                 <div key={slot} className="grid" style={{ gridTemplateColumns: "repeat(7, minmax(130px, 1fr))" }}>
                   {week.days.map(d => {
                     const a = dayLists[d.d][slot];
@@ -916,8 +922,8 @@ function Schedule() {
       {/* Save */}
       {!loading && (
         <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2000); }}
-          className="mt-6 px-8 py-3 rounded-xl text-sm font-semibold text-white self-start"
-          style={{ background: saved ? "var(--green)" : "var(--navy)" }}>
+          className={`mt-6 px-8 py-3 rounded-xl text-sm font-semibold text-white self-start ${saved ? "" : "glow-cta"}`}
+          style={{ background: saved ? "var(--green)" : "var(--blue)" }}>
           {saved ? "הסידור נשמר" : "שמור סידור"}
         </button>
       )}
@@ -1085,8 +1091,8 @@ function Schedule() {
               </div>
             </div>
             <button onClick={saveTime}
-              className="w-full py-3 rounded-2xl text-sm font-bold text-white"
-              style={{ background: "var(--navy)" }}>
+              className="w-full py-3 rounded-2xl text-sm font-bold text-white glow-cta"
+              style={{ background: "var(--blue)" }}>
               שמור — עדכון ידני
             </button>
           </div>

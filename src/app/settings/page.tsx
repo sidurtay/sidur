@@ -373,7 +373,7 @@ export default function Settings() {
                   <button key={mode} onClick={() => setShiftSplit(mode)}
                     className="rounded-xl p-3 text-right flex items-center justify-between flex-row"
                     style={shiftSplit === mode
-                      ? { background: "var(--navy)", border: "2px solid var(--navy)" }
+                      ? { background: "var(--blue)", border: "2px solid var(--blue)" }
                       : { background: "var(--gray-bg)", border: "1.5px solid var(--border)" }}>
                     <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{ border: `2px solid ${shiftSplit === mode ? "#fff" : "var(--border)"}` }}>
@@ -403,7 +403,7 @@ export default function Settings() {
               <button key={mode} onClick={() => setTipsMode(mode)}
                 className="flex-1 rounded-xl p-3 text-right flex flex-col gap-1"
                 style={tipsMode === mode
-                  ? { background: "var(--navy)", border: "2px solid var(--navy)" }
+                  ? { background: "var(--blue)", border: "2px solid var(--blue)" }
                   : { background: "var(--gray-bg)", border: "1.5px solid var(--border)" }}>
                 <div className="flex items-center justify-between flex-row">
                   <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
@@ -518,7 +518,7 @@ export default function Settings() {
               action={
                 <button onClick={() => { setSupportOpen(true); setTicketResult(null); }}
                   className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
-                  style={{ background: "var(--navy)", color: "#fff" }}>
+                  style={{ background: "var(--blue)", color: "#fff" }}>
                   <Plus size={11} /> פנייה חדשה
                 </button>
               } />
@@ -659,7 +659,7 @@ export default function Settings() {
             <div className="px-4 mt-3">
               <button onClick={() => setPermPopupRole(null)}
                 className="w-full py-3 rounded-xl text-sm font-semibold text-white"
-                style={{ background: "var(--navy)" }}>
+                style={{ background: "var(--blue)" }}>
                 סיום
               </button>
             </div>
@@ -696,7 +696,7 @@ export default function Settings() {
               </button>
               <button onClick={() => commitSave("permanent")}
                 className="w-full rounded-2xl px-4 py-4 text-right flex flex-col gap-0.5"
-                style={{ background: "var(--navy)", border: "1.5px solid var(--navy)" }}>
+                style={{ background: "var(--blue)", border: "1.5px solid var(--blue)" }}>
                 <p className="text-sm font-semibold text-white">לתמיד</p>
                 <p className="text-xs" style={{ color: "rgba(255,255,255,0.7)" }}>
                   כל הסידורים מעכשיו יתבססו על ההגדרות החדשות.
