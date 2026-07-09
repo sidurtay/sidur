@@ -123,8 +123,9 @@ export default function AICharacter({ onClick, hasUnread, onSideChange }: { onCl
       }}>
         <span className="ai-character-pulse" />
         <span className="ai-character-sparkle">✦</span>
+        <div style={{ position: "absolute", inset: 3, borderRadius: "50%", background: "#fff", boxShadow: "0 8px 16px rgba(20,24,31,0.45)" }} />
         <Image src="/ai-character.png" alt="" width={SIZE} height={SIZE} draggable={false} priority
-          style={{ objectFit: "contain", width: "100%", height: "100%", filter: "drop-shadow(0 8px 16px rgba(20,24,31,0.45))", pointerEvents: "none", WebkitUserDrag: "none" } as React.CSSProperties} />
+          style={{ position: "relative", objectFit: "contain", width: "100%", height: "100%", pointerEvents: "none", WebkitUserDrag: "none" } as React.CSSProperties} />
         {hasUnread && (
           <span style={{
             position: "absolute", top: 4, right: 4, width: 10, height: 10,

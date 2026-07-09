@@ -128,8 +128,11 @@ export default function LandingSidBot({ onSideChange }: { onSideChange?: (side: 
           transition: dragging ? "none" : "transform 0.42s cubic-bezier(0.22,1,0.36,1)",
         }}>
         {open ? <X size={20} color="#fff" /> : (
-          <Image src="/ai-character.png" alt="סיד" width={44} height={44} draggable={false}
-            style={{ objectFit: "contain", width: "100%", height: "100%", filter: "drop-shadow(0 8px 16px rgba(20,24,31,0.35))", pointerEvents: "none", WebkitUserDrag: "none" } as React.CSSProperties} />
+          <>
+            <div style={{ position: "absolute", inset: 3, borderRadius: "50%", background: "#fff", boxShadow: "0 8px 16px rgba(20,24,31,0.35)" }} />
+            <Image src="/ai-character.png" alt="סיד" width={44} height={44} draggable={false}
+              style={{ position: "relative", objectFit: "contain", width: "100%", height: "100%", pointerEvents: "none", WebkitUserDrag: "none" } as React.CSSProperties} />
+          </>
         )}
       </button>
 
