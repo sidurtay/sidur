@@ -24,6 +24,18 @@ import { requiresClockOutApproval, setRequiresClockOutApproval } from "@/lib/clo
 type SaveScope = "permanent" | "week";
 type TipsMode  = "daily" | "per-shift";
 
+// Groups clusters of related settings cards under one clear category label —
+// separates "the business" from "operations" from "my account" from "help",
+// instead of one long undifferentiated stack of cards.
+function GroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[11px] font-bold uppercase tracking-wide px-1 mb-1 mt-1 text-right"
+      style={{ color: "var(--text-secondary)", letterSpacing: "0.06em" }}>
+      {children}
+    </p>
+  );
+}
+
 const PERMISSIONS = [
   { key: "editSchedule",        label: "עריכת סידור עבודה"     },
   { key: "approveSwaps",        label: "אישור החלפות משמרת"    },
@@ -268,6 +280,8 @@ export default function Settings() {
 
       <div className="px-3 py-3 flex flex-col gap-4">
 
+        <GroupLabel>העסק</GroupLabel>
+
         {/* Business details */}
         <div>
           <SectionHeader icon={Store} title="פרטי העסק" />
@@ -341,6 +355,8 @@ export default function Settings() {
           </div>
           </Card>
         </div>
+
+        <GroupLabel>סידור ותפעול</GroupLabel>
 
         {/* Shift split — gated by plan */}
         <div>
@@ -419,14 +435,31 @@ export default function Settings() {
           </Card>
         </div>
 
-        {/* Monthly payroll / accountant export */}
-        {businessId && personId && <PayrollExportCard businessId={businessId} callerId={personId} />}
-
         {/* Deadline for employees to submit their weekly availability constraints */}
         {businessId && personId && <ConstraintsDeadlineCard businessId={businessId} callerId={personId} />}
 
         {/* Business location + radius for the foreground in-shift GPS/map feature */}
         {businessId && personId && <GeofenceCard businessId={businessId} callerId={personId} />}
+
+        {/* Clock in/out via app */}
+        <div>
+          <SectionHeader icon={Fingerprint} title="דיווח נוכחות באפליקציה" />
+          <Card padded={false}>
+          <p className="text-xs px-3 pt-2.5 pb-2 text-right leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+            עובדים מדווחים כניסה ויציאה מהאפליקציה, ואתה מאשר בלחיצה. כניסה דורשת אישור תמיד.
+          </p>
+          <div className="w-full flex items-center justify-between px-3 py-3 flex-row">
+            <button onClick={toggleClockOutApproval} className="relative flex-shrink-0"
+              style={{ width: 36, height: 20, borderRadius: 10, background: clockOutApproval ? "var(--navy)" : "var(--border)", transition: "background 0.2s" }}>
+              <span className="absolute top-1 rounded-full bg-white transition-all"
+                style={{ width: 14, height: 14, right: clockOutApproval ? 3 : 19, transition: "right 0.2s" }} />
+            </button>
+            <p className="text-sm">דרוש אישור מנהל גם ביציאה ממשמרת</p>
+          </div>
+          </Card>
+        </div>
+
+        <GroupLabel>צוות</GroupLabel>
 
         {/* Roles + permissions */}
         <div>
@@ -472,6 +505,11 @@ export default function Settings() {
           </Card>
         </div>
 
+        {/* Monthly payroll / accountant export */}
+        {businessId && personId && <PayrollExportCard businessId={businessId} callerId={personId} />}
+
+        <GroupLabel>החשבון שלי</GroupLabel>
+
         {/* Profile */}
         {businessId && personId && profile && (
           <ProfileCard
@@ -490,23 +528,7 @@ export default function Settings() {
         {/* Fingerprint login + push notifications, one minimal split row */}
         {businessId && personId && <SecurityRow businessId={businessId} personId={personId} />}
 
-        {/* Clock in/out via app */}
-        <div>
-          <SectionHeader icon={Fingerprint} title="דיווח נוכחות באפליקציה" />
-          <Card padded={false}>
-          <p className="text-xs px-3 pt-2.5 pb-2 text-right leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-            עובדים מדווחים כניסה ויציאה מהאפליקציה, ואתה מאשר בלחיצה. כניסה דורשת אישור תמיד.
-          </p>
-          <div className="w-full flex items-center justify-between px-3 py-3 flex-row">
-            <button onClick={toggleClockOutApproval} className="relative flex-shrink-0"
-              style={{ width: 36, height: 20, borderRadius: 10, background: clockOutApproval ? "var(--navy)" : "var(--border)", transition: "background 0.2s" }}>
-              <span className="absolute top-1 rounded-full bg-white transition-all"
-                style={{ width: 14, height: 14, right: clockOutApproval ? 3 : 19, transition: "right 0.2s" }} />
-            </button>
-            <p className="text-sm">דרוש אישור מנהל גם ביציאה ממשמרת</p>
-          </div>
-          </Card>
-        </div>
+        <GroupLabel>עזרה ותמיכה</GroupLabel>
 
         {/* FAQ — visible to everyone; manager-only questions filtered by role */}
         <FaqAccordion isManager={role === "manager"} />
