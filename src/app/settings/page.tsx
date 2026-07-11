@@ -24,18 +24,6 @@ import { requiresClockOutApproval, setRequiresClockOutApproval } from "@/lib/clo
 type SaveScope = "permanent" | "week";
 type TipsMode  = "daily" | "per-shift";
 
-// Groups clusters of related settings cards under one clear category label —
-// separates "the business" from "operations" from "my account" from "help",
-// instead of one long undifferentiated stack of cards.
-function GroupLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[11px] font-bold uppercase tracking-wide px-1 mb-1 mt-1 text-right"
-      style={{ color: "var(--text-secondary)", letterSpacing: "0.06em" }}>
-      {children}
-    </p>
-  );
-}
-
 const PERMISSIONS = [
   { key: "editSchedule",        label: "עריכת סידור עבודה"     },
   { key: "approveSwaps",        label: "אישור החלפות משמרת"    },
@@ -58,8 +46,18 @@ const DEFAULT_PERMS: Record<string, PermMap> = {
   "שטיפה":  { editSchedule: false, approveSwaps: false, publishTips: false, addEmployee: false, manageAnnouncements: false },
 };
 
+type Category = "business" | "ops" | "team" | "account" | "help";
+const CATEGORIES: { id: Category; label: string }[] = [
+  { id: "business", label: "העסק" },
+  { id: "ops",      label: "סידור ותפעול" },
+  { id: "team",     label: "צוות" },
+  { id: "account",  label: "החשבון שלי" },
+  { id: "help",     label: "עזרה ותמיכה" },
+];
+
 export default function Settings() {
   const router = useRouter();
+  const [activeCategory, setActiveCategory] = useState<Category>("business");
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [bizName, setBizName] = useState(DEFAULT_CONFIG.bizName);
   const [bizId,   setBizId]   = useState(DEFAULT_CONFIG.bizId);
@@ -278,9 +276,22 @@ export default function Settings() {
         <p className="text-base font-bold text-right">הגדרות עסק</p>
       </div>
 
+      <div className="sticky top-0 z-10 bg-white flex flex-row gap-1.5 px-3 py-2.5 overflow-x-auto"
+        style={{ borderBottom: "1px solid var(--border)" }}>
+        {CATEGORIES.map(c => (
+          <button key={c.id} onClick={() => setActiveCategory(c.id)}
+            className="flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap"
+            style={activeCategory === c.id
+              ? { background: "var(--blue)", color: "#fff" }
+              : { background: "var(--gray-bg)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+            {c.label}
+          </button>
+        ))}
+      </div>
+
       <div className="px-3 py-3 flex flex-col gap-4">
 
-        <GroupLabel>העסק</GroupLabel>
+        {activeCategory === "business" && <>
 
         {/* Business details */}
         <div>
@@ -356,7 +367,9 @@ export default function Settings() {
           </Card>
         </div>
 
-        <GroupLabel>סידור ותפעול</GroupLabel>
+        </>}
+
+        {activeCategory === "ops" && <>
 
         {/* Shift split — gated by plan */}
         <div>
@@ -459,7 +472,9 @@ export default function Settings() {
           </Card>
         </div>
 
-        <GroupLabel>צוות</GroupLabel>
+        </>}
+
+        {activeCategory === "team" && <>
 
         {/* Roles + permissions */}
         <div>
@@ -508,7 +523,9 @@ export default function Settings() {
         {/* Monthly payroll / accountant export */}
         {businessId && personId && <PayrollExportCard businessId={businessId} callerId={personId} />}
 
-        <GroupLabel>החשבון שלי</GroupLabel>
+        </>}
+
+        {activeCategory === "account" && <>
 
         {/* Profile */}
         {businessId && personId && profile && (
@@ -528,7 +545,9 @@ export default function Settings() {
         {/* Fingerprint login + push notifications, one minimal split row */}
         {businessId && personId && <SecurityRow businessId={businessId} personId={personId} />}
 
-        <GroupLabel>עזרה ותמיכה</GroupLabel>
+        </>}
+
+        {activeCategory === "help" && <>
 
         {/* FAQ — visible to everyone; manager-only questions filtered by role */}
         <FaqAccordion isManager={role === "manager"} />
@@ -564,6 +583,8 @@ export default function Settings() {
             </Card>
           </div>
         )}
+
+        </>}
 
         {/* Save */}
         <button onClick={handleSaveClick}
