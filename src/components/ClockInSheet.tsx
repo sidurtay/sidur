@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { X, ArrowLeftRight, CalendarClock, CalendarOff } from "lucide-react";
 import ClockInOutCard from "./ClockInOutCard";
 
@@ -36,6 +37,7 @@ function LiveClock() {
 // so the page underneath stays visible, reinforcing that this is a quick
 // action layered on top of wherever you already are, not a separate page.
 export default function ClockInSheet({ businessId, personId, onClose }: { businessId: string; personId: string; onClose: () => void }) {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [geofence, setGeofence] = useState<{ lat: number; lng: number; radiusM: number } | null>(null);
   const [avatar, setAvatar] = useState({ color: "var(--navy)", textColor: "#fff", initials: "", name: "" });
@@ -127,7 +129,8 @@ export default function ClockInSheet({ businessId, personId, onClose }: { busine
         </div>
 
         <div className="overflow-y-auto px-4 pt-3.5 pb-6 flex flex-col gap-3">
-          <SelfLocationMap geofence={geofence} avatarColor={avatar.color} avatarText={avatar.textColor} initials={avatar.initials} />
+          <SelfLocationMap geofence={geofence} avatarColor={avatar.color} avatarText={avatar.textColor} initials={avatar.initials}
+            onOpenTeamMap={() => { handleClose(); router.push("/team-map"); }} />
           <ClockInOutCard businessId={businessId} personId={personId} />
 
           <div className="grid grid-cols-2 gap-2.5 mt-1">

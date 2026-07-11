@@ -7,11 +7,14 @@ import "leaflet/dist/leaflet.css";
 // inside the clock-in sheet so the employee can see their own position
 // relative to the workplace geofence before/while clocking in. Purely a
 // visual reassurance; the actual GPS reporting loop lives in ClockInOutCard.
+// Doubles as an entry point into the full live team map (onOpenTeamMap) —
+// tapping it feels natural since it's already "the map", not a dead end.
 export default function SelfLocationMap({
-  geofence, avatarColor, avatarText, initials,
+  geofence, avatarColor, avatarText, initials, onOpenTeamMap,
 }: {
   geofence: { lat: number; lng: number; radiusM: number } | null;
   avatarColor: string; avatarText: string; initials: string;
+  onOpenTeamMap?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -23,7 +26,12 @@ export default function SelfLocationMap({
     const fallback = geofence || { lat: 32.0853, lng: 34.7818 };
     const map = L.map(containerRef.current, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false })
       .setView([fallback.lat, fallback.lng], 16);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+    // CARTO's "Voyager" basemap — a clean, modern-looking free tile set (soft
+    // colors, minimal clutter) instead of the busy default OSM raster tiles.
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      maxZoom: 19,
+      attribution: '© <a href="https://carto.com/attributions">CARTO</a>',
+    }).addTo(map);
     mapRef.current = map;
 
     if (geofence) {
@@ -61,8 +69,20 @@ export default function SelfLocationMap({
   }, [avatarColor, avatarText, initials]);
 
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden flex-shrink-0" style={{ height: 150 }}>
-      <div ref={containerRef} className="w-full h-full" />
+    <button
+      onClick={onOpenTeamMap}
+      disabled={!onOpenTeamMap}
+      className="self-map-card relative w-full rounded-2xl overflow-hidden flex-shrink-0 block text-right transition-transform active:scale-[0.98]"
+      style={{ height: 150, border: "1px solid var(--border)", cursor: onOpenTeamMap ? "pointer" : "default" }}
+    >
+      <div ref={containerRef} className="w-full h-full" style={{ pointerEvents: "none" }} />
+      {onOpenTeamMap && (
+        <div className="absolute bottom-2 right-2 left-2 flex items-center justify-between px-3 py-1.5 rounded-xl flex-row"
+          style={{ background: "rgba(255,255,255,0.92)", backdropFilter: "blur(6px)", boxShadow: "0 4px 14px rgba(11,30,61,0.15)", zIndex: 500 }}>
+          <span className="text-[10px] font-bold" style={{ color: "var(--blue)" }}>←</span>
+          <span className="text-[11px] font-semibold" style={{ color: "var(--navy)" }}>מפה חיה של הצוות</span>
+        </div>
+      )}
       {denied && (
         <div className="absolute inset-0 flex items-center justify-center" style={{ background: "var(--gray-bg)" }}>
           <p className="text-xs text-center px-6" style={{ color: "var(--text-secondary)" }}>
@@ -70,6 +90,6 @@ export default function SelfLocationMap({
           </p>
         </div>
       )}
-    </div>
+    </button>
   );
 }

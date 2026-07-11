@@ -26,7 +26,10 @@ export default function TeamMap({
     if (!containerRef.current || mapRef.current) return;
     const initial = center || { lat: 32.0853, lng: 34.7818 }; // Tel Aviv fallback if no geofence set yet
     const map = L.map(containerRef.current, { zoomControl: false, attributionControl: false }).setView([initial.lat, initial.lng], 16);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      maxZoom: 19,
+      attribution: '© <a href="https://carto.com/attributions">CARTO</a>',
+    }).addTo(map);
     mapRef.current = map;
     return () => { map.remove(); mapRef.current = null; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
