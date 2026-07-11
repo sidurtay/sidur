@@ -85,8 +85,8 @@ export default function Settings() {
   useEffect(() => {
     const stored = getStoredConfig();
     const cfg    = stored.permanent;
-    setBizName(cfg.bizName); setBizId(cfg.bizId);
-    setDays(cfg.days); setRoles(cfg.roles); setInitialized(cfg.initialized);
+    setBizName(cfg.bizName ?? DEFAULT_CONFIG.bizName); setBizId(cfg.bizId ?? DEFAULT_CONFIG.bizId);
+    setDays(cfg.days ?? DEFAULT_CONFIG.days); setRoles(cfg.roles ?? DEFAULT_CONFIG.roles); setInitialized(cfg.initialized ?? DEFAULT_CONFIG.initialized);
     const tm = localStorage.getItem("shiftpro_tips_mode");
     if (tm === "daily" || tm === "per-shift") setTipsMode(tm as TipsMode);
     const rp = localStorage.getItem("shiftpro_role_perms");
@@ -132,7 +132,7 @@ export default function Settings() {
           setPlan(bizRes.business.plan || "starter");
           setShiftSplit(bizRes.business.shiftSplit || "none");
         }
-        if (hoursRes.success) setDays(hoursRes.days);
+        if (hoursRes.success && Array.isArray(hoursRes.days)) setDays(hoursRes.days);
         if (rolesRes.success) setRoles(rolesRes.roles.map((r: { key: string }) => r.key));
         if (permsRes.success) setPerms(prev => ({ ...prev, ...permsRes.perms }));
         setInitialized(true);
