@@ -130,7 +130,7 @@ export default function LandingSidBot({ onSideChange }: { onSideChange?: (side: 
         {open ? <X size={20} color="#fff" /> : (
           <>
             <div style={{ position: "absolute", inset: 3, borderRadius: "50%", background: "#fff", boxShadow: "0 8px 16px rgba(20,24,31,0.35)" }} />
-            <Image src="/ai-character-v2.png" alt="סיד" width={44} height={44} draggable={false}
+            <Image src="/ai-character-v3.png" alt="סיד" width={44} height={44} draggable={false}
               style={{ position: "relative", objectFit: "contain", width: "100%", height: "100%", pointerEvents: "none", WebkitUserDrag: "none" } as React.CSSProperties} />
           </>
         )}
@@ -150,7 +150,7 @@ export default function LandingSidBot({ onSideChange }: { onSideChange?: (side: 
               <p className="text-[10px]" style={{ color: MUTED }}>בוט תשובות מהיר — לא ה-AI המלא</p>
             </div>
             <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
-              <Image src="/ai-character-v2.png" alt="" width={32} height={32} style={{ objectFit: "contain", width: "100%", height: "100%" }} />
+              <Image src="/ai-character-v3.png" alt="" width={32} height={32} style={{ objectFit: "contain", width: "100%", height: "100%" }} />
             </div>
           </div>
 

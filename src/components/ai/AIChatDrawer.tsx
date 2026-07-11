@@ -168,7 +168,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
               </p>
             </div>
             <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
-              <Image src="/ai-character-v2.png" alt="" width={32} height={32} style={{ objectFit: "contain", width: "100%", height: "100%" }} />
+              <Image src="/ai-character-v3.png" alt="" width={32} height={32} style={{ objectFit: "contain", width: "100%", height: "100%" }} />
             </div>
           </div>
         </div>
