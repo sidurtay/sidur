@@ -24,6 +24,7 @@ type Session = { businessId: string; personId: string; name: string; businessNam
 export default function AIChatDrawer({ session, initialMessage, onConsumedInitialMessage, onClose }: {
   session: Session; initialMessage?: string | null; onConsumedInitialMessage?: () => void; onClose: () => void;
 }) {
+  const [mounted, setMounted] = useState(false);
   const [wizardActive, setWizardActive] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -56,6 +57,15 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
     })
   );
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+
+  useEffect(() => {
+    requestAnimationFrame(() => setMounted(true));
+  }, []);
+
+  function handleClose() {
+    setMounted(false);
+    setTimeout(onClose, 220);
+  }
 
   useEffect(() => {
     fetch(`/api/ai/snapshot?businessId=${session.businessId}&personId=${session.personId}`)
@@ -137,8 +147,8 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
   return (
     <div
       className="fixed inset-0 z-[70] flex items-end justify-center"
-      style={{ background: "rgba(20,24,31,0.55)" }}
-      onClick={onClose}
+      style={{ background: mounted ? "rgba(20,24,31,0.55)" : "rgba(20,24,31,0)", transition: "background 0.25s ease" }}
+      onClick={handleClose}
     >
       <div
         onClick={e => e.stopPropagation()}
@@ -149,6 +159,10 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
           height: "80vh",
           direction: "rtl",
           boxShadow: "0 -8px 40px rgba(11,30,61,0.25)",
+          transform: mounted ? "translateY(0) scale(1)" : "translateY(24px) scale(0.98)",
+          opacity: mounted ? 1 : 0,
+          transformOrigin: "bottom center",
+          transition: "transform 0.32s cubic-bezier(0.16,1,0.3,1), opacity 0.24s ease",
         }}
       >
         <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ background: "var(--border)" }} />
@@ -156,7 +170,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 flex-row"
           style={{ borderBottom: "1px solid var(--border)", background: "linear-gradient(180deg, rgba(249,115,22,0.06), transparent)" }}>
-          <button onClick={onClose} className="p-1">
+          <button onClick={handleClose} className="p-1">
             <X size={18} style={{ color: "var(--text-secondary)" }} />
           </button>
           <div className="flex items-center gap-2 flex-row">
@@ -174,7 +188,7 @@ export default function AIChatDrawer({ session, initialMessage, onConsumedInitia
         </div>
 
         {wizardActive && session.isManager ? (
-          <ScheduleBuilderChat onDone={onClose} />
+          <ScheduleBuilderChat onDone={handleClose} />
         ) : (
           <>
             {/* Messages */}
