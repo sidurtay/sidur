@@ -377,7 +377,7 @@ function Register() {
 
               <div className="w-20 h-20 flex items-center justify-center mb-4"
                 style={{ filter: "drop-shadow(0 14px 24px rgba(249,115,22,0.3))" }}>
-                <Image src="/ai-character.png" alt="" width={80} height={80} style={{ objectFit: "contain", width: "100%", height: "100%" }} />
+                <Image src="/ai-character-v2.png" alt="" width={80} height={80} style={{ objectFit: "contain", width: "100%", height: "100%" }} />
               </div>
 
               <div className="mb-2 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 flex-row"
