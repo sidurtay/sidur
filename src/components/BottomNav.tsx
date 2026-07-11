@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CalendarDays, Users, Settings, Clock, Fingerprint } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Users, Settings, Clock, Timer } from "lucide-react";
 import ClockInSheet from "./ClockInSheet";
 
 const managerTabs = [
@@ -78,20 +78,21 @@ export default function BottomNav() {
         {rightTabs.map(renderTab)}
 
         {/* Central clock-in button — pops up above the bar, opens the
-            fingerprint + live-location sheet from anywhere in the app. */}
+            attendance sheet from anywhere in the app. */}
         {session && (
           <button
             onClick={() => setSheetOpen(true)}
             aria-label="שעון נוכחות"
-            className="flex-shrink-0 rounded-full flex items-center justify-center mx-1"
+            className="clock-btn flex-shrink-0 rounded-full flex items-center justify-center mx-1 relative"
             style={{
               width: 68, height: 68, marginTop: -30,
-              background: "linear-gradient(135deg, var(--navy), var(--blue))",
-              boxShadow: "0 10px 26px -4px rgba(249,115,22,0.6)",
+              background: "linear-gradient(150deg, #FDA35D, #F97316 55%, #EA6A0E)",
+              boxShadow: "0 10px 26px -4px rgba(249,115,22,0.55), inset 0 1px 1px rgba(255,255,255,0.4)",
               border: "3.5px solid var(--surface)",
             }}
           >
-            <Fingerprint size={30} color="#fff" />
+            <span className="clock-btn-ring" />
+            <Timer size={28} color="#fff" strokeWidth={2.2} />
           </button>
         )}
 
@@ -101,6 +102,20 @@ export default function BottomNav() {
       {sheetOpen && session && (
         <ClockInSheet businessId={session.businessId} personId={session.personId} onClose={() => setSheetOpen(false)} />
       )}
+
+      <style jsx global>{`
+        .clock-btn { transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1); }
+        .clock-btn:active { transform: scale(0.9); }
+        .clock-btn-ring {
+          position: absolute; inset: -6px; border-radius: 50%;
+          border: 1.5px solid rgba(249,115,22,0.45);
+          animation: clock-btn-pulse 2.4s ease-out infinite;
+        }
+        @keyframes clock-btn-pulse {
+          0% { opacity: 0.6; transform: scale(0.92); }
+          100% { opacity: 0; transform: scale(1.22); }
+        }
+      `}</style>
     </>
   );
 }

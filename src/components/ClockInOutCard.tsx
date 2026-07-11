@@ -149,7 +149,7 @@ export default function ClockInOutCard({ businessId, personId }: { businessId: s
         <>
           <button onClick={handleClockIn} aria-label="כניסה למשמרת בטביעת אצבע"
             className="rounded-full flex items-center justify-center transition-transform active:scale-95"
-            style={{ width: 88, height: 88, background: "var(--navy)", boxShadow: "0 8px 20px -6px rgba(20,24,31,0.45)" }}>
+            style={{ width: 88, height: 88, background: "linear-gradient(150deg, #FDA35D, #F97316 55%, #EA6A0E)", boxShadow: "0 8px 22px -6px rgba(249,115,22,0.55)" }}>
             <Fingerprint size={40} color="#fff" />
           </button>
           <p className="text-sm font-semibold">לחץ לכניסה למשמרת</p>
@@ -176,7 +176,7 @@ export default function ClockInOutCard({ businessId, personId }: { businessId: s
           {geofenceEnabled && <LiveLocationSharing businessId={businessId} personId={personId} />}
           <button onClick={handleClockOut} aria-label="סיום משמרת בטביעת אצבע"
             className="rounded-full flex items-center justify-center transition-transform active:scale-95"
-            style={{ width: 88, height: 88, background: "var(--navy)", boxShadow: "0 8px 20px -6px rgba(20,24,31,0.45)" }}>
+            style={{ width: 88, height: 88, background: "linear-gradient(150deg, #FDA35D, #F97316 55%, #EA6A0E)", boxShadow: "0 8px 22px -6px rgba(249,115,22,0.55)" }}>
             <Fingerprint size={40} color="#fff" />
           </button>
           <p className="text-sm font-semibold">לחץ לסיום משמרת</p>
