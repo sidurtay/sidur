@@ -129,7 +129,7 @@ export default function Splash() {
               <span className="rounded-full" style={{ width: 7, height: 7, background: "#E7EAF0" }} />
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/carousel-schedule.jpg" alt="תצוגת סידור עבודה באפליקציית Sidur" className="w-full object-cover" style={{ height: "calc(100% - 24px)", objectPosition: "top" }} />
+            <img src="/carousel-schedule.jpg" alt="תצוגת סידור עבודה באפליקציית Sidur" className="w-full object-contain" style={{ height: "calc(100% - 24px)", objectPosition: "top" }} />
           </div>
         </div>
 
@@ -209,7 +209,7 @@ export default function Splash() {
                 <span className="rounded-full" style={{ width: 9, height: 9, background: "#E7EAF0" }} />
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/carousel-schedule.jpg" alt="תצוגת סידור עבודה באפליקציית Sidur" className="w-full object-cover" style={{ height: "calc(100% - 34px)", objectPosition: "top" }} />
+              <img src="/carousel-schedule.jpg" alt="תצוגת סידור עבודה באפליקציית Sidur" className="w-full object-contain" style={{ height: "calc(100% - 34px)", objectPosition: "top" }} />
             </div>
           </div>
         </div>
